@@ -2,7 +2,8 @@ import { ApiResponse } from '@/types/api';
 import { getSession } from 'next-auth/react';
 
 // Make sure this matches your backend API URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+// const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_URL = "https://my-profile-server-api.onrender.com/api";
 console.log('User API using URL:', API_URL);
 
 /**

@@ -1,6 +1,7 @@
 // API base URL - use environment variable or default to relative URL
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
+// export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+export const API_URL ="https://my-profile-server-api.onrender.com/api"
+// https://my-profile-server-api.onrender.com/api
 // MyPts value constants
 export const DEFAULT_MYPTS_VALUE = 0.024; // Default value per MyPt in USD
 
