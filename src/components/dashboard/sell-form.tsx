@@ -15,10 +15,61 @@ import { MyPtsBalance } from '@/types/mypts';
 const formSchema = z.object({
   amount: z.number().min(1, 'Amount must be at least 1'),
   paymentMethod: z.string().min(1, 'Payment method is required'),
-  accountDetails: z.record(z.string()).refine((data) => {
-    return Object.keys(data).length > 0 && Object.values(data).every(value => value.trim() !== '');
-  }, {
-    message: 'Account details are required',
+  accountDetails: z.record(z.string()).superRefine((data, ctx) => {
+    // Different validation based on payment method
+    const paymentMethod = ctx.path[0] === 'accountDetails' ?
+      ctx.path[2]?.toString() : undefined;
+
+    if (paymentMethod === 'bank_transfer') {
+      // For bank transfer, require account name, number, and bank name
+      if (!data.accountName || data.accountName.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Account name is required',
+          path: ['accountName']
+        });
+      }
+      if (!data.accountNumber || data.accountNumber.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Account number is required',
+          path: ['accountNumber']
+        });
+      }
+      if (!data.bankName || data.bankName.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Bank name is required',
+          path: ['bankName']
+        });
+      }
+      // Swift code is optional
+    } else if (paymentMethod === 'paypal') {
+      // For PayPal, only require email
+      if (!data.email || data.email.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'PayPal email is required',
+          path: ['email']
+        });
+      }
+    } else if (paymentMethod === 'crypto') {
+      // For crypto, require crypto type and wallet address
+      if (!data.cryptoType || data.cryptoType.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Cryptocurrency type is required',
+          path: ['cryptoType']
+        });
+      }
+      if (!data.walletAddress || data.walletAddress.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Wallet address is required',
+          path: ['walletAddress']
+        });
+      }
+    }
   }),
 });
 
@@ -106,11 +157,17 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
   const handlePaymentMethodChange = (value: string) => {
     setPaymentMethod(value);
     form.setValue('paymentMethod', value);
+
     // Reset account details when payment method changes
     form.setValue('accountDetails', {});
+
+    // Log the payment method change for debugging
+    console.log('Payment method changed to:', value);
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log('Form submission values:', values);
+
     if (values.amount > balance.balance) {
       toast.error('Insufficient balance', {
         description: `You only have ${balance.balance.toLocaleString()} MyPts available.`,
@@ -118,15 +175,54 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
       return;
     }
 
+    // Validate account details based on payment method
+    let isValid = true;
+    const details = values.accountDetails;
+
+    if (values.paymentMethod === 'bank_transfer') {
+      if (!details.accountName || !details.accountNumber || !details.bankName) {
+        toast.error('Missing bank details', {
+          description: 'Please provide all required bank account details',
+        });
+        isValid = false;
+      }
+    } else if (values.paymentMethod === 'paypal') {
+      if (!details.email) {
+        toast.error('Missing PayPal email', {
+          description: 'Please provide your PayPal email address',
+        });
+        isValid = false;
+      }
+    } else if (values.paymentMethod === 'crypto') {
+      if (!details.cryptoType || !details.walletAddress) {
+        toast.error('Missing crypto details', {
+          description: 'Please provide cryptocurrency type and wallet address',
+        });
+        isValid = false;
+      }
+    }
+
+    if (!isValid) return;
+
     setIsLoading(true);
     try {
+      console.log('Sending sell request with:', {
+        amount: values.amount,
+        paymentMethod: values.paymentMethod,
+        accountDetails: values.accountDetails,
+        currency
+      });
+
       const response = await myPtsApi.sellMyPts(values.amount, values.paymentMethod, values.accountDetails);
+      console.log('Sell response:', response);
 
       if (response.success && response.data) {
         toast.success('Successfully sold MyPts!', {
           description: `You sold ${values.amount.toLocaleString()} MyPts for ${getCurrencySymbol(currency)}${currencyAmount.toFixed(2)}.`,
         });
         form.reset();
+        setMyPtsAmount(0);
+        setCurrencyAmount(0);
         if (onSuccess) {
           onSuccess();
         }
@@ -206,19 +302,34 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
         );
       case 'paypal':
         return (
-          <FormField
-            control={form.control}
-            name="accountDetails.email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>PayPal Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="PayPal email address" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <>
+            <FormField
+              control={form.control}
+              name="accountDetails.email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PayPal Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="PayPal email address"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Set the required bankName and accountNumber fields for server validation
+                        form.setValue('accountDetails.bankName', 'PayPal');
+                        form.setValue('accountDetails.accountNumber', e.target.value);
+                        console.log('PayPal email changed:', e.target.value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the email address associated with your PayPal account
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         );
       case 'crypto':
         return (
@@ -229,7 +340,14 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cryptocurrency</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      // Set the required bankName field for server validation
+                      form.setValue('accountDetails.bankName', `Crypto-${value.toUpperCase()}`);
+                    }}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select cryptocurrency" />
@@ -253,7 +371,15 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                 <FormItem>
                   <FormLabel>Wallet Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="Cryptocurrency wallet address" {...field} />
+                    <Input
+                      placeholder="Cryptocurrency wallet address"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Set the required accountNumber field for server validation
+                        form.setValue('accountDetails.accountNumber', e.target.value);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -290,7 +416,7 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                   <FormField
                     control={form.control}
                     name="amount"
-                    render={({ field }) => (
+                    render={({ field: { onChange, ...fieldProps } }) => (
                       <FormItem>
                         <FormLabel>Amount in MyPts</FormLabel>
                         <FormControl>
@@ -299,9 +425,10 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                             min="1"
                             max={balance.balance}
                             step="1"
-                            value={myPtsAmount > 0 ? myPtsAmount : ''}
                             onChange={(e) => handleMyPtsAmountChange(e.target.value)}
                             placeholder="0"
+                            {...fieldProps}
+                            value={myPtsAmount > 0 ? myPtsAmount : ''}
                           />
                         </FormControl>
                         <FormDescription>
