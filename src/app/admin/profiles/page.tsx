@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
+import { Pagination } from '@/components/custom/pagination';
 import { ProfilesTable } from '@/components/admin/profiles-table';
 import { toast } from 'sonner';
 import { Search, RefreshCw } from 'lucide-react';
@@ -151,7 +151,7 @@ export default function AdminProfilesPage() {
           {totalPages > 1 && (
             <div className="mt-4 flex justify-center">
               <Pagination
-                currentPage={page}
+                        currentPage={page}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
               />

@@ -46,20 +46,21 @@ export default function DonatePage() {
     <MainLayout>
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">Donate MyPts</h1>
-        
+
         <div className="grid gap-6 md:grid-cols-2">
           <div>
             {balance ? (
-              <BalanceCard 
-                balance={balance} 
-                isLoading={isLoading} 
-                onCurrencyChange={handleCurrencyChange} 
+              <BalanceCard
+                balance={balance}
+                isLoading={isLoading}
+                onCurrencyChange={handleCurrencyChange}
+                currency={currency}
               />
             ) : (
               <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
             )}
           </div>
-          
+
           <div>
             {balance && <DonateForm balance={balance} onSuccess={fetchBalance} />}
           </div>

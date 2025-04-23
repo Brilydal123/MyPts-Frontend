@@ -470,7 +470,7 @@ function ProfileTransactions() {
                   <PaginationItem>
                     <PaginationPrevious
                       onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
+                      aria-disabled={currentPage === 1}
                     />
                   </PaginationItem>
 
@@ -498,7 +498,7 @@ function ProfileTransactions() {
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={!data.pagination.hasMore}
+                      aria-disabled={currentPage === 1}
                     />
                   </PaginationItem>
                 </PaginationContent>

@@ -11,12 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Plus, 
-  Trash2, 
-  Edit, 
-  RefreshCw, 
-  CheckCircle, 
+import {
+  Plus,
+  Trash2,
+  Edit,
+  RefreshCw,
+  CheckCircle,
   XCircle,
   AlertTriangle,
   DollarSign,
@@ -55,17 +55,17 @@ function ExchangeRates() {
     rate: 0,
     symbol: ''
   });
-  
+
   // State for editing currencies
   const [editingCurrencies, setEditingCurrencies] = useState<Record<string, number>>({});
-  
+
   // State for the dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   // Fetch supported currencies
-  const { 
-    data: currenciesData, 
-    isLoading: isLoadingCurrencies, 
+  const {
+    data: currenciesData,
+    isLoading: isLoadingCurrencies,
     isError: isErrorCurrencies,
     refetch: refetchCurrencies
   } = useQuery({
@@ -79,11 +79,11 @@ function ExchangeRates() {
     },
     refetchOnWindowFocus: false,
   });
-  
+
   // Fetch current value to get exchange rates
-  const { 
-    data: valueData, 
-    isLoading: isLoadingValue, 
+  const {
+    data: valueData,
+    isLoading: isLoadingValue,
     isError: isErrorValue,
     refetch: refetchValue
   } = useQuery({
@@ -97,7 +97,7 @@ function ExchangeRates() {
     },
     refetchOnWindowFocus: false,
   });
-  
+
   // Initialize editing currencies when data is loaded
   useEffect(() => {
     if (valueData?.exchangeRates) {
@@ -108,7 +108,7 @@ function ExchangeRates() {
       setEditingCurrencies(initialEditingState);
     }
   }, [valueData]);
-  
+
   // Mutation for updating exchange rates
   const updateRatesMutation = useMutation({
     mutationFn: async (exchangeRates: ExchangeRate[]) => {
@@ -124,13 +124,13 @@ function ExchangeRates() {
       refetchValue();
     }
   });
-  
+
   // Handle adding a new currency
   const handleAddCurrency = () => {
     if (!newCurrency.currency || !newCurrency.symbol || newCurrency.rate <= 0) {
       return;
     }
-    
+
     // Prepare the exchange rates to update
     const exchangeRates: ExchangeRate[] = [
       {
@@ -139,36 +139,36 @@ function ExchangeRates() {
         symbol: newCurrency.symbol
       }
     ];
-    
+
     // Update exchange rates
     updateRatesMutation.mutate(exchangeRates);
-    
+
     // Reset form
     setNewCurrency({
       currency: '',
       rate: 0,
       symbol: ''
     });
-    
+
     // Close dialog
     setIsDialogOpen(false);
   };
-  
+
   // Handle updating exchange rates
   const handleUpdateRates = () => {
     if (!valueData?.exchangeRates) return;
-    
+
     // Prepare the exchange rates to update
     const exchangeRates: ExchangeRate[] = valueData.exchangeRates.map(rate => ({
       currency: rate.currency,
       rate: editingCurrencies[rate.currency] || rate.rate,
       symbol: rate.symbol
     }));
-    
+
     // Update exchange rates
     updateRatesMutation.mutate(exchangeRates);
   };
-  
+
   // Handle input change for editing rates
   const handleRateChange = (currency: string, value: string) => {
     const numericValue = parseFloat(value);
@@ -179,7 +179,7 @@ function ExchangeRates() {
       }));
     }
   };
-  
+
   // Handle input change for new currency form
   const handleNewCurrencyChange = (field: keyof ExchangeRate, value: string) => {
     if (field === 'rate') {
@@ -197,17 +197,17 @@ function ExchangeRates() {
       }));
     }
   };
-  
+
   // Calculate USD value for a currency
   const getUsdValue = (rate: number): number => {
     if (!valueData) return 0;
-    return valueData.baseValue * rate;
+    return valueData.valuePerPts * rate;
   };
-  
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6">Exchange Rates Management</h1>
-      
+
       <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -225,7 +225,7 @@ function ExchangeRates() {
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
               </Button>
-              
+
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -240,7 +240,7 @@ function ExchangeRates() {
                       Add a new currency and its exchange rate relative to USD
                     </DialogDescription>
                   </DialogHeader>
-                  
+
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -255,7 +255,7 @@ function ExchangeRates() {
                           Use standard 3-letter currency codes
                         </p>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="currencySymbol">Currency Symbol</Label>
                         <Input
@@ -269,7 +269,7 @@ function ExchangeRates() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="exchangeRate">Exchange Rate (relative to USD)</Label>
                       <div className="relative">
@@ -290,7 +290,7 @@ function ExchangeRates() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancel
@@ -303,7 +303,7 @@ function ExchangeRates() {
               </Dialog>
             </div>
           </CardHeader>
-          
+
           <CardContent>
             {updateRatesMutation.isSuccess && (
               <Alert variant="default" className="mb-4">
@@ -314,19 +314,19 @@ function ExchangeRates() {
                 </AlertDescription>
               </Alert>
             )}
-            
+
             {updateRatesMutation.isError && (
               <Alert variant="destructive" className="mb-4">
                 <XCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
-                  {updateRatesMutation.error instanceof Error 
-                    ? updateRatesMutation.error.message 
+                  {updateRatesMutation.error instanceof Error
+                    ? updateRatesMutation.error.message
                     : 'Failed to update exchange rates'}
                 </AlertDescription>
               </Alert>
             )}
-            
+
             {(isLoadingCurrencies || isLoadingValue) ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -347,10 +347,10 @@ function ExchangeRates() {
                     Base currency: <span className="font-medium">{valueData?.baseCurrency} ({valueData?.baseSymbol})</span>
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Base value per MyPt: <span className="font-medium">{valueData?.baseSymbol}{valueData?.baseValue.toFixed(4)}</span>
+                    Base value per MyPt: <span className="font-medium">{valueData?.baseSymbol}{valueData?.valuePerPts.toFixed(4)}</span>
                   </p>
                 </div>
-                
+
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -367,7 +367,7 @@ function ExchangeRates() {
                       <TableCell className="font-medium">{valueData?.baseCurrency}</TableCell>
                       <TableCell>{valueData?.baseSymbol}</TableCell>
                       <TableCell>1.0 (Base)</TableCell>
-                      <TableCell>{valueData?.baseSymbol}{valueData?.baseValue.toFixed(4)}</TableCell>
+                      <TableCell>{valueData?.baseSymbol}{valueData?.valuePerPts.toFixed(4)}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" disabled>
                           <Edit className="h-4 w-4 mr-1" />
@@ -375,7 +375,7 @@ function ExchangeRates() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                    
+
                     {/* Other currencies */}
                     {valueData?.exchangeRates.map((rate) => (
                       <TableRow key={rate.currency}>
@@ -400,8 +400,8 @@ function ExchangeRates() {
                           {rate.symbol}{getUsdValue(editingCurrencies[rate.currency] || rate.rate).toFixed(4)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             disabled={rate.rate === editingCurrencies[rate.currency]}
                             onClick={() => {
@@ -424,17 +424,17 @@ function ExchangeRates() {
               </>
             )}
           </CardContent>
-          
+
           <CardFooter className="flex justify-between">
             <p className="text-sm text-muted-foreground">
               {valueData?.exchangeRates.length} currencies supported in addition to {valueData?.baseCurrency}
             </p>
-            
-            <Button 
+
+            <Button
               onClick={handleUpdateRates}
               disabled={
-                updateRatesMutation.isPending || 
-                !valueData?.exchangeRates || 
+                updateRatesMutation.isPending ||
+                !valueData?.exchangeRates ||
                 valueData.exchangeRates.every(rate => rate.rate === editingCurrencies[rate.currency])
               }
             >

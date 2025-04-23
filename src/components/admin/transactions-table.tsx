@@ -60,9 +60,9 @@ export function TransactionsTable({ transactions, isLoading, onRefresh }: Transa
   const getStatusBadge = (status: string) => {
     switch (status) {
       case TransactionStatus.COMPLETED:
-        return <Badge variant="success">Completed</Badge>;
+        return <Badge variant="default">Completed</Badge>;
       case TransactionStatus.PENDING:
-        return <Badge variant="warning">Pending</Badge>;
+        return <Badge variant="secondary">Pending</Badge>;
       case TransactionStatus.FAILED:
         return <Badge variant="destructive">Failed</Badge>;
       case TransactionStatus.CANCELLED:
@@ -79,15 +79,15 @@ export function TransactionsTable({ transactions, isLoading, onRefresh }: Transa
       case TransactionType.SELL_MYPTS:
         return <Badge variant="secondary">Sell</Badge>;
       case TransactionType.EARN_MYPTS:
-        return <Badge variant="success">Earn</Badge>;
+        return <Badge variant="default">Earn</Badge>;
       case TransactionType.PURCHASE_PRODUCT:
         return <Badge variant="destructive">Purchase</Badge>;
       case TransactionType.RECEIVE_PRODUCT_PAYMENT:
-        return <Badge variant="success">Payment</Badge>;
+        return <Badge variant="default">Payment</Badge>;
       case TransactionType.DONATION_SENT:
-        return <Badge variant="warning">Donation Sent</Badge>;
+        return <Badge variant="secondary">Donation Sent</Badge>;
       case TransactionType.DONATION_RECEIVED:
-        return <Badge variant="success">Donation Received</Badge>;
+        return <Badge variant="default">Donation Received</Badge>;
       case TransactionType.REFUND:
         return <Badge variant="outline">Refund</Badge>;
       case TransactionType.ADJUSTMENT:
@@ -135,7 +135,7 @@ export function TransactionsTable({ transactions, isLoading, onRefresh }: Transa
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead 
+              <TableHead
                 className="cursor-pointer"
                 onClick={() => handleSort('createdAt')}
               >
@@ -146,7 +146,7 @@ export function TransactionsTable({ transactions, isLoading, onRefresh }: Transa
               </TableHead>
               <TableHead>Transaction ID</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead 
+              <TableHead
                 className="cursor-pointer"
                 onClick={() => handleSort('amount')}
               >
@@ -206,46 +206,46 @@ export function TransactionsTable({ transactions, isLoading, onRefresh }: Transa
               {selectedTransaction && formatDate(selectedTransaction.createdAt)}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedTransaction && (
             <div className="grid grid-cols-2 gap-4 py-4">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Transaction ID</p>
                 <p className="font-mono text-xs break-all">{selectedTransaction._id}</p>
               </div>
-              
+
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Type</p>
                 <div>{getTypeBadge(selectedTransaction.type)}</div>
               </div>
-              
+
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Amount</p>
                 <p className="font-medium">{selectedTransaction.amount.toLocaleString()} MyPts</p>
               </div>
-              
+
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Status</p>
                 <div>{getStatusBadge(selectedTransaction.status)}</div>
               </div>
-              
+
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Profile ID</p>
                 <p className="font-mono text-xs break-all">{selectedTransaction.profileId}</p>
               </div>
-              
+
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Balance After</p>
                 <p className="font-medium">{selectedTransaction.balance.toLocaleString()} MyPts</p>
               </div>
-              
+
               {selectedTransaction.description && (
                 <div className="col-span-2 space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Description</p>
                   <p>{selectedTransaction.description}</p>
                 </div>
               )}
-              
+
               {selectedTransaction.metadata && (
                 <div className="col-span-2 space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Metadata</p>

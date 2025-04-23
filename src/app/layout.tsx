@@ -30,12 +30,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${manrope.variable} ${geistMono.variable} antialiased`}
+        className={`${manrope.variable}  antialiased`}
       >
         <NextAuthProvider>
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+              <div className="font-manrope">
               {children}
+              </div>
               <Toaster position="top-right" richColors />
             </ThemeProvider>
           </ReactQueryProvider>

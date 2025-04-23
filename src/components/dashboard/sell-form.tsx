@@ -51,17 +51,17 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
       try {
         const response = await myPtsValueApi.getCurrentValue();
         if (response.success && response.data) {
-          const value = response.data;
+          const value:any = response.data;
           let rate = value.baseValue; // Default USD rate
-          
+
           // Find the exchange rate for the selected currency
           if (currency !== 'USD') {
-            const exchangeRate = value.exchangeRates.find(er => er.currency === currency);
+            const exchangeRate = value.exchangeRates.find((er: { currency: string; }) => er.currency === currency);
             if (exchangeRate) {
               rate = value.baseValue * exchangeRate.rate;
             }
           }
-          
+
           setConversionRate(rate);
         }
       } catch (error) {
@@ -121,7 +121,7 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
     setIsLoading(true);
     try {
       const response = await myPtsApi.sellMyPts(values.amount, values.paymentMethod, values.accountDetails);
-      
+
       if (response.success && response.data) {
         toast.success('Successfully sold MyPts!', {
           description: `You sold ${values.amount.toLocaleString()} MyPts for ${getCurrencySymbol(currency)}${currencyAmount.toFixed(2)}.`,
@@ -284,7 +284,7 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                   className="w-[140px]"
                 />
               </div>
-              
+
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <FormField
@@ -312,7 +312,7 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                     )}
                   />
                 </div>
-                
+
                 <div className="grid gap-2">
                   <FormLabel>Amount in {currency}</FormLabel>
                   <div className="relative">
@@ -334,15 +334,15 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                   </FormDescription>
                 </div>
               </div>
-              
+
               <FormField
                 control={form.control}
                 name="paymentMethod"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Payment Method</FormLabel>
-                    <Select 
-                      onValueChange={handlePaymentMethodChange} 
+                    <Select
+                      onValueChange={handlePaymentMethodChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -363,13 +363,13 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                   </FormItem>
                 )}
               />
-              
+
               <div className="space-y-4">
                 <h3 className="text-sm font-medium">Account Details</h3>
                 {renderAccountDetailsFields()}
               </div>
             </div>
-            
+
             <div className="bg-muted p-4 rounded-lg">
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Rate:</span>
@@ -384,7 +384,7 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                 <span>{getCurrencySymbol(currency)}{currencyAmount.toFixed(2)}</span>
               </div>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading || amount <= 0}>
               {isLoading ? 'Processing...' : 'Sell MyPts'}
             </Button>

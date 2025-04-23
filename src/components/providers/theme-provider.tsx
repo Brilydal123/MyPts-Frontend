@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { type ThemeProviderProps } from 'next-themes/dist/types';
+// import { type ThemeProviderProps } from 'next-themes/dist/types';
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+export function ThemeProvider({ children, ...props }: any) {
   const [mounted, setMounted] = useState(false);
 
   // Prevent hydration mismatch by only rendering after component is mounted

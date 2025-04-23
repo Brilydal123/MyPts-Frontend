@@ -59,7 +59,7 @@ export function TransactionList({
     }
   };
 
-  const getTransactionStatusBadge = (status: TransactionStatus): JSX.Element => {
+  const getTransactionStatusBadge = (status: TransactionStatus): any => {
     let bgColor = '';
     let textColor = '';
 
@@ -89,7 +89,7 @@ export function TransactionList({
     );
   };
 
-  const getTransactionIcon = (type: TransactionType, amount: number): JSX.Element => {
+  const getTransactionIcon = (type: TransactionType, amount: number): any => {
     if (amount > 0) {
       return <ArrowUpRight className="h-4 w-4 text-green-600" />;
     } else {

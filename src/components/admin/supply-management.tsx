@@ -100,7 +100,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
       }
 
       const response = await myPtsHubApi.issueMyPts(values.amount, values.reason, metadata);
-      
+
       if (response.success && response.data) {
         toast.success('Successfully issued MyPts', {
           description: `Issued ${values.amount.toLocaleString()} MyPts to the reserve.`,
@@ -142,7 +142,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
       }
 
       const response = await myPtsHubApi.moveToCirculation(values.amount, values.reason, metadata);
-      
+
       if (response.success && response.data) {
         toast.success('Successfully moved MyPts to circulation', {
           description: `Moved ${values.amount.toLocaleString()} MyPts from reserve to circulation.`,
@@ -184,7 +184,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
       }
 
       const response = await myPtsHubApi.moveToReserve(values.amount, values.reason, metadata);
-      
+
       if (response.success && response.data) {
         toast.success('Successfully moved MyPts to reserve', {
           description: `Moved ${values.amount.toLocaleString()} MyPts from circulation to reserve.`,
@@ -217,11 +217,11 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
     setIsLoading(true);
     try {
       const response = await myPtsHubApi.adjustMaxSupply(values.maxSupply, values.reason);
-      
+
       if (response.success && response.data) {
         toast.success('Successfully adjusted maximum supply', {
-          description: values.maxSupply === null 
-            ? 'Removed maximum supply limit.' 
+          description: values.maxSupply === null
+            ? 'Removed maximum supply limit.'
             : `Set maximum supply to ${values.maxSupply.toLocaleString()} MyPts.`,
         });
         maxSupplyForm.reset({ maxSupply: values.maxSupply, reason: '' });
@@ -245,7 +245,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
     setIsLoading(true);
     try {
       const response = await myPtsHubApi.updateValuePerMyPt(values.value);
-      
+
       if (response.success && response.data) {
         toast.success('Successfully updated MyPts value', {
           description: `Set MyPts value to $${values.value.toFixed(6)}.`,
@@ -281,7 +281,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
             <TabsTrigger value="maxSupply">Max Supply</TabsTrigger>
             <TabsTrigger value="value">Value</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="issue">
             <Form {...issueForm}>
               <form onSubmit={issueForm.handleSubmit(handleIssue)} className="space-y-4">
@@ -307,7 +307,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={issueForm.control}
                   name="reason"
@@ -324,7 +324,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={issueForm.control}
                   name="metadata"
@@ -345,7 +345,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Current total supply:</span>
@@ -362,14 +362,14 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </span>
                   </div>
                 </div>
-                
+
                 <Button type="submit" className="w-full" disabled={isLoading || issueForm.watch('amount') <= 0}>
                   {isLoading ? 'Processing...' : 'Issue MyPts'}
                 </Button>
               </form>
             </Form>
           </TabsContent>
-          
+
           <TabsContent value="toCirculation">
             <Form {...moveToCirculationForm}>
               <form onSubmit={moveToCirculationForm.handleSubmit(handleMoveToCirculation)} className="space-y-4">
@@ -396,7 +396,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={moveToCirculationForm.control}
                   name="reason"
@@ -413,7 +413,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={moveToCirculationForm.control}
                   name="metadata"
@@ -434,7 +434,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Current reserve supply:</span>
@@ -451,13 +451,13 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </span>
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={
-                    isLoading || 
-                    moveToCirculationForm.watch('amount') <= 0 || 
+                    isLoading ||
+                    moveToCirculationForm.watch('amount') <= 0 ||
                     moveToCirculationForm.watch('amount') > hubState.reserveSupply
                   }
                 >
@@ -466,7 +466,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
               </form>
             </Form>
           </TabsContent>
-          
+
           <TabsContent value="toReserve">
             <Form {...moveToReserveForm}>
               <form onSubmit={moveToReserveForm.handleSubmit(handleMoveToReserve)} className="space-y-4">
@@ -493,7 +493,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={moveToReserveForm.control}
                   name="reason"
@@ -510,7 +510,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={moveToReserveForm.control}
                   name="metadata"
@@ -531,7 +531,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Current circulating supply:</span>
@@ -548,13 +548,13 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </span>
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={
-                    isLoading || 
-                    moveToReserveForm.watch('amount') <= 0 || 
+                    isLoading ||
+                    moveToReserveForm.watch('amount') <= 0 ||
                     moveToReserveForm.watch('amount') > hubState.circulatingSupply
                   }
                 >
@@ -563,7 +563,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
               </form>
             </Form>
           </TabsContent>
-          
+
           <TabsContent value="maxSupply">
             <Form {...maxSupplyForm}>
               <form onSubmit={maxSupplyForm.handleSubmit(handleAdjustMaxSupply)} className="space-y-4">
@@ -585,7 +585,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     Unlimited supply (no maximum)
                   </label>
                 </div>
-                
+
                 {maxSupplyForm.watch('maxSupply') !== null && (
                   <FormField
                     control={maxSupplyForm.control}
@@ -611,7 +611,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     )}
                   />
                 )}
-                
+
                 <FormField
                   control={maxSupplyForm.control}
                   name="reason"
@@ -628,7 +628,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Current total supply:</span>
@@ -641,20 +641,20 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                   <div className="flex justify-between font-medium border-t pt-2 mt-2">
                     <span>New maximum supply:</span>
                     <span>
-                      {maxSupplyForm.watch('maxSupply') === null 
-                        ? 'Unlimited' 
-                        : maxSupplyForm.watch('maxSupply').toLocaleString() + ' MyPts'}
+                      {maxSupplyForm.watch('maxSupply') === null
+                        ? 'Unlimited'
+                        : (maxSupplyForm.watch('maxSupply') ?? 0).toLocaleString() + ' MyPts'}
                     </span>
                   </div>
                 </div>
-                
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Processing...' : 'Adjust Maximum Supply'}
                 </Button>
               </form>
             </Form>
           </TabsContent>
-          
+
           <TabsContent value="value">
             <Form {...valueForm}>
               <form onSubmit={valueForm.handleSubmit(handleUpdateValue)} className="space-y-4">
@@ -687,7 +687,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Current value per MyPt:</span>
@@ -704,7 +704,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     </span>
                   </div>
                 </div>
-                
+
                 <Button type="submit" className="w-full" disabled={isLoading || valueForm.watch('value') <= 0}>
                   {isLoading ? 'Processing...' : 'Update Value'}
                 </Button>

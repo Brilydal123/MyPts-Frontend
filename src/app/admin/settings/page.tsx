@@ -11,12 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Settings, 
-  DollarSign, 
-  Infinity, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Settings,
+  DollarSign,
+  Infinity,
+  AlertTriangle,
+  CheckCircle,
   XCircle,
   RefreshCw
 } from 'lucide-react';
@@ -39,7 +39,7 @@ function AdminSettings() {
   const [maxSupply, setMaxSupply] = useState<string>('');
   const [isUnlimited, setIsUnlimited] = useState(true);
   const [adjustReason, setAdjustReason] = useState('Adjustment from admin panel');
-  
+
   // State for mutations
   const [isUpdatingValue, setIsUpdatingValue] = useState(false);
   const [isAdjustingMaxSupply, setIsAdjustingMaxSupply] = useState(false);
@@ -47,11 +47,11 @@ function AdminSettings() {
   const [adjustMaxSupplyResult, setAdjustMaxSupplyResult] = useState<any>(null);
   const [updateValueError, setUpdateValueError] = useState<string | null>(null);
   const [adjustMaxSupplyError, setAdjustMaxSupplyError] = useState<string | null>(null);
-  
+
   // Fetch hub state
-  const { 
-    data: hubState, 
-    isLoading: isHubStateLoading, 
+  const {
+    data: hubState,
+    isLoading: isHubStateLoading,
     isError: isHubStateError,
     refetch: refetchHubState
   } = useQuery({
@@ -61,34 +61,36 @@ function AdminSettings() {
       if (!response.success) {
         throw new Error(response.message || 'Failed to fetch hub state');
       }
-      
+
       // Set initial values
-      setValuePerMyPt(response.data.valuePerMyPt.toString());
-      setIsUnlimited(response.data.maxSupply === null);
-      setMaxSupply(response.data.maxSupply?.toString() || '');
-      
+      if (response.data) {
+        setValuePerMyPt(response.data.valuePerMyPt.toString());
+        setIsUnlimited(response.data.maxSupply === null);
+        setMaxSupply(response.data.maxSupply?.toString() || '');
+      }
+
       return response.data;
     },
     refetchOnWindowFocus: false,
   });
-  
+
   // Handle updating value per MyPt
   const handleUpdateValue = async () => {
     try {
       setIsUpdatingValue(true);
       setUpdateValueError(null);
-      
+
       const value = parseFloat(valuePerMyPt);
       if (isNaN(value) || value <= 0) {
         throw new Error('Value must be a positive number');
       }
-      
+
       const response = await myPtsHubApi.updateValuePerMyPt(value);
-      
+
       if (!response.success) {
         throw new Error(response.message || 'Failed to update value');
       }
-      
+
       setUpdateValueResult(response.data);
       refetchHubState();
     } catch (error) {
@@ -98,15 +100,15 @@ function AdminSettings() {
       setIsUpdatingValue(false);
     }
   };
-  
+
   // Handle adjusting max supply
   const handleAdjustMaxSupply = async () => {
     try {
       setIsAdjustingMaxSupply(true);
       setAdjustMaxSupplyError(null);
-      
+
       let maxSupplyValue: number | null = null;
-      
+
       if (!isUnlimited) {
         const value = parseInt(maxSupply);
         if (isNaN(value) || value <= 0) {
@@ -114,13 +116,13 @@ function AdminSettings() {
         }
         maxSupplyValue = value;
       }
-      
+
       const response = await myPtsHubApi.adjustMaxSupply(maxSupplyValue, adjustReason);
-      
+
       if (!response.success) {
         throw new Error(response.message || 'Failed to adjust maximum supply');
       }
-      
+
       setAdjustMaxSupplyResult(response.data);
       refetchHubState();
     } catch (error) {
@@ -130,17 +132,17 @@ function AdminSettings() {
       setIsAdjustingMaxSupply(false);
     }
   };
-  
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6">Admin Settings</h1>
-      
+
       <Tabs defaultValue="hub" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="hub">Hub Settings</TabsTrigger>
           <TabsTrigger value="system">System Settings</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="hub" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Value Per MyPt Card */}
@@ -162,7 +164,7 @@ function AdminSettings() {
                       </AlertDescription>
                     </Alert>
                   )}
-                  
+
                   {updateValueError && (
                     <Alert variant="destructive" className="mb-4">
                       <XCircle className="h-4 w-4" />
@@ -172,7 +174,7 @@ function AdminSettings() {
                       </AlertDescription>
                     </Alert>
                   )}
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="valuePerMyPt">Value in USD</Label>
                     <div className="relative">
@@ -192,7 +194,7 @@ function AdminSettings() {
                       Current value: ${hubState?.valuePerMyPt.toFixed(3)} USD per MyPt
                     </p>
                   </div>
-                  
+
                   {hubState && (
                     <div className="pt-4">
                       <h3 className="text-sm font-medium mb-2">Total Value</h3>
@@ -210,8 +212,8 @@ function AdminSettings() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={handleUpdateValue}
                   disabled={isUpdatingValue || !valuePerMyPt || parseFloat(valuePerMyPt) <= 0}
                 >
@@ -226,7 +228,7 @@ function AdminSettings() {
                 </Button>
               </CardFooter>
             </Card>
-            
+
             {/* Maximum Supply Card */}
             <Card>
               <CardHeader>
@@ -246,7 +248,7 @@ function AdminSettings() {
                       </AlertDescription>
                     </Alert>
                   )}
-                  
+
                   {adjustMaxSupplyError && (
                     <Alert variant="destructive" className="mb-4">
                       <XCircle className="h-4 w-4" />
@@ -256,7 +258,7 @@ function AdminSettings() {
                       </AlertDescription>
                     </Alert>
                   )}
-                  
+
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="unlimited"
@@ -268,7 +270,7 @@ function AdminSettings() {
                       Unlimited Supply
                     </Label>
                   </div>
-                  
+
                   {!isUnlimited && (
                     <div className="space-y-2 pt-2">
                       <Label htmlFor="maxSupply">Maximum Supply</Label>
@@ -283,7 +285,7 @@ function AdminSettings() {
                       />
                     </div>
                   )}
-                  
+
                   <div className="space-y-2 pt-2">
                     <Label htmlFor="adjustReason">Reason for adjustment</Label>
                     <Input
@@ -293,7 +295,7 @@ function AdminSettings() {
                       onChange={(e) => setAdjustReason(e.target.value)}
                     />
                   </div>
-                  
+
                   {hubState && (
                     <div className="pt-4">
                       <h3 className="text-sm font-medium mb-2">Current Supply</h3>
@@ -319,11 +321,11 @@ function AdminSettings() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={handleAdjustMaxSupply}
                   disabled={
-                    isAdjustingMaxSupply || 
+                    isAdjustingMaxSupply ||
                     (!isUnlimited && (!maxSupply || parseInt(maxSupply) <= 0)) ||
                     !adjustReason
                   }
@@ -341,7 +343,7 @@ function AdminSettings() {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="system" className="mt-6">
           <Card>
             <CardHeader>
@@ -359,11 +361,11 @@ function AdminSettings() {
                     Additional system settings will be available in a future update.
                   </AlertDescription>
                 </Alert>
-                
+
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">General Settings</h3>
                   <Separator />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="systemName">System Name</Label>
@@ -374,7 +376,7 @@ function AdminSettings() {
                         disabled
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="adminEmail">Admin Email</Label>
                       <Input
@@ -386,7 +388,7 @@ function AdminSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 pt-2">
                     <div className="flex items-center space-x-2">
                       <Switch id="maintenanceMode" disabled />

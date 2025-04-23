@@ -58,7 +58,7 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={value?.from}
             selected={value}
-            onSelect={onChange}
+            onSelect={(range) => range && onChange(range)}
             numberOfMonths={2}
           />
           <div className="flex justify-between p-3 border-t">

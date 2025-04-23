@@ -54,7 +54,7 @@ export default function SellPage() {
                 balance={balance}
                 isLoading={isLoading}
                 onCurrencyChange={handleCurrencyChange}
-                currency={""}
+                currency={currency}
               />
             ) : (
               <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
