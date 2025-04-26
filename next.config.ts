@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   // Add experimental features
   experimental: {
     // Enable app directory
-    appDir: true,
+    // appDir: true,
     // Disable server components for now to avoid hydration issues
     serverComponentsExternalPackages: [],
   },
