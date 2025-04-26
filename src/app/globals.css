@@ -1,4 +1,4 @@
-@import "tailwindcss/preflight";
+
 @tailwind utilities;
 
 @theme inline {
