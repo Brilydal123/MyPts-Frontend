@@ -85,7 +85,7 @@ function PaymentSuccessContent() {
 
     if (!paymentIntent || !paymentIntentClientSecret) {
       setStatus('error');
-      setMessage('Invalid payment information. Please try again...');
+      setMessage('Invalid payment information... Please try again...');
       return;
     }
 
