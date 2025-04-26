@@ -1,6 +1,6 @@
 // API base URL - use environment variable or default to relative URL
-// export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-export const API_URL ="https://my-profile-server-api.onrender.com/api"
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// export const API_URL ="https://my-profile-server-api.onrender.com/api"
 // https://my-profile-server-api.onrender.com/api
 // MyPts value constants
 export const DEFAULT_MYPTS_VALUE = 0.024; // Default value per MyPt in USD
@@ -15,7 +15,7 @@ export const DIRECT_CONVERSIONS: Record<string, { value: number, symbol: string 
 };
 
 // Request timeout in milliseconds
-export const REQUEST_TIMEOUT = 10000; // 10 seconds
+export const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 // Pagination defaults
 export const DEFAULT_PAGE_SIZE = 20;

@@ -69,7 +69,7 @@ function ProfileTransactions() {
           params.type = selectedType;
         }
 
-        if (selectedProfileId) {
+        if (selectedProfileId && selectedProfileId.trim() !== '') {
           params.profileId = selectedProfileId;
         }
 

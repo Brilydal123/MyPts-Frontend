@@ -16,10 +16,14 @@ export default function BuyPage() {
   const fetchBalance = async () => {
     setIsLoading(true);
     try {
+      console.log("Fetching updated balance...");
       const response = await myPtsApi.getBalance(currency);
       if (response.success && response.data) {
+        console.log("Balance updated successfully:", response.data.balance);
         setBalance(response.data);
+        return response.data;
       } else {
+        console.error("Failed to fetch balance:", response.message);
         toast.error("Failed to fetch balance", {
           description: response.message || "An error occurred",
         });
@@ -32,6 +36,7 @@ export default function BuyPage() {
     } finally {
       setIsLoading(false);
     }
+    return null;
   };
 
   useEffect(() => {

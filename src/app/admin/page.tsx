@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import { HubStats } from '@/components/admin/hub-stats';
 import { SystemVerification } from '@/components/admin/system-verification';
 import { RecentTransactions } from '@/components/admin/recent-transactions';
+import { PendingSellTransactions } from '@/components/admin/pending-sell-transactions';
+import { AdminNotificationCenter } from '@/components/admin/notification-center';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { myPtsHubApi, myPtsValueApi } from '@/lib/api/mypts-api';
 import { MyPtsHubState, MyPtsValue } from '@/types/mypts';
@@ -21,17 +23,17 @@ export default function AdminDashboardPage() {
   const [hubState, setHubState] = useState<MyPtsHubState | null>(null);
   const [value, setValue] = useState<MyPtsValue | null>(null);
   const [manualCheckPassed, setManualCheckPassed] = useState(false);
-  
+
   // Manual admin check - we know this specific ID is admin regardless of session
   const KNOWN_ADMIN_ID = '67e8422eb722d77adcee042a';
-  
+
   // Check if current user is our known admin by ID
   useEffect(() => {
     // Debug the current user ID
     console.log('Current user ID:', session?.user?.id);
     console.log('Known admin ID:', KNOWN_ADMIN_ID);
     console.log('ID match?', session?.user?.id === KNOWN_ADMIN_ID);
-    
+
     // If user ID matches known admin ID, bypass regular admin checks
     if (session?.user?.id === KNOWN_ADMIN_ID) {
       console.log('Manual admin check passed!');
@@ -110,7 +112,7 @@ export default function AdminDashboardPage() {
             </Alert>
           )}
         </div>
-        
+
         {hubState && value ? (
           <HubStats hubState={hubState} value={value} isLoading={isLoading} />
         ) : (
@@ -120,7 +122,7 @@ export default function AdminDashboardPage() {
             ))}
           </div>
         )}
-        
+
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -138,8 +140,8 @@ export default function AdminDashboardPage() {
                       <span>{((hubState.circulatingSupply / hubState.totalSupply) * 100).toFixed(2)}%</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary" 
+                      <div
+                        className="h-full bg-primary"
                         style={{ width: `${(hubState.circulatingSupply / hubState.totalSupply) * 100}%` }}
                       ></div>
                     </div>
@@ -147,15 +149,15 @@ export default function AdminDashboardPage() {
                       {hubState.circulatingSupply.toLocaleString()} MyPts
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Reserve Supply</span>
                       <span>{((hubState.reserveSupply / hubState.totalSupply) * 100).toFixed(2)}%</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500" 
+                      <div
+                        className="h-full bg-blue-500"
                         style={{ width: `${(hubState.reserveSupply / hubState.totalSupply) * 100}%` }}
                       ></div>
                     </div>
@@ -163,7 +165,7 @@ export default function AdminDashboardPage() {
                       {hubState.reserveSupply.toLocaleString()} MyPts
                     </div>
                   </div>
-                  
+
                   <div className="pt-4 border-t">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium">Total Supply</span>
@@ -180,12 +182,18 @@ export default function AdminDashboardPage() {
               )}
             </CardContent>
           </Card>
-          
+
           <SystemVerification />
         </div>
-        
-        {/* Recent Transactions Section */}
+
+        {/* Notifications Section */}
         <div className="mt-6">
+          <AdminNotificationCenter />
+        </div>
+
+        {/* Pending Sell Transactions and Recent Transactions */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <PendingSellTransactions limit={5} />
           <RecentTransactions limit={5} />
         </div>
     </div>

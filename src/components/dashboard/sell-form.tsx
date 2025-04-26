@@ -10,7 +10,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { CurrencySelector, getCurrencySymbol } from '@/components/shared/currency-selector';
 import { myPtsApi, myPtsValueApi } from '@/lib/api/mypts-api';
 import { toast } from 'sonner';
-import { MyPtsBalance } from '@/types/mypts';
+import { MyPtsBalance, TransactionStatus } from '@/types/mypts';
+import { TransactionStatus as TransactionStatusUI } from '@/components/dashboard/transaction-status';
 
 const formSchema = z.object({
   amount: z.number().min(1, 'Amount must be at least 1'),
@@ -85,6 +86,8 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
   const [currencyAmount, setCurrencyAmount] = useState(0);
   const [conversionRate, setConversionRate] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [showForm, setShowForm] = useState(true);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -217,12 +220,20 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
       console.log('Sell response:', response);
 
       if (response.success && response.data) {
-        toast.success('Successfully sold MyPts!', {
-          description: `You sold ${values.amount.toLocaleString()} MyPts for ${getCurrencySymbol(currency)}${currencyAmount.toFixed(2)}.`,
+        // Store the transaction ID and show the transaction status
+        setTransactionId(response.data.transaction._id);
+        setShowForm(false);
+
+        toast.success('Sell request submitted successfully!', {
+          description: `Your request to sell ${values.amount.toLocaleString()} MyPts for ${getCurrencySymbol(currency)}${currencyAmount.toFixed(2)} is pending admin approval.`,
         });
+
+        // Reset form state
         form.reset();
         setMyPtsAmount(0);
         setCurrencyAmount(0);
+
+        // Call onSuccess to refresh the balance
         if (onSuccess) {
           onSuccess();
         }
@@ -392,6 +403,12 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
     }
   };
 
+  // Function to reset and go back to the form
+  const handleReset = () => {
+    setShowForm(true);
+    setTransactionId(null);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -399,17 +416,18 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
         <CardDescription>Convert your MyPts to real currency</CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <FormLabel>Currency</FormLabel>
-                <CurrencySelector
-                  value={currency}
-                  onChange={setCurrency}
-                  className="w-[140px]"
-                />
-              </div>
+        {showForm ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <FormLabel>Currency</FormLabel>
+                  <CurrencySelector
+                    value={currency}
+                    onChange={setCurrency}
+                    className="w-[140px]"
+                  />
+                </div>
 
               <div className="grid gap-4">
                 <div className="grid gap-2">
@@ -517,6 +535,23 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
             </Button>
           </form>
         </Form>
+        ) : (
+          <div className="space-y-6">
+            {transactionId && (
+              <TransactionStatusUI
+                transactionId={transactionId}
+                onRefresh={onSuccess}
+              />
+            )}
+            <Button
+              variant="outline"
+              className="w-full mt-4"
+              onClick={handleReset}
+            >
+              Sell More MyPts
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

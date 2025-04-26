@@ -1,4 +1,12 @@
 /**
+ * API validation error
+ */
+export interface ValidationError {
+  path: string;
+  message: string;
+}
+
+/**
  * API response type
  */
 export interface ApiResponse<T> {
@@ -6,4 +14,5 @@ export interface ApiResponse<T> {
   data?: T;
   message?: string;
   error?: any;
+  errors?: ValidationError[];
 }

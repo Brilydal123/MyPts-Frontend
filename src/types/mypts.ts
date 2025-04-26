@@ -19,9 +19,11 @@ export enum TransactionType {
  */
 export enum TransactionStatus {
   PENDING = 'PENDING',
+  RESERVED = 'RESERVED',  // New status for sell transactions that are pending approval
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
+  REJECTED = 'REJECTED'   // New status for rejected transactions
 }
 
 /**

@@ -8,6 +8,7 @@ interface BalanceCardProps {
   balance: MyPtsBalance;
   isLoading?: boolean;
   onCurrencyChange?: (currency: string) => void;
+  onRefresh?: () => Promise<void> | void;
   currency: string; // Selected currency code
 }
 

@@ -23,8 +23,8 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const error = searchParams.get('error');
-  const callbackUrl = searchParams.get('callbackUrl') || '/select-profile';
+  const error = searchParams?.get('error') || null;
+  const callbackUrl = searchParams?.get('callbackUrl') || '/select-profile';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

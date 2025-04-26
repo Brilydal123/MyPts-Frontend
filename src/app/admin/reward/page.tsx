@@ -55,7 +55,7 @@ export default function RewardMyPtsPage() {
 
   // Check for profile ID in URL parameters
   useEffect(() => {
-    const profileId = searchParams.get('profileId');
+    const profileId = searchParams?.get('profileId') || null;
     if (profileId) {
       setSelectedProfileId(profileId);
     }

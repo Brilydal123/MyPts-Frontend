@@ -59,6 +59,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <ShieldAlert className="h-5 w-5" />
     },
     {
+      name: 'Sell Transactions',
+      href: '/admin/sell-transactions',
+      icon: <CreditCard className="h-5 w-5" />
+    },
+    {
       name: 'Transaction History',
       href: '/admin/transactions',
       icon: <History className="h-5 w-5" />
@@ -131,7 +136,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Check if the current path matches a navigation item
   const isActive = (href: string, exact = false) => {
     if (exact) return pathname === href;
-    return pathname.startsWith(href);
+    return pathname ? pathname.startsWith(href) : false;
   };
 
   return (

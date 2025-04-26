@@ -10,7 +10,7 @@ import { AlertCircle, Coins } from 'lucide-react';
 export function AuthErrorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+  const error = searchParams?.get('error');
 
   useEffect(() => {
     // If no error is provided, redirect to login

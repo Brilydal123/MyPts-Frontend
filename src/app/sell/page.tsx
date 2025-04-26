@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/shared/main-layout";
 import { BalanceCard } from "@/components/shared/balance-card";
-import { SellForm } from "@/components/dashboard/sell-form";
+import { ImprovedSellForm } from "@/components/dashboard/improved-sell-form";
 import { myPtsApi } from "@/lib/api/mypts-api";
 import { MyPtsBalance } from "@/types/mypts";
 import { toast } from "sonner";
@@ -62,7 +62,7 @@ export default function SellPage() {
           </div>
 
           <div>
-            {balance && <SellForm balance={balance} onSuccess={fetchBalance} />}
+            {balance && <ImprovedSellForm balance={balance} onSuccess={fetchBalance} />}
           </div>
         </div>
       </div>

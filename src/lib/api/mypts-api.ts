@@ -5,14 +5,14 @@ import {
   MyPtsHubState,
   MyPtsValue,
 } from '@/types/mypts';
-import { API_URL, REQUEST_TIMEOUT, TransactionType, DIRECT_CONVERSIONS } from '@/lib/constants';
+import { API_URL, REQUEST_TIMEOUT, TransactionType } from '@/lib/constants';
 // No longer using getSession
 
 /**
  * Base API client with authentication handling
  */
 class ApiClient {
-  private getHeaders(): HeadersInit {
+  protected getHeaders(): HeadersInit {
     // Create headers with content type
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ class ApiClient {
     }
   }
 
-  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+  protected async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     try {
       const data = await response.json();
 
@@ -195,6 +195,7 @@ class ApiClient {
           success: false,
           message: data.message || 'An error occurred',
           error: data.error,
+          errors: data.errors || undefined,
         };
       }
 
@@ -282,6 +283,17 @@ export class MyPtsApi extends ApiClient {
   }
 
   /**
+   * Get a single transaction by ID
+   */
+  async getTransaction(transactionId: string): Promise<ApiResponse<MyPtsTransaction>> {
+    // Get profile ID from localStorage
+    const profileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
+
+    // Include profileId as a query parameter
+    return this.get<any>(`/my-pts/transactions/${transactionId}${profileId ? `?profileId=${profileId}` : ''}`);
+  }
+
+  /**
    * Get transactions by type
    */
   async getTransactionsByType(
@@ -305,16 +317,33 @@ export class MyPtsApi extends ApiClient {
   }
 
   /**
-   * Buy MyPts
+   * Get transaction by reference ID (e.g., payment intent ID)
    */
-  async buyMyPts(amount: number, paymentMethod: string, paymentId?: string): Promise<ApiResponse<{
-    transaction: MyPtsTransaction;
-    newBalance: number;
+  async getTransactionByReference(referenceId: string): Promise<ApiResponse<MyPtsTransaction>> {
+    // Get profile ID from localStorage
+    const profileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
+
+    // Include profileId as a query parameter
+    return this.get<any>(`/my-pts/transactions/reference/${referenceId}${profileId ? `?profileId=${profileId}` : ''}`);
+  }
+
+  /**
+   * Buy MyPts with Stripe
+   */
+  async buyMyPts(amount: number, paymentMethod: string, paymentMethodId?: string): Promise<ApiResponse<{
+    clientSecret: string;
+    paymentIntentId: string;
+    amount: number;
+    currency: string;
+    transactionId: string;
+    transaction?: MyPtsTransaction;
+    newBalance?: number;
+    requiresAction?: boolean;
   }>> {
     return this.post<any>('/my-pts/buy', {
       amount,
       paymentMethod,
-      paymentId
+      paymentMethodId
     });
   }
 
@@ -644,6 +673,54 @@ export class MyPtsValueApi extends ApiClient {
  * MyPts Hub API service for admins
  */
 export class MyPtsHubApi extends ApiClient {
+  // Override the get method to prevent adding profileId for admin endpoints
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    try {
+      const headers = this.getHeaders();
+
+      // For admin endpoints, don't automatically add profileId
+      const url = `${API_URL}${endpoint}`;
+
+      console.log(`Making admin GET request to ${url}`, { headers });
+
+      // Add a timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        credentials: 'include', // This is crucial for sending cookies
+        cache: 'no-cache', // Disable caching
+        signal: controller.signal
+      });
+
+      // Clear the timeout
+      clearTimeout(timeoutId);
+
+      // Log response status
+      console.log(`Response status for ${endpoint}:`, response.status);
+      console.log(`Response from ${endpoint}:`, { status: response.status, statusText: response.statusText });
+
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      console.error(`Error in admin GET request to ${endpoint}:`, error);
+
+      // Check if it's an abort error (timeout)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return {
+          success: false,
+          message: 'Request timed out. Please try again.',
+        };
+      }
+
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network request failed',
+      };
+    }
+  }
+
   /**
    * Get hub state
    */
@@ -802,6 +879,7 @@ export class MyPtsHubApi extends ApiClient {
       sort?: 'asc' | 'desc';
       profileId?: string;
       type?: string;
+      status?: string;
       startDate?: Date;
       endDate?: Date;
     } = {}
@@ -822,6 +900,10 @@ export class MyPtsHubApi extends ApiClient {
 
     if (params.type) {
       queryParams.append('type', params.type);
+    }
+
+    if (params.status) {
+      queryParams.append('status', params.status);
     }
 
     if (params.limit) {

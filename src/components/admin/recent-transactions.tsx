@@ -5,13 +5,13 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -65,17 +65,17 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
   // Fetch recent transactions
   const fetchTransactions = async () => {
     setIsLoading(true);
-    
+
     try {
       // Pagination parameters
       const pagination = {
         limit,
         offset: 0
       };
-      
+
       // Call the API
       const response = await myPtsHubApi.getSupplyLogs({}, pagination);
-      
+
       if (response.success && response.data && Array.isArray(response.data.logs)) {
         setTransactions(response.data.logs);
       } else {
@@ -89,16 +89,16 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
       setIsLoading(false);
     }
   };
-  
+
   // Fetch transactions on component mount
   useEffect(() => {
     fetchTransactions();
   }, []);
-  
+
   // Format date for display
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Unknown date';
-    
+
     try {
       const date = new Date(dateString);
       const now = new Date();
@@ -106,7 +106,7 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
       const diffMins = Math.floor(diffMs / (1000 * 60));
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      
+
       // Show relative time for recent transactions
       if (diffMins < 60) {
         return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
@@ -115,7 +115,7 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
       } else if (diffDays < 7) {
         return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
       }
-      
+
       // Show formatted date for older transactions
       return date.toLocaleString('en-US', {
         month: 'short',
@@ -127,7 +127,7 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
       return dateString;
     }
   };
-  
+
   // Get badge variant based on action type
   const getActionVariant = (action: string) => {
     switch (action) {
@@ -140,7 +140,7 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
       default: return 'outline';
     }
   };
-  
+
   // Format action name for display
   const formatActionName = (action: string) => {
     switch (action) {
@@ -165,9 +165,9 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-md font-medium">Recent Transactions</CardTitle>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="text-xs text-muted-foreground"
           onClick={() => router.push('/admin/transactions')}
         >
@@ -231,9 +231,9 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
         )}
       </CardContent>
       <CardFooter className="border-t pt-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="w-full"
           onClick={() => router.push('/admin/transactions')}
         >
@@ -356,8 +356,8 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
                     Related Profile
                   </h4>
                   <p className="text-sm font-mono">
-                    {typeof selectedTransaction.metadata.profileId === 'object' && selectedTransaction.metadata.profileId.$oid ? 
-                      selectedTransaction.metadata.profileId.$oid : 
+                    {typeof selectedTransaction.metadata.profileId === 'object' && selectedTransaction.metadata.profileId.$oid ?
+                      selectedTransaction.metadata.profileId.$oid :
                       String(selectedTransaction.metadata.profileId)}
                   </p>
                 </div>
@@ -368,8 +368,8 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
                     Related Transaction
                   </h4>
                   <p className="text-sm font-mono">
-                    {typeof selectedTransaction.metadata.transactionId === 'object' && selectedTransaction.metadata.transactionId.$oid ? 
-                      selectedTransaction.metadata.transactionId.$oid : 
+                    {typeof selectedTransaction.metadata.transactionId === 'object' && selectedTransaction.metadata.transactionId.$oid ?
+                      selectedTransaction.metadata.transactionId.$oid :
                       String(selectedTransaction.metadata.transactionId)}
                   </p>
                 </div>

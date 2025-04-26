@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { StripePayment } from '@/components/payment/stripe-payment';
 
 // Define form validation schema
 const formSchema = z.object({
@@ -51,7 +52,16 @@ interface BuyFormProps {
 
 export function BuyForm({ onSuccess }: BuyFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState<{
+    clientSecret: string;
+    amount: number;
+    currency: string;
+    transactionId: string;
+    myPtsAmount?: number; // Add myPtsAmount to track the actual MyPts being purchased
+  } | null>(null);
+  const [conversionRate, setConversionRate] = useState<number | null>(null); // Track the conversion rate
+
   // Initialize the form
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -64,38 +74,43 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
   // Define what happens when the form is submitted
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    
+
     try {
       // Log the data being sent
-      console.log('Buying MyPts with data:', data);
-      
-      // Call the API to purchase MyPts
-      // Based on the API implementation, buyMyPts expects (amount, paymentMethod, paymentId?)
+      console.log('Initiating MyPts purchase with data:', data);
+
+      // Call the API to create a payment intent
       const response = await myPtsApi.buyMyPts(
         data.amount,
-        data.paymentMethod,
-        // Optional third parameter for payment ID if needed
-        undefined
+        data.paymentMethod
       );
-      
-      if (response.success) {
-        toast.success('Purchase successful', {
-          description: `You have purchased ${data.amount} MyPts`,
+
+      if (response.success && response.data?.clientSecret) {
+        // Calculate conversion rate (cents per MyPt)
+        const rate = response.data.amount / data.amount;
+        setConversionRate(rate);
+
+        // Store payment information and show payment form
+        setPaymentInfo({
+          clientSecret: response.data.clientSecret,
+          amount: response.data.amount,
+          currency: response.data.currency,
+          transactionId: response.data.transactionId,
+          myPtsAmount: data.amount // Store the actual MyPts amount being purchased
         });
-        
-        // Reset the form
-        form.reset();
-        
-        // Call onSuccess callback if provided
-        if (onSuccess) onSuccess();
+        setShowPaymentForm(true);
+
+        // Log the conversion for debugging
+        console.log(`Converting ${data.amount} MyPts to ${response.data.amount} cents (${response.data.currency})`);
+        console.log(`Rate: ${rate} cents per MyPt`);
       } else {
-        toast.error('Purchase failed', {
-          description: response.message || 'An error occurred during the purchase',
+        toast.error('Failed to initiate payment', {
+          description: response.message || 'An error occurred while setting up the payment',
         });
       }
     } catch (error) {
-      console.error('Error purchasing MyPts:', error);
-      toast.error('Purchase failed', {
+      console.error('Error initiating payment:', error);
+      toast.error('Payment setup failed', {
         description: 'An unexpected error occurred',
       });
     } finally {
@@ -103,82 +118,128 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
     }
   };
 
+  // Handle successful payment
+  const handlePaymentSuccess = async () => {
+    // Call onSuccess callback immediately to refresh the balance
+    if (onSuccess) {
+      await onSuccess();
+    }
+
+    // Show success message with the updated balance
+    if (paymentInfo?.myPtsAmount) {
+      toast.success('Purchase successful', {
+        description: `Your purchase of ${paymentInfo.myPtsAmount} MyPts was completed successfully! Your balance has been updated.`,
+      });
+    } else {
+      toast.success('Purchase successful', {
+        description: `Your MyPts purchase was completed successfully! Your balance has been updated.`,
+      });
+    }
+
+    // Reset the form and payment state
+    form.reset();
+    setShowPaymentForm(false);
+    setPaymentInfo(null);
+  };
+
+  // Handle payment cancellation
+  const handlePaymentCancel = () => {
+    setShowPaymentForm(false);
+    setPaymentInfo(null);
+    toast.info('Payment cancelled', {
+      description: 'You can try again when you\'re ready.',
+    });
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Buy MyPts</CardTitle>
-        <CardDescription>
-          Purchase MyPts using your preferred payment method.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center">
-                      <Input
-                        type="number"
-                        placeholder="100"
-                        {...field}
-                        min={1}
-                      />
-                      <span className="ml-2">MyPts</span>
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    Enter the amount of MyPts you want to purchase.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Method</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a payment method" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="credit">Credit Card</SelectItem>
-                      <SelectItem value="debit">Debit Card</SelectItem>
-                      <SelectItem value="paypal">PayPal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select your preferred payment method.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Processing...' : 'Buy Now'}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-      <CardFooter className="flex justify-between border-t pt-6">
-        <p className="text-sm text-muted-foreground">
-          Payments are processed securely.
-        </p>
-      </CardFooter>
-    </Card>
+    <>
+      {showPaymentForm && paymentInfo ? (
+        <StripePayment
+          clientSecret={paymentInfo.clientSecret}
+          amount={paymentInfo.amount}
+          currency={paymentInfo.currency}
+          myPtsAmount={paymentInfo.myPtsAmount}
+          onSuccess={handlePaymentSuccess}
+          onCancel={handlePaymentCancel}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Buy MyPts</CardTitle>
+            <CardDescription>
+              Purchase MyPts using your preferred payment method.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center">
+                          <Input
+                            type="number"
+                            placeholder="100"
+                            {...field}
+                            min={1}
+                          />
+                          <span className="ml-2">MyPts</span>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Enter the amount of MyPts you want to purchase.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Method</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a payment method" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="credit">Credit Card</SelectItem>
+                          <SelectItem value="debit">Debit Card</SelectItem>
+                          <SelectItem value="paypal">PayPal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Select your preferred payment method.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Processing...' : 'Continue to Payment'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex justify-between border-t pt-6">
+            <p className="text-sm text-muted-foreground">
+              Payments are processed securely by Stripe.
+            </p>
+          </CardFooter>
+        </Card>
+      )}
+    </>
   );
 }
