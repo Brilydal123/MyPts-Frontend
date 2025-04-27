@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,13 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Bell, Mail, CreditCard, AlertCircle, MessageCircle } from 'lucide-react';
 import { notificationApi } from '@/lib/api/notification-api';
+
+// Lazy load the PushNotificationSettings component
+const PushNotificationSettingsLazy = lazy(() =>
+  import('./push-notification-settings').then(mod => ({
+    default: mod.PushNotificationSettings
+  }))
+);
 
 interface NotificationPreferences {
   email: {
@@ -469,6 +476,30 @@ export function NotificationPreferences() {
                 <h3 className="text-lg font-medium">Push Notifications</h3>
               </div>
               <Separator className="mb-4" />
+
+              {/* Device Management Section */}
+              <div className="mb-6">
+                <h4 className="text-md font-medium mb-2">Device Management</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Register your devices to receive push notifications.
+                </p>
+
+                {/* Lazy load the PushNotificationSettings component */}
+                <div className="mt-4">
+                  <Suspense fallback={<div className="p-4 text-center">Loading device management...</div>}>
+                    <PushNotificationSettingsLazy />
+                  </Suspense>
+                </div>
+              </div>
+
+              <Separator className="my-6" />
+
+              <div className="mt-6 mb-4">
+                <h4 className="text-md font-medium mb-2">Notification Preferences</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choose which types of notifications you want to receive.
+                </p>
+              </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
