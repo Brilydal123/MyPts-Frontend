@@ -14,10 +14,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Settings as SettingsIcon, 
-  LogOut as LogOutIcon, 
-  LayoutDashboard as LayoutDashboardIcon, 
+import { NotificationCenter } from '@/components/shared/notification-center';
+import {
+  Settings as SettingsIcon,
+  LogOut as LogOutIcon,
+  LayoutDashboard as LayoutDashboardIcon,
   PanelTop as DashboardIcon,
   ShoppingBag as BuyIcon,
   DollarSign as SellIcon,
@@ -38,7 +39,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   // Get user initials for avatar fallback
   const getUserInitials = () => {
     if (!user?.name) return 'U';
@@ -79,8 +80,8 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Mobile sidebar */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)}>
-          <div 
-            className="fixed left-0 top-0 h-full w-72 bg-background shadow-lg" 
+          <div
+            className="fixed left-0 top-0 h-full w-72 bg-background shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-16 items-center border-b px-6">
@@ -115,16 +116,19 @@ export function MainLayout({ children }: MainLayoutProps) {
                       <p className="text-muted-foreground text-xs">{user?.email}</p>
                     </div>
                   </div>
-                  <Link 
-                    href="/settings" 
+                  <Link
+                    href="/settings"
                     className="flex items-center px-3 py-2 rounded-md text-muted-foreground hover:bg-muted w-full"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <SettingsIcon className="mr-3 h-5 w-5" />
                     <span>Settings</span>
                   </Link>
-                  <Button 
-                    variant="ghost" 
+                  <div className="px-3 py-2">
+                    <NotificationCenter />
+                  </div>
+                  <Button
+                    variant="ghost"
                     className="flex items-center px-3 py-2 rounded-md text-muted-foreground hover:bg-muted w-full justify-start"
                     onClick={() => logout()}
                   >
@@ -155,9 +159,9 @@ export function MainLayout({ children }: MainLayoutProps) {
               <span className="font-bold text-xl">MyPts</span>
             </Link>
           )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             className={!sidebarOpen ? 'w-full' : 'ml-auto'}
@@ -201,15 +205,18 @@ export function MainLayout({ children }: MainLayoutProps) {
                   </Avatar>
                 </div>
               )}
-              <Link 
-                href="/settings" 
+              <Link
+                href="/settings"
                 className={`flex items-center ${sidebarOpen ? 'px-3' : 'justify-center'} py-2 rounded-md text-muted-foreground hover:bg-muted`}
               >
                 <span className={sidebarOpen ? 'mr-3' : ''}><SettingsIcon className="h-5 w-5" /></span>
                 {sidebarOpen && <span>Settings</span>}
               </Link>
-              <Button 
-                variant="ghost" 
+              <div className={`relative ${sidebarOpen ? 'px-3' : 'flex justify-center'} py-2`}>
+                <NotificationCenter />
+              </div>
+              <Button
+                variant="ghost"
                 className={`flex items-center ${sidebarOpen ? 'px-3' : 'justify-center'} py-2 rounded-md text-muted-foreground hover:bg-muted w-full ${sidebarOpen ? 'justify-start' : 'justify-center'}`}
                 onClick={() => logout()}
               >
@@ -241,13 +248,13 @@ export function MainLayout({ children }: MainLayoutProps) {
           )}
         </div>
       </div>
-      
+
       {/* Main Content with padding for sidebar */}
       <main className={`flex-1 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'} transition-all duration-300 p-4 lg:p-6`}>
-      
+
         {children}
       </main>
-      
+
       {/* Footer */}
       <footer className={`border-t py-6 md:py-0 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'} transition-all duration-300`}>
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">

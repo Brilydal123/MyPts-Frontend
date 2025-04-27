@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { usePathname, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AdminNotificationCenter } from '@/components/admin/admin-notification-center';
 import {
   DollarSign,
   BarChart3,
@@ -151,7 +152,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               Admin Area
             </Badge>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
+            <AdminNotificationCenter />
             <Button variant="secondary" size="sm" onClick={() => router.push('/')}>
               Exit Admin
             </Button>

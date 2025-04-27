@@ -5,13 +5,15 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-// import { PageHeader } from '@/components/shared/page-header';
+import { NotificationPreferences } from '@/components/settings/notification-preferences';
+import { MainLayout } from '@/components/shared/main-layout';
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('account');
 
   return (
+    <MainLayout>
     <div className="container mx-auto py-6">
 
 
@@ -46,25 +48,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Settings</CardTitle>
-                <CardDescription>
-                  Configure how you receive notifications.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium">Email Notifications</h3>
-                    <Separator className="my-4" />
-                    <p className="text-sm text-muted-foreground">
-                      Notification settings will be displayed here.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <NotificationPreferences />
           </TabsContent>
 
           <TabsContent value="preferences">
@@ -91,5 +75,6 @@ export default function SettingsPage() {
         </div>
       </Tabs>
     </div>
+    </MainLayout>
   );
 }
