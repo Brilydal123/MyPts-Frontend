@@ -61,30 +61,70 @@ export function PushNotificationSettings() {
   const handleRegisterDevice = async () => {
     try {
       setIsRegistering(true);
-      const token = await initializePushNotifications(FIREBASE_VAPID_KEY);
 
-      if (token) {
-        toast.success("Success",{
-          // title: 'Success',
-          description: 'Device registered for push notifications',
+      // Log VAPID key for debugging
+      console.log('Using VAPID key:', FIREBASE_VAPID_KEY ? 'Provided' : 'Missing');
+
+      // Check if Firebase is properly initialized
+      try {
+        const firebaseModule = await import('@/lib/firebase');
+        if (!firebaseModule.firebaseApp) {
+          console.error('Firebase app not initialized');
+          toast.error("Error", {
+            description: 'Firebase not properly initialized. Please check your configuration.',
+          });
+          return;
+        }
+      } catch (firebaseError: any) {
+        console.error('Error importing Firebase:', firebaseError);
+        toast.error("Error", {
+          description: 'Failed to load Firebase: ' + (firebaseError.message || 'Unknown error'),
         });
+        return;
+      }
 
-        // Refresh the device list
-        const response = await getUserDevices();
-        setDevices(response.devices || []);
-      } else {
-        toast.error("Error",{
-          // title: 'Error',
-          description: 'Failed to register device for push notifications',
-          // variant: 'destructive'
+      try {
+        const token = await initializePushNotifications(FIREBASE_VAPID_KEY);
+
+        if (token) {
+          toast.success("Success", {
+            description: 'Device registered for push notifications',
+          });
+
+          // Refresh the device list
+          const response = await getUserDevices();
+          setDevices(response.devices || []);
+        } else {
+          toast.error("Error", {
+            description: 'Failed to register device for push notifications. No token received.',
+          });
+        }
+      } catch (error: any) {
+        console.error('Error in push notification initialization:', error);
+
+        // Provide more specific error messages based on the error
+        let errorMessage = 'Failed to register device for push notifications';
+
+        if (error.message) {
+          if (error.message.includes('Firebase')) {
+            errorMessage = 'Firebase configuration error: ' + error.message;
+          } else if (error.message.includes('permission')) {
+            errorMessage = 'Notification permission denied. Please enable notifications in your browser settings.';
+          } else if (error.message.includes('token')) {
+            errorMessage = 'Failed to get notification token: ' + error.message;
+          } else {
+            errorMessage = error.message;
+          }
+        }
+
+        toast.error("Error", {
+          description: errorMessage,
         });
       }
-    } catch (error) {
-      console.error('Error registering device:', error);
-      toast.error("Error",{
-        // title: 'Error',
-        description: 'Failed to register device for push notifications',
-        // variant: 'destructive'
+    } catch (error: any) {
+      console.error('Unexpected error registering device:', error);
+      toast.error("Error", {
+        description: 'Unexpected error: ' + (error.message || 'Unknown error'),
       });
     } finally {
       setIsRegistering(false);

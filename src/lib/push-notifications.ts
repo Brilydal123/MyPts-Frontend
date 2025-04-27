@@ -33,11 +33,15 @@ export const getFCMToken = async (vapidKey: string): Promise<string> => {
   try {
     // Import Firebase messaging dynamically to avoid SSR issues
     const { getMessaging, getToken } = await import('firebase/messaging');
-    const { firebaseApp } = await import('./firebase');
+    const { firebaseApp } = await import('./firebase') as { firebaseApp: import('firebase/app').FirebaseApp };
+
+    if (!firebaseApp) {
+      throw new Error('Firebase app not initialized');
+    }
 
     const messaging = getMessaging(firebaseApp);
     return await getToken(messaging, { vapidKey });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting FCM token:', error);
     throw error;
   }
@@ -122,11 +126,14 @@ const detectDeviceType = (): string => {
 // Initialize push notifications
 export const initializePushNotifications = async (vapidKey: string): Promise<string | null> => {
   try {
+    console.log('Initializing push notifications...');
+
     if (!isPushNotificationSupported()) {
       console.warn('Push notifications are not supported in this browser');
       return null;
     }
 
+    console.log('Push notifications are supported, requesting permission...');
     const permission = await requestNotificationPermission();
 
     if (permission !== 'granted') {
@@ -134,18 +141,40 @@ export const initializePushNotifications = async (vapidKey: string): Promise<str
       return null;
     }
 
-    await registerServiceWorker();
-    const token = await getFCMToken(vapidKey);
-
-    if (token) {
-      await registerDevice(token);
-      console.log('Device registered for push notifications');
-      return token;
+    console.log('Permission granted, registering service worker...');
+    try {
+      await registerServiceWorker();
+      console.log('Service worker registered successfully');
+    } catch (swError) {
+      console.error('Error registering service worker:', swError);
+      // Continue anyway, as the service worker might already be registered
     }
 
-    return null;
+    console.log('Getting FCM token with VAPID key:', vapidKey ? 'Provided' : 'Missing');
+    let token;
+    try {
+      token = await getFCMToken(vapidKey);
+      console.log('FCM token obtained:', token ? 'Success' : 'Failed');
+    } catch (error: any) {
+      console.error('Error getting FCM token:', error);
+      throw new Error('Failed to get FCM token: ' + (error.message || 'Unknown error'));
+    }
+
+    if (token) {
+      console.log('Registering device with token...');
+      try {
+        await registerDevice(token);
+        console.log('Device registered for push notifications');
+        return token;
+      } catch (error: any) {
+        console.error('Error registering device with backend:', error);
+        throw new Error('Failed to register device with backend: ' + (error.message || 'Unknown error'));
+      }
+    } else {
+      throw new Error('Failed to get FCM token');
+    }
   } catch (error) {
     console.error('Error initializing push notifications:', error);
-    return null;
+    throw error; // Re-throw to allow the component to handle the error
   }
 };
