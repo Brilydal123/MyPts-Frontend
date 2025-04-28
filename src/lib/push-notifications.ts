@@ -76,9 +76,30 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     // Wait a moment to ensure unregistration is complete
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // Check if we're in production or development
+    const isProduction = typeof window !== 'undefined' &&
+                        window.location.hostname !== 'localhost' &&
+                        window.location.hostname !== '127.0.0.1';
+    console.log(`Environment for service worker: ${isProduction ? 'Production' : 'Development'}`);
+
     // Register our Firebase messaging service worker
     console.log('Registering Firebase messaging service worker...');
-    const fcmRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+
+    // Create a URL with Firebase configuration for the service worker
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBvonBWaHDTMFjyN7QBA9M50F1u621vYc0",
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mypts-6a894",
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1080632618681",
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1080632618681:web:0e155eaa624e80b4a1f568"
+    };
+
+    // Create a URL with the configuration as a query parameter
+    const swUrl = new URL('/firebase-messaging-sw.js', window.location.origin);
+    swUrl.searchParams.set('firebaseConfig', JSON.stringify(firebaseConfig));
+    swUrl.searchParams.set('v', Date.now().toString()); // Add cache buster
+
+    console.log(`Registering service worker from: ${swUrl.pathname}`);
+    const fcmRegistration = await navigator.serviceWorker.register(swUrl.toString(), {
       scope: '/'
     });
 
@@ -346,38 +367,93 @@ export const unregisterDevice = async (deviceId: string) => {
 export const testPushNotification = async (deviceId: string) => {
   try {
     console.log(`Testing push notification for device ID: ${deviceId}`);
-    const response = await apiClient.post(`/user/devices/${deviceId}/test`);
-    return response.data;
-  } catch (error: any) {
-    console.error('Error testing push notification:', error);
 
-    // If we get a 400 error, try the direct test method
-    if (error.response?.status === 400) {
-      console.log('Falling back to direct push notification test...');
-      try {
+    // First, verify that Firebase is properly initialized
+    try {
+      const { firebaseApp } = await import('./firebase');
+      console.log('Firebase app initialized:', !!firebaseApp);
+
+      if (!firebaseApp) {
+        console.warn('Firebase app not initialized, push notifications may not work');
+      }
+    } catch (firebaseError) {
+      console.warn('Error checking Firebase initialization:', firebaseError);
+    }
+
+    // Try the standard endpoint first
+    console.log(`Calling backend API endpoint: /user/devices/${deviceId}/test`);
+    try {
+      const response = await apiClient.post(`/user/devices/${deviceId}/test`);
+      console.log('Backend API response:', response.data);
+      return response.data;
+    } catch (endpointError: any) {
+      console.error('Error with standard endpoint:', endpointError);
+
+      // If we get a 400 error, try the direct test method
+      if (endpointError.response?.status === 400) {
+        console.log('Falling back to direct push notification test...');
+
         // Get the device details first
+        console.log('Fetching device details...');
         const devicesResponse = await getUserDevices();
+        console.log(`Found ${devicesResponse.devices?.length || 0} devices`);
+
         const device = devicesResponse.devices?.find((d: any) => d.id === deviceId);
 
         if (device && device.pushToken) {
           console.log(`Found device with token: ${device.pushToken.substring(0, 10)}...`);
+
           // Try the direct test endpoint
-          const directTestResponse = await apiClient.post('/test/notifications/push', {
-            token: device.pushToken,
-            title: 'Test Notification',
-            message: 'This is a test notification from MyPts'
-          });
-          return directTestResponse.data;
+          console.log('Calling direct test endpoint with token...');
+          try {
+            // First try the backend test endpoint
+            const directBackendResponse = await apiClient.post('/test/notifications/push', {
+              token: device.pushToken,
+              title: 'Test Notification (Backend)',
+              message: 'This is a test notification from MyPts Backend'
+            });
+            console.log('Direct backend test response:', directBackendResponse.data);
+            return directBackendResponse.data;
+          } catch (backendError: any) {
+            console.error('Error with backend direct test:', backendError);
+
+            // If backend fails, try the frontend API route
+            console.log('Trying frontend API route...');
+            try {
+              const frontendResponse = await fetch('/api/test/notifications/push', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  token: device.pushToken,
+                  title: 'Test Notification (Frontend)',
+                  message: 'This is a test notification from MyPts Frontend'
+                })
+              });
+
+              if (!frontendResponse.ok) {
+                throw new Error(`Frontend API error: ${frontendResponse.status} ${frontendResponse.statusText}`);
+              }
+
+              const frontendData = await frontendResponse.json();
+              console.log('Frontend API response:', frontendData);
+              return frontendData;
+            } catch (frontendError) {
+              console.error('Error with frontend API route:', frontendError);
+              throw frontendError;
+            }
+          }
         } else {
           console.error('Device not found or has no push token');
           throw new Error('Device not found or has no push token');
         }
-      } catch (directError) {
-        console.error('Error with direct push notification test:', directError);
-        throw directError;
       }
-    }
 
+      throw endpointError;
+    }
+  } catch (error: any) {
+    console.error('All push notification test methods failed:', error);
     throw error;
   }
 };

@@ -1,5 +1,5 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, FirebaseApp, getApps, deleteApp } from 'firebase/app';
+import { initializeApp, FirebaseApp, getApps } from 'firebase/app';
 import { Messaging } from 'firebase/messaging';
 
 // Extend Window interface to include firebase
@@ -35,57 +35,73 @@ console.log('Firebase configuration:', {
 
 // Initialize Firebase
 let firebaseApp: FirebaseApp;
-try {
-  // Delete any existing Firebase apps to ensure a clean state
-  if (typeof window !== 'undefined') {
-    try {
-      // Try to get existing Firebase apps
-      const existingApp = getApps().find(app => app.name === '[DEFAULT]');
-      if (existingApp) {
-        console.log('Found existing Firebase app, deleting it');
-        // We can't use await here since we're not in an async function
-        deleteApp(existingApp).then(() => {
-          console.log('Existing Firebase app deleted');
-        }).catch(error => {
-          console.warn('Error deleting existing Firebase app:', error);
-        });
-      }
-    } catch (deleteError) {
-      console.warn('Error deleting existing Firebase app:', deleteError);
+
+// Function to initialize Firebase
+const initializeFirebase = () => {
+  try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      console.log('Not initializing Firebase in server environment');
+      return null;
     }
-  }
 
-  // Initialize a new Firebase app
-  firebaseApp = initializeApp(firebaseConfig);
-  console.log('Firebase initialized successfully with config:', {
-    projectId: firebaseConfig.projectId,
-    messagingSenderId: firebaseConfig.messagingSenderId
-  });
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
+    // Check if we already have apps initialized
+    const apps = getApps();
+    if (apps.length > 0) {
+      console.log('Using existing Firebase app');
+      return apps[0];
+    }
 
-  // If the error is about the app already existing, get the existing app
-  if (error instanceof Error && error.message.includes('already exists')) {
-    console.log('Using existing Firebase app');
-    try {
-      // Get the existing app
+    // Initialize a new Firebase app
+    const app = initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully with config:', {
+      projectId: firebaseConfig.projectId,
+      messagingSenderId: firebaseConfig.messagingSenderId,
+      isProduction: typeof window !== 'undefined' &&
+                   window.location.hostname !== 'localhost' &&
+                   window.location.hostname !== '127.0.0.1'
+    });
+    return app;
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+
+    // If the error is about the app already existing, get the existing app
+    if (error instanceof Error && error.message.includes('already exists')) {
+      console.log('App already exists, getting existing Firebase app');
       const apps = getApps();
       if (apps.length > 0) {
-        firebaseApp = apps[0];
-      } else {
-        throw new Error('No existing Firebase app found');
+        return apps[0];
       }
-    } catch (getAppError) {
-      console.error('Error getting existing Firebase app:', getAppError);
-      // Create a dummy app for development as a last resort
-      console.warn('Creating dummy Firebase app as fallback');
-      firebaseApp = {} as FirebaseApp;
     }
-  } else {
-    // Create a dummy app for development as a last resort
-    console.warn('Creating dummy Firebase app as fallback');
+
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
+    // Return null to indicate initialization failed
+    return null;
+  }
+};
+
+// Initialize Firebase
+try {
+  firebaseApp = initializeFirebase() as FirebaseApp;
+
+  // If initialization failed, create a dummy app for development
+  if (!firebaseApp) {
+    console.warn('Firebase initialization failed, creating dummy app');
     firebaseApp = {} as FirebaseApp;
   }
+
+  // Add a global reference for debugging
+  if (typeof window !== 'undefined') {
+    (window as any).firebaseApp = firebaseApp;
+  }
+} catch (error) {
+  console.error('Unexpected error during Firebase initialization:', error);
+  firebaseApp = {} as FirebaseApp;
 }
 
 // Initialize Firebase Cloud Messaging

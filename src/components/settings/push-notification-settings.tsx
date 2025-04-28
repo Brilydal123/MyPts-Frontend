@@ -188,9 +188,20 @@ export function PushNotificationSettings() {
                            window.location.hostname !== '127.0.0.1';
 
       console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
+      console.log('Current hostname:', window.location.hostname);
+      console.log('Current origin:', window.location.origin);
 
       // Log VAPID key for debugging
       console.log('Using VAPID key:', FIREBASE_VAPID_KEY ? `${FIREBASE_VAPID_KEY.substring(0, 10)}...` : 'Missing');
+
+      // Check if we're in a secure context (required for service workers in production)
+      if (isProduction && !window.isSecureContext) {
+        console.error('Not in a secure context, service workers may not work');
+        toast.error("Security Error", {
+          description: 'Push notifications require a secure (HTTPS) connection in production.',
+        });
+        return;
+      }
 
       if (!FIREBASE_VAPID_KEY) {
         toast.error("Configuration Error", {
@@ -466,9 +477,23 @@ export function PushNotificationSettings() {
         const result = await testPushNotification(deviceId);
         console.log('Test notification result:', result);
 
-        toast.success("Success", {
-          description: 'Test notification sent to device',
+        // Show a toast with more detailed information
+        toast.success("Test Notification Sent", {
+          description: 'Backend API call successful. Check your device for the notification.',
         });
+
+        // Always show a local notification as well to ensure the user sees something
+        if ('Notification' in window && Notification.permission === 'granted') {
+          console.log('Showing local notification to confirm functionality');
+          const notification = new Notification('Test Notification (Local)', {
+            body: 'This is a local test notification from MyPts. You should also receive a push notification.',
+            icon: '/logo192.png',
+            tag: 'test-notification-local'
+          });
+
+          // Close the notification after 5 seconds
+          setTimeout(() => notification.close(), 5000);
+        }
 
         clearTimeout(safetyTimeout);
       } catch (backendError: any) {
