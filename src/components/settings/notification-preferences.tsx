@@ -271,10 +271,23 @@ export function NotificationPreferences() {
           description: 'Usernames must be 5-32 characters and can only contain letters, numbers, and underscores',
           duration: 5000
         });
+      } else if (errorMessage.includes('Error contacting Telegram')) {
+        toast.error('Error connecting to Telegram', {
+          description: 'There was a problem contacting Telegram. Please try again later or try using your Telegram ID instead of username.',
+          duration: 6000,
+          action: {
+            label: 'Open Telegram',
+            onClick: () => window.open('https://t.me/MyPtsBot', '_blank')
+          }
+        });
       } else {
         toast.error(errorMessage, {
           description: 'Please make sure you have entered your correct Telegram username and have started a chat with @MyPtsBot',
-          duration: 6000
+          duration: 6000,
+          action: {
+            label: 'Open Telegram',
+            onClick: () => window.open('https://t.me/MyPtsBot', '_blank')
+          }
         });
       }
     } finally {
@@ -708,13 +721,23 @@ export function NotificationPreferences() {
                           </li>
                           <li>Return here and click "Verify" to test the connection</li>
                         </ol>
+                        <div className="mt-2">
+                          <a
+                            href="https://t.me/MyPtsBot"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-500 hover:underline"
+                          >
+                            <span>Click here to open Telegram and start a chat with our bot</span>
+                          </a>
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           <strong>Note:</strong> Your Telegram username is different from your display name.
                           You can find it in Telegram Settings → Username.
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          <strong>Tip:</strong> We're also using your Telegram ID (8017650902) for verification,
-                          which may be more reliable than username-based verification.
+                          <strong>Tip:</strong> If you've previously verified your Telegram account,
+                          we'll use your Telegram ID for verification, which is more reliable than username-based verification.
                         </p>
                       </div>
                     </div>
