@@ -12,6 +12,7 @@ declare module "next-auth" {
     accessToken: string;
     profileId: string;
     profileToken: string;
+    emailVerified: strings
   }
 
   interface User extends DefaultUser {

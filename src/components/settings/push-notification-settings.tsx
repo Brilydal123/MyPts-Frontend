@@ -188,20 +188,9 @@ export function PushNotificationSettings() {
                            window.location.hostname !== '127.0.0.1';
 
       console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
-      console.log('Current hostname:', window.location.hostname);
-      console.log('Current origin:', window.location.origin);
 
       // Log VAPID key for debugging
       console.log('Using VAPID key:', FIREBASE_VAPID_KEY ? `${FIREBASE_VAPID_KEY.substring(0, 10)}...` : 'Missing');
-
-      // Check if we're in a secure context (required for service workers in production)
-      if (isProduction && !window.isSecureContext) {
-        console.error('Not in a secure context, service workers may not work');
-        toast.error("Security Error", {
-          description: 'Push notifications require a secure (HTTPS) connection in production.',
-        });
-        return;
-      }
 
       if (!FIREBASE_VAPID_KEY) {
         toast.error("Configuration Error", {
@@ -477,45 +466,22 @@ export function PushNotificationSettings() {
         const result = await testPushNotification(deviceId);
         console.log('Test notification result:', result);
 
-        // Check if we need to show a local notification only
-        if (result.showLocalNotification) {
-          console.log('API instructed to show local notification only');
+        // Show a toast with more detailed information
+        toast.success("Test Notification Sent", {
+          description: 'Backend API call successful. Check your device for the notification.',
+        });
 
-          // Show a toast with information about the local notification
-          toast.success("Local Notification Sent", {
-            description: 'Using local notification instead of push notification due to environment limitations.',
+        // Always show a local notification as well to ensure the user sees something
+        if ('Notification' in window && Notification.permission === 'granted') {
+          console.log('Showing local notification to confirm functionality');
+          const notification = new Notification('Test Notification (Local)', {
+            body: 'This is a local test notification from MyPts. You should also receive a push notification.',
+            icon: '/logo192.png',
+            tag: 'test-notification-local'
           });
 
-          // Show a local notification
-          if ('Notification' in window && Notification.permission === 'granted') {
-            console.log('Showing local notification as instructed by API');
-            const notification = new Notification('Test Notification (Local)', {
-              body: 'This is a local test notification from MyPts. Push notifications may not be available in this environment.',
-              icon: '/logo192.png',
-              tag: 'test-notification-local'
-            });
-
-            // Close the notification after 5 seconds
-            setTimeout(() => notification.close(), 5000);
-          }
-        } else {
-          // Show a toast with more detailed information about the push notification
-          toast.success("Test Notification Sent", {
-            description: `${result.source === 'backend' ? 'Backend' : 'Frontend'} API call successful. Check your device for the notification.`,
-          });
-
-          // Always show a local notification as well to ensure the user sees something
-          if ('Notification' in window && Notification.permission === 'granted') {
-            console.log('Showing local notification to confirm functionality');
-            const notification = new Notification('Test Notification (Local)', {
-              body: 'This is a local test notification from MyPts. You should also receive a push notification.',
-              icon: '/logo192.png',
-              tag: 'test-notification-local'
-            });
-
-            // Close the notification after 5 seconds
-            setTimeout(() => notification.close(), 5000);
-          }
+          // Close the notification after 5 seconds
+          setTimeout(() => notification.close(), 5000);
         }
 
         clearTimeout(safetyTimeout);

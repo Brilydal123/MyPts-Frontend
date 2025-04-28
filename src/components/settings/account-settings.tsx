@@ -23,7 +23,7 @@ export function AccountSettings() {
     email: session?.user?.email || '',
     phone: '',
     twoFactorEnabled: false,
-    emailVerified: !!(session?.user as any)?.emailVerified,
+    // emailVerified: !!session?.user?.emailVerified,
     profileImage: session?.user?.image || ''
   });
 
@@ -56,10 +56,10 @@ export function AccountSettings() {
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Update session
       await update({
         ...session,
@@ -69,7 +69,7 @@ export function AccountSettings() {
           email: formData.email
         }
       });
-      
+
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -109,9 +109,9 @@ export function AccountSettings() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium">Profile Information</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleSaveProfile}
               disabled={isSaving}
             >
@@ -124,7 +124,7 @@ export function AccountSettings() {
             </Button>
           </div>
           <Separator className="mb-4" />
-          
+
           <div className="flex flex-col sm:flex-row gap-6 mb-6">
             <div className="flex flex-col items-center gap-2">
               <Avatar className="h-24 w-24">
@@ -135,7 +135,7 @@ export function AccountSettings() {
                 Change Photo
               </Button>
             </div>
-            
+
             <div className="flex-1 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -152,7 +152,7 @@ export function AccountSettings() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <div className="relative">
@@ -167,13 +167,13 @@ export function AccountSettings() {
                       className="pl-8"
                     />
                   </div>
-                  {!formData.emailVerified && (
+                  {/* {!formData.emailVerified && (
                     <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
                       Email not verified. <Button variant="link" className="h-auto p-0 text-xs">Resend verification</Button>
                     </p>
-                  )}
+                  )} */}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <div className="relative">
@@ -192,12 +192,12 @@ export function AccountSettings() {
             </div>
           </div>
         </div>
-        
+
         {/* Security Section */}
         <div>
           <h3 className="text-lg font-medium mb-4">Security</h3>
           <Separator className="mb-4" />
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -215,7 +215,7 @@ export function AccountSettings() {
                 onCheckedChange={(checked) => handleToggleChange('twoFactorEnabled', checked)}
               />
             </div>
-            
+
             <div className="flex items-center justify-between pt-2">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
@@ -232,12 +232,12 @@ export function AccountSettings() {
             </div>
           </div>
         </div>
-        
+
         {/* Account Actions */}
         <div>
           <h3 className="text-lg font-medium mb-4">Account Actions</h3>
           <Separator className="mb-4" />
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -249,8 +249,8 @@ export function AccountSettings() {
                   Sign out from your account
                 </p>
               </div>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 size="sm"
                 onClick={handleLogout}
                 disabled={isLoading}
@@ -263,7 +263,7 @@ export function AccountSettings() {
                 ) : 'Sign Out'}
               </Button>
             </div>
-            
+
             <div className="pt-2">
               <Button variant="link" className="text-destructive p-0 h-auto text-sm">
                 Delete Account

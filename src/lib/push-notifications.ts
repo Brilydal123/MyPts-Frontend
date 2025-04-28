@@ -76,30 +76,9 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     // Wait a moment to ensure unregistration is complete
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Check if we're in production or development
-    const isProduction = typeof window !== 'undefined' &&
-                        window.location.hostname !== 'localhost' &&
-                        window.location.hostname !== '127.0.0.1';
-    console.log(`Environment for service worker: ${isProduction ? 'Production' : 'Development'}`);
-
     // Register our Firebase messaging service worker
     console.log('Registering Firebase messaging service worker...');
-
-    // Create a URL with Firebase configuration for the service worker
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBvonBWaHDTMFjyN7QBA9M50F1u621vYc0",
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mypts-6a894",
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1080632618681",
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1080632618681:web:0e155eaa624e80b4a1f568"
-    };
-
-    // Create a URL with the configuration as a query parameter
-    const swUrl = new URL('/firebase-messaging-sw.js', window.location.origin);
-    swUrl.searchParams.set('firebaseConfig', JSON.stringify(firebaseConfig));
-    swUrl.searchParams.set('v', Date.now().toString()); // Add cache buster
-
-    console.log(`Registering service worker from: ${swUrl.pathname}`);
-    const fcmRegistration = await navigator.serviceWorker.register(swUrl.toString(), {
+    const fcmRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
       scope: '/'
     });
 
@@ -438,39 +417,9 @@ export const testPushNotification = async (deviceId: string) => {
 
               const frontendData = await frontendResponse.json();
               console.log('Frontend API response:', frontendData);
-
-              // Check if we need to show a local notification instead
-              if (frontendData.showLocalNotification) {
-                console.log('Showing local notification as instructed by API');
-
-                // Show a local notification
-                if ('Notification' in window && Notification.permission === 'granted') {
-                  const notification = new Notification('Test Notification (Local)', {
-                    body: 'This is a local test notification from MyPts',
-                    icon: '/logo192.png'
-                  });
-
-                  // Close the notification after 5 seconds
-                  setTimeout(() => notification.close(), 5000);
-                }
-              }
-
               return frontendData;
             } catch (frontendError) {
               console.error('Error with frontend API route:', frontendError);
-
-              // Show a local notification as fallback
-              if ('Notification' in window && Notification.permission === 'granted') {
-                console.log('Showing local notification as fallback');
-                const notification = new Notification('Test Notification (Fallback)', {
-                  body: 'This is a fallback notification from MyPts',
-                  icon: '/logo192.png'
-                });
-
-                // Close the notification after 5 seconds
-                setTimeout(() => notification.close(), 5000);
-              }
-
               throw frontendError;
             }
           }

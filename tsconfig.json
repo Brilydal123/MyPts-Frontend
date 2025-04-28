@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/transactions/[id]/route.js", "src/app/api/notifications/route.js", "src/app/api/notifications/[id]/route.js", "src/app/api/admin/notifications/[id]/route.js", "src/app/api/my-pts/transactions/[id]/route.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/transactions/[id]/route.js", "src/app/api/notifications/route.js", "src/app/api/notifications/[id]/route.js", "src/app/api/admin/notifications/[id]/route.js", "src/app/api/my-pts/transactions/[id]/route.js", "../route.ts"],
   "exclude": ["node_modules"]
 }
