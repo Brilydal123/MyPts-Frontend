@@ -477,22 +477,45 @@ export function PushNotificationSettings() {
         const result = await testPushNotification(deviceId);
         console.log('Test notification result:', result);
 
-        // Show a toast with more detailed information
-        toast.success("Test Notification Sent", {
-          description: 'Backend API call successful. Check your device for the notification.',
-        });
+        // Check if we need to show a local notification only
+        if (result.showLocalNotification) {
+          console.log('API instructed to show local notification only');
 
-        // Always show a local notification as well to ensure the user sees something
-        if ('Notification' in window && Notification.permission === 'granted') {
-          console.log('Showing local notification to confirm functionality');
-          const notification = new Notification('Test Notification (Local)', {
-            body: 'This is a local test notification from MyPts. You should also receive a push notification.',
-            icon: '/logo192.png',
-            tag: 'test-notification-local'
+          // Show a toast with information about the local notification
+          toast.success("Local Notification Sent", {
+            description: 'Using local notification instead of push notification due to environment limitations.',
           });
 
-          // Close the notification after 5 seconds
-          setTimeout(() => notification.close(), 5000);
+          // Show a local notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            console.log('Showing local notification as instructed by API');
+            const notification = new Notification('Test Notification (Local)', {
+              body: 'This is a local test notification from MyPts. Push notifications may not be available in this environment.',
+              icon: '/logo192.png',
+              tag: 'test-notification-local'
+            });
+
+            // Close the notification after 5 seconds
+            setTimeout(() => notification.close(), 5000);
+          }
+        } else {
+          // Show a toast with more detailed information about the push notification
+          toast.success("Test Notification Sent", {
+            description: `${result.source === 'backend' ? 'Backend' : 'Frontend'} API call successful. Check your device for the notification.`,
+          });
+
+          // Always show a local notification as well to ensure the user sees something
+          if ('Notification' in window && Notification.permission === 'granted') {
+            console.log('Showing local notification to confirm functionality');
+            const notification = new Notification('Test Notification (Local)', {
+              body: 'This is a local test notification from MyPts. You should also receive a push notification.',
+              icon: '/logo192.png',
+              tag: 'test-notification-local'
+            });
+
+            // Close the notification after 5 seconds
+            setTimeout(() => notification.close(), 5000);
+          }
         }
 
         clearTimeout(safetyTimeout);

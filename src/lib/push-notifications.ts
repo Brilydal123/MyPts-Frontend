@@ -438,9 +438,39 @@ export const testPushNotification = async (deviceId: string) => {
 
               const frontendData = await frontendResponse.json();
               console.log('Frontend API response:', frontendData);
+
+              // Check if we need to show a local notification instead
+              if (frontendData.showLocalNotification) {
+                console.log('Showing local notification as instructed by API');
+
+                // Show a local notification
+                if ('Notification' in window && Notification.permission === 'granted') {
+                  const notification = new Notification('Test Notification (Local)', {
+                    body: 'This is a local test notification from MyPts',
+                    icon: '/logo192.png'
+                  });
+
+                  // Close the notification after 5 seconds
+                  setTimeout(() => notification.close(), 5000);
+                }
+              }
+
               return frontendData;
             } catch (frontendError) {
               console.error('Error with frontend API route:', frontendError);
+
+              // Show a local notification as fallback
+              if ('Notification' in window && Notification.permission === 'granted') {
+                console.log('Showing local notification as fallback');
+                const notification = new Notification('Test Notification (Fallback)', {
+                  body: 'This is a fallback notification from MyPts',
+                  icon: '/logo192.png'
+                });
+
+                // Close the notification after 5 seconds
+                setTimeout(() => notification.close(), 5000);
+              }
+
               throw frontendError;
             }
           }
