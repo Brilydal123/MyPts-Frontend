@@ -14,6 +14,7 @@ import {
   unregisterDevice,
   testPushNotification
 } from '@/lib/push-notifications';
+import { showNotification, resetNotificationPermissions } from '@/lib/notification-helper';
 import { useAuth } from '@/hooks/use-auth';
 
 // Firebase VAPID key
@@ -324,15 +325,11 @@ export function PushNotificationSettings() {
 
           // Show a test notification to verify everything is working
           try {
-            if ('Notification' in window && Notification.permission === 'granted') {
-              const testNotification = new Notification('Push Notifications Enabled', {
-                body: 'You will now receive notifications from MyPts',
-                icon: '/logo192.png'
-              });
-
-              // Close the notification after 3 seconds
-              setTimeout(() => testNotification.close(), 3000);
-            }
+            await showNotification('Push Notifications Enabled', {
+              body: 'You will now receive notifications from MyPts',
+              icon: '/logo192.png',
+              closeAfter: 3000
+            });
           } catch (notifyError) {
             console.error('Error showing test notification:', notifyError);
             // Continue anyway, this is just a test
@@ -492,23 +489,21 @@ export function PushNotificationSettings() {
         clearTimeout(safetyTimeout);
 
         // If backend fails, show a local notification instead
-        if ('Notification' in window && Notification.permission === 'granted') {
-          console.log('Showing local notification as fallback');
-          const notification = new Notification('Test Notification', {
-            body: 'This is a test notification from MyPts',
-            icon: '/logo192.png',
-            tag: 'test-notification'
-          });
+        console.log('Showing local notification as fallback');
+        const notificationShown = await showNotification('Test Notification', {
+          body: 'This is a test notification from MyPts',
+          icon: '/logo192.png',
+          tag: 'test-notification',
+          closeAfter: 5000
+        });
 
-          // Close the notification after 5 seconds
-          setTimeout(() => notification.close(), 5000);
-
+        if (notificationShown) {
           toast.success("Success", {
             description: 'Local test notification shown (backend notification failed)',
           });
         } else {
-          console.error('Cannot show local notification: permission not granted');
-          throw new Error('Cannot show local notification: permission not granted');
+          console.error('Cannot show local notification: permission not granted or not supported');
+          throw new Error('Cannot show local notification: permission not granted or not supported');
         }
       }
     } catch (error: any) {
@@ -681,7 +676,30 @@ export function PushNotificationSettings() {
             <div className="flex flex-wrap gap-2">
               {/* Reset permissions button - always show this */}
               <Button
-                onClick={resetNotificationPermissions}
+                onClick={async () => {
+                  try {
+                    console.log('Resetting notification permissions...');
+                    const loadingToast = toast.loading("Resetting permissions...");
+
+                    await resetNotificationPermissions();
+
+                    // The page will reload automatically, but just in case
+                    toast.dismiss(loadingToast);
+                    toast.success("Permissions Reset", {
+                      description: "Notification permissions have been reset. The page will reload."
+                    });
+
+                    // Force reload after a short delay
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 2000);
+                  } catch (error) {
+                    console.error('Error resetting permissions:', error);
+                    toast.error("Reset Failed", {
+                      description: "Failed to reset notification permissions. Please try again."
+                    });
+                  }
+                }}
                 variant="outline"
                 size="sm"
                 className="text-xs sm:text-sm h-8"
@@ -708,7 +726,7 @@ export function PushNotificationSettings() {
                           // Show a loading toast while waiting for permission
                           const loadingToast = toast.loading("Requesting permission...");
 
-                          permissionPromise.then(permission => {
+                          permissionPromise.then(async (permission) => {
                             // Dismiss the loading toast
                             toast.dismiss(loadingToast);
 
@@ -721,13 +739,11 @@ export function PushNotificationSettings() {
 
                               // Show a test notification
                               try {
-                                const notification = new Notification('Notifications Enabled', {
+                                await showNotification('Notifications Enabled', {
                                   body: 'You will now receive notifications from MyPts',
-                                  icon: '/logo192.png'
+                                  icon: '/logo192.png',
+                                  closeAfter: 3000
                                 });
-
-                                // Close the notification after 3 seconds
-                                setTimeout(() => notification.close(), 3000);
                               } catch (notifyError) {
                                 console.error('Error showing test notification:', notifyError);
                               }
