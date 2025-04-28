@@ -451,17 +451,35 @@ export function PushNotificationSettings() {
       setIsTesting(true);
       setSelectedDevice(deviceId);
 
-      // Try to send a test notification via the backend
+      console.log(`Testing notification for device: ${deviceId}`);
+
+      // Create a safety timeout to reset the testing state if something goes wrong
+      const safetyTimeout = setTimeout(() => {
+        console.log('Safety timeout triggered for test notification');
+        setIsTesting(false);
+        setSelectedDevice(null);
+      }, 15000); // 15 seconds safety timeout
+
       try {
-        await testPushNotification(deviceId);
+        // Try to send a test notification via the backend
+        // Our enhanced testPushNotification function will try multiple approaches
+        const result = await testPushNotification(deviceId);
+        console.log('Test notification result:', result);
+
         toast.success("Success", {
           description: 'Test notification sent to device',
         });
-      } catch (backendError) {
+
+        clearTimeout(safetyTimeout);
+      } catch (backendError: any) {
         console.warn('Backend notification failed, using local notification instead:', backendError);
+
+        // Clear the safety timeout since we're handling the error
+        clearTimeout(safetyTimeout);
 
         // If backend fails, show a local notification instead
         if ('Notification' in window && Notification.permission === 'granted') {
+          console.log('Showing local notification as fallback');
           const notification = new Notification('Test Notification', {
             body: 'This is a test notification from MyPts',
             icon: '/logo192.png',
@@ -472,16 +490,17 @@ export function PushNotificationSettings() {
           setTimeout(() => notification.close(), 5000);
 
           toast.success("Success", {
-            description: 'Local test notification shown',
+            description: 'Local test notification shown (backend notification failed)',
           });
         } else {
+          console.error('Cannot show local notification: permission not granted');
           throw new Error('Cannot show local notification: permission not granted');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error testing notification:', error);
       toast.error("Error", {
-        description: 'Failed to show test notification',
+        description: error.message || 'Failed to show test notification',
       });
     } finally {
       setIsTesting(false);

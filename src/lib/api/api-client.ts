@@ -32,14 +32,42 @@ apiClientInstance.interceptors.request.use(
 apiClientInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle unauthorized errors (401)
-    if (error.response?.status === 401) {
-      // Only attempt to redirect if in browser context
-      if (typeof window !== 'undefined') {
-        console.log('Unauthorized, redirecting to login');
-        // You can add logic here to redirect to login page
+    // Add more detailed logging for API errors
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('API Error Response:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        url: error.config?.url,
+        method: error.config?.method
+      });
+
+      // Handle unauthorized errors (401)
+      if (error.response.status === 401) {
+        // Only attempt to redirect if in browser context
+        if (typeof window !== 'undefined') {
+          console.log('Unauthorized, redirecting to login');
+          // You can add logic here to redirect to login page
+        }
       }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('API Error Request:', {
+        request: error.request,
+        url: error.config?.url,
+        method: error.config?.method
+      });
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('API Error Setup:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method
+      });
     }
+
     return Promise.reject(error);
   }
 );

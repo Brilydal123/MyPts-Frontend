@@ -345,10 +345,55 @@ export const unregisterDevice = async (deviceId: string) => {
 // Test push notification for a device
 export const testPushNotification = async (deviceId: string) => {
   try {
+    console.log(`Testing push notification for device ID: ${deviceId}`);
     const response = await apiClient.post(`/user/devices/${deviceId}/test`);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error testing push notification:', error);
+
+    // If we get a 400 error, try the direct test method
+    if (error.response?.status === 400) {
+      console.log('Falling back to direct push notification test...');
+      try {
+        // Get the device details first
+        const devicesResponse = await getUserDevices();
+        const device = devicesResponse.devices?.find((d: any) => d.id === deviceId);
+
+        if (device && device.pushToken) {
+          console.log(`Found device with token: ${device.pushToken.substring(0, 10)}...`);
+          // Try the direct test endpoint
+          const directTestResponse = await apiClient.post('/test/notifications/push', {
+            token: device.pushToken,
+            title: 'Test Notification',
+            message: 'This is a test notification from MyPts'
+          });
+          return directTestResponse.data;
+        } else {
+          console.error('Device not found or has no push token');
+          throw new Error('Device not found or has no push token');
+        }
+      } catch (directError) {
+        console.error('Error with direct push notification test:', directError);
+        throw directError;
+      }
+    }
+
+    throw error;
+  }
+};
+
+// Test push notification directly with a token
+export const testPushNotificationWithToken = async (token: string) => {
+  try {
+    console.log(`Testing push notification with token: ${token.substring(0, 10)}...`);
+    const response = await apiClient.post('/test/notifications/push', {
+      token,
+      title: 'Test Notification',
+      message: 'This is a test notification from MyPts'
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error testing push notification with token:', error);
     throw error;
   }
 };

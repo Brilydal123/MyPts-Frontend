@@ -50,10 +50,10 @@ export function PreferencesSettings() {
   const handleSavePreferences = async () => {
     try {
       setIsSaving(true);
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       toast.success('Preferences saved successfully');
     } catch (error) {
       console.error('Error saving preferences:', error);
@@ -73,7 +73,7 @@ export function PreferencesSettings() {
               Customize your application experience
             </CardDescription>
           </div>
-          <Button 
+          <Button
             onClick={handleSavePreferences}
             disabled={isSaving}
           >
@@ -94,12 +94,12 @@ export function PreferencesSettings() {
             <h3 className="text-lg font-medium">Appearance</h3>
           </div>
           <Separator className="mb-4" />
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Theme</Label>
-              <RadioGroup 
-                value={preferences.theme} 
+              <RadioGroup
+                value={preferences.theme}
                 onValueChange={handleThemeChange}
                 className="flex flex-col sm:flex-row gap-2 sm:gap-4"
               >
@@ -126,7 +126,7 @@ export function PreferencesSettings() {
                 </div>
               </RadioGroup>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="high-contrast">High Contrast Mode</Label>
@@ -140,7 +140,7 @@ export function PreferencesSettings() {
                 onCheckedChange={(checked) => handleToggleChange('highContrastMode', checked)}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="reduced-motion">Reduced Motion</Label>
@@ -154,7 +154,7 @@ export function PreferencesSettings() {
                 onCheckedChange={(checked) => handleToggleChange('reducedMotion', checked)}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="compact-mode">Compact Mode</Label>
@@ -170,7 +170,7 @@ export function PreferencesSettings() {
             </div>
           </div>
         </div>
-        
+
         {/* Regional Settings */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -178,12 +178,12 @@ export function PreferencesSettings() {
             <h3 className="text-lg font-medium">Regional Settings</h3>
           </div>
           <Separator className="mb-4" />
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
-              <Select 
-                value={preferences.language} 
+              <Select
+                value={preferences.language}
                 onValueChange={(value) => handleSelectChange('language', value)}
               >
                 <SelectTrigger id="language">
@@ -199,11 +199,11 @@ export function PreferencesSettings() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="timezone">Time Zone</Label>
-              <Select 
-                value={preferences.timezone} 
+              <Select
+                value={preferences.timezone}
                 onValueChange={(value) => handleSelectChange('timezone', value)}
               >
                 <SelectTrigger id="timezone">
@@ -219,11 +219,11 @@ export function PreferencesSettings() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="date-format">Date Format</Label>
-              <Select 
-                value={preferences.dateFormat} 
+              <Select
+                value={preferences.dateFormat}
                 onValueChange={(value) => handleSelectChange('dateFormat', value)}
               >
                 <SelectTrigger id="date-format">
@@ -240,7 +240,7 @@ export function PreferencesSettings() {
             </div>
           </div>
         </div>
-        
+
         {/* System Settings */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -248,7 +248,7 @@ export function PreferencesSettings() {
             <h3 className="text-lg font-medium">System Settings</h3>
           </div>
           <Separator className="mb-4" />
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -263,7 +263,7 @@ export function PreferencesSettings() {
                 onCheckedChange={(checked) => handleToggleChange('soundEnabled', checked)}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="auto-updates">Automatic Updates</Label>
@@ -277,7 +277,7 @@ export function PreferencesSettings() {
                 onCheckedChange={(checked) => handleToggleChange('autoUpdates', checked)}
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="performance-mode">Performance Mode</Label>
@@ -288,7 +288,7 @@ export function PreferencesSettings() {
               <Switch
                 id="performance-mode"
                 checked={preferences.performanceMode}
-                onCheckedChange={(checked) => handleToggleChange('performanceMode', checked)}
+                onCheckedChange={(checked) => handleToggleChange('performanceMode..', checked)}
               />
             </div>
           </div>
