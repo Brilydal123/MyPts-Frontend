@@ -23,7 +23,7 @@ export function AccountSettings() {
     email: session?.user?.email || '',
     phone: '',
     twoFactorEnabled: false,
-    emailVerified: !!session?.user?.emailVerified,
+    emailVerified: !!(session?.user as any)?.emailVerified,
     profileImage: session?.user?.image || ''
   });
 
