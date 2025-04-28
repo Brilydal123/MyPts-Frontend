@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getMessaging, Messaging } from 'firebase/messaging';
+import { initializeApp, FirebaseApp, getApps, deleteApp } from 'firebase/app';
+import { Messaging } from 'firebase/messaging';
 
 // Extend Window interface to include firebase
 declare global {
@@ -17,8 +17,8 @@ const firebaseConfig = {
   // Use environment variables if available, otherwise use the actual values
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBvonBWaHDTMFjyN7QBA9M50F1u621vYc0",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "mypts-6a894.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mymypts-6a894",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "mypts-6a894.firebasestorage.app",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mypts-6a894",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "mypts-6a894.appspot.com",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1080632618681",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1080632618681:web:0e155eaa624e80b4a1f568",
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-VWPJWY520R"
@@ -36,21 +36,51 @@ console.log('Firebase configuration:', {
 // Initialize Firebase
 let firebaseApp: FirebaseApp;
 try {
-  // Check if Firebase is already initialized
-  if (typeof window !== 'undefined' && window.firebase) {
-    console.log('Firebase already initialized, using existing instance');
-    firebaseApp = window.firebase.app();
-  } else {
-    firebaseApp = initializeApp(firebaseConfig);
-    console.log('Firebase initialized successfully');
+  // Delete any existing Firebase apps to ensure a clean state
+  if (typeof window !== 'undefined') {
+    try {
+      // Try to get existing Firebase apps
+      const existingApp = getApps().find(app => app.name === '[DEFAULT]');
+      if (existingApp) {
+        console.log('Found existing Firebase app, deleting it');
+        // We can't use await here since we're not in an async function
+        deleteApp(existingApp).then(() => {
+          console.log('Existing Firebase app deleted');
+        }).catch(error => {
+          console.warn('Error deleting existing Firebase app:', error);
+        });
+      }
+    } catch (deleteError) {
+      console.warn('Error deleting existing Firebase app:', deleteError);
+    }
   }
+
+  // Initialize a new Firebase app
+  firebaseApp = initializeApp(firebaseConfig);
+  console.log('Firebase initialized successfully with config:', {
+    projectId: firebaseConfig.projectId,
+    messagingSenderId: firebaseConfig.messagingSenderId
+  });
 } catch (error) {
   console.error('Error initializing Firebase:', error);
 
   // If the error is about the app already existing, get the existing app
   if (error instanceof Error && error.message.includes('already exists')) {
     console.log('Using existing Firebase app');
-    firebaseApp = initializeApp();
+    try {
+      // Get the existing app
+      const apps = getApps();
+      if (apps.length > 0) {
+        firebaseApp = apps[0];
+      } else {
+        throw new Error('No existing Firebase app found');
+      }
+    } catch (getAppError) {
+      console.error('Error getting existing Firebase app:', getAppError);
+      // Create a dummy app for development as a last resort
+      console.warn('Creating dummy Firebase app as fallback');
+      firebaseApp = {} as FirebaseApp;
+    }
   } else {
     // Create a dummy app for development as a last resort
     console.warn('Creating dummy Firebase app as fallback');
@@ -62,15 +92,20 @@ try {
 let messaging: Messaging | null = null;
 if (typeof window !== 'undefined') {
   try {
-    messaging = getMessaging(firebaseApp);
-    console.log('Firebase messaging initialized successfully');
-
-    // Test if messaging is working
-    if (!messaging) {
-      throw new Error('Messaging is null after initialization');
+    // Make sure service workers are supported
+    if (!('serviceWorker' in navigator)) {
+      throw new Error('Service workers are not supported in this browser');
     }
+
+    // Make sure push is supported
+    if (!('PushManager' in window)) {
+      throw new Error('Push API is not supported in this browser');
+    }
+
+    // We'll initialize messaging later when needed
+    console.log('Firebase messaging will be initialized when needed');
   } catch (error) {
-    console.error('Error initializing Firebase messaging:', error);
+    console.error('Error checking Firebase messaging prerequisites:', error);
 
     // Provide more detailed error information
     if (error instanceof Error) {
