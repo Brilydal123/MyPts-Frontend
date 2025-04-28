@@ -76,13 +76,13 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     // Wait a moment to ensure unregistration is complete
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Register our simple FCM service worker first
-    console.log('Registering simple FCM service worker...');
-    const fcmRegistration = await navigator.serviceWorker.register('/fcm-sw.js', {
+    // Register our Firebase messaging service worker
+    console.log('Registering Firebase messaging service worker...');
+    const fcmRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
       scope: '/'
     });
 
-    console.log('Simple FCM service worker registered, waiting for activation...');
+    console.log('Firebase messaging service worker registered, waiting for activation...');
 
     // Wait for the service worker to be activated
     if (fcmRegistration.installing) {
@@ -245,18 +245,77 @@ export const getFCMToken = async (vapidKey: string): Promise<string> => {
   }
 };
 
+// Cache for device registration to avoid multiple registrations
+let deviceRegistrationCache: any = null;
+let deviceRegistrationPromise: Promise<any> | null = null;
+const DEVICE_REGISTRATION_CACHE_KEY = 'device_registration';
+const DEVICE_REGISTRATION_TIMESTAMP_KEY = 'device_registration_timestamp';
+const DEVICE_REGISTRATION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 // Register the device with the backend
 export const registerDevice = async (token: string, deviceName?: string, deviceType?: string) => {
   try {
-    const response = await apiClient.post('/user/devices/register', {
-      token,
-      deviceName: deviceName || navigator.userAgent,
-      deviceType: deviceType || detectDeviceType()
-    });
+    // Check if we have a cached registration in memory
+    if (deviceRegistrationCache && deviceRegistrationCache.token === token) {
+      console.log('Using in-memory cached device registration');
+      return deviceRegistrationCache;
+    }
 
-    return response.data;
+    // Check if we have a cached registration in localStorage
+    const cachedRegistration = localStorage.getItem(DEVICE_REGISTRATION_CACHE_KEY);
+    const cachedTimestamp = localStorage.getItem(DEVICE_REGISTRATION_TIMESTAMP_KEY);
+
+    if (cachedRegistration && cachedTimestamp) {
+      const registration = JSON.parse(cachedRegistration);
+      const timestamp = parseInt(cachedTimestamp, 10);
+      const now = Date.now();
+
+      // Use cached registration if it's not expired and the token matches
+      if (now - timestamp < DEVICE_REGISTRATION_EXPIRY && registration.token === token) {
+        console.log('Using localStorage cached device registration');
+        deviceRegistrationCache = registration;
+        return registration;
+      } else {
+        console.log('Cached device registration expired or token changed, registering again');
+      }
+    }
+
+    // If we're already registering, return the promise
+    if (deviceRegistrationPromise) {
+      console.log('Device registration already in progress, waiting...');
+      return deviceRegistrationPromise;
+    }
+
+    // Create a new registration promise
+    deviceRegistrationPromise = (async () => {
+      try {
+        console.log('Registering device with token:', token.substring(0, 10) + '...');
+
+        const response = await apiClient.post('/user/devices/register', {
+          token,
+          deviceName: deviceName || navigator.userAgent,
+          deviceType: deviceType || detectDeviceType()
+        });
+
+        // Cache the registration
+        const registrationData = response.data;
+        deviceRegistrationCache = registrationData;
+        localStorage.setItem(DEVICE_REGISTRATION_CACHE_KEY, JSON.stringify(registrationData));
+        localStorage.setItem(DEVICE_REGISTRATION_TIMESTAMP_KEY, Date.now().toString());
+
+        return registrationData;
+      } catch (error) {
+        console.error('Error registering device:', error);
+        throw error;
+      } finally {
+        // Clear the promise so we can try again if needed
+        deviceRegistrationPromise = null;
+      }
+    })();
+
+    return deviceRegistrationPromise;
   } catch (error) {
-    console.error('Error registering device:', error);
+    console.error('Error in registerDevice:', error);
     throw error;
   }
 };

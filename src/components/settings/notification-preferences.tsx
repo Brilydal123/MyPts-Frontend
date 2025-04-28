@@ -334,20 +334,20 @@ export function NotificationPreferences() {
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-0 sm:border shadow-none sm:shadow">
+      <CardHeader className="px-0 sm:px-6 pt-0 sm:pt-6">
         <CardTitle>Notification Preferences</CardTitle>
         <CardDescription>
           Choose how you want to be notified about transactions and other activities
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 sm:px-6">
         {isLoading ? (
           <div className="space-y-4">
-            <div className="h-6 bg-gray-200 animate-pulse rounded"></div>
-            <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
-            <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
-            <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -434,7 +434,7 @@ export function NotificationPreferences() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="email-profile-views">Profile Views</Label>
                     <p className="text-sm text-muted-foreground">
@@ -446,9 +446,9 @@ export function NotificationPreferences() {
                     checked={preferences.email.profileViews}
                     onCheckedChange={() => handleEmailPrefChange('profileViews')}
                   />
-                </div>
+                </div> */}
 
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="email-connection-requests">Connection Requests</Label>
                     <p className="text-sm text-muted-foreground">
@@ -460,9 +460,9 @@ export function NotificationPreferences() {
                     checked={preferences.email.connectionRequests}
                     onCheckedChange={() => handleEmailPrefChange('connectionRequests')}
                   />
-                </div>
+                </div> */}
 
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="email-messages">Messages</Label>
                     <p className="text-sm text-muted-foreground">
@@ -474,9 +474,9 @@ export function NotificationPreferences() {
                     checked={preferences.email.messages}
                     onCheckedChange={() => handleEmailPrefChange('messages')}
                   />
-                </div>
+                </div> */}
 
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="email-endorsements">Endorsements</Label>
                     <p className="text-sm text-muted-foreground">
@@ -488,7 +488,7 @@ export function NotificationPreferences() {
                     checked={preferences.email.endorsements}
                     onCheckedChange={() => handleEmailPrefChange('endorsements')}
                   />
-                </div>
+                </div> */}
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">

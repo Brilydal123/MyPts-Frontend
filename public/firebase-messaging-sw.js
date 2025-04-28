@@ -94,6 +94,8 @@ self.addEventListener('activate', (event) => {
             message: 'Service worker is now active and controlling the page'
           });
         });
+      }).catch(error => {
+        console.error('[firebase-messaging-sw.js] Error notifying clients:', error);
       });
     })
   );
@@ -107,6 +109,8 @@ self.addEventListener('message', (event) => {
     console.log('[firebase-messaging-sw.js] Skipping waiting phase');
     self.skipWaiting().then(() => {
       console.log('[firebase-messaging-sw.js] Successfully skipped waiting phase');
+    }).catch(error => {
+      console.error('[firebase-messaging-sw.js] Error skipping waiting phase:', error);
     });
   }
 
@@ -117,13 +121,29 @@ self.addEventListener('message', (event) => {
 
       // Notify the client that sent the message
       if (event.source) {
-        event.source.postMessage({
-          type: 'CLIENTS_CLAIMED',
-          message: 'Service worker has claimed all clients'
-        });
+        try {
+          event.source.postMessage({
+            type: 'CLIENTS_CLAIMED',
+            message: 'Service worker has claimed all clients'
+          });
+        } catch (error) {
+          console.error('[firebase-messaging-sw.js] Error sending message to client:', error);
+        }
       }
+    }).catch(error => {
+      console.error('[firebase-messaging-sw.js] Error claiming clients:', error);
     });
   }
+});
+
+// Log any errors that occur in the service worker
+self.addEventListener('error', (event) => {
+  console.error('[firebase-messaging-sw.js] Error in service worker:', event.error);
+});
+
+// Handle unhandled promise rejections
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('[firebase-messaging-sw.js] Unhandled promise rejection:', event.reason);
 });
 
 // Service worker is now properly configured

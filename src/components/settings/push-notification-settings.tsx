@@ -29,35 +29,92 @@ export function PushNotificationSettings() {
   const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
+    console.log('PushNotificationSettings component mounted or user changed');
+
+    // Create a safety timeout to reset loading state if it gets stuck
+    const safetyTimeout = setTimeout(() => {
+      console.log('Safety timeout triggered for initial loading');
+      setIsLoading(false);
+    }, 10000); // 10 seconds safety timeout
+
+    // Check if push notifications are supported
     const checkSupport = () => {
       const supported = isPushNotificationSupported();
+      console.log('Push notifications supported:', supported);
       setIsSupported(supported);
       return supported;
     };
 
+    // Load devices
     const loadDevices = async () => {
+      console.log('Loading devices...');
+
       try {
         setIsLoading(true);
+
+        // Check if we have cached devices and they're not too old (less than 1 minute old)
+        const cachedDevices = localStorage.getItem('push_notification_devices');
+        const cachedTimestamp = localStorage.getItem('push_notification_devices_timestamp');
+
+        if (cachedDevices && cachedTimestamp) {
+          const timestamp = parseInt(cachedTimestamp, 10);
+          const now = Date.now();
+          const oneMinute = 60 * 1000;
+
+          // Use cached devices if they're less than 1 minute old
+          if (now - timestamp < oneMinute) {
+            console.log('Using cached devices from localStorage');
+            const parsedDevices = JSON.parse(cachedDevices);
+            console.log(`Found ${parsedDevices.length} cached devices`);
+            setDevices(parsedDevices);
+            setIsLoading(false);
+            return;
+          } else {
+            console.log('Cached devices expired, fetching fresh data');
+          }
+        } else {
+          console.log('No cached devices found, fetching from API');
+        }
+
+        // Fetch devices from API
+        console.log('Fetching devices from API...');
         const response = await getUserDevices();
-        setDevices(response.devices || []);
+        const deviceList = response.devices || [];
+        console.log(`Fetched ${deviceList.length} devices from API`);
+
+        // Cache the devices
+        localStorage.setItem('push_notification_devices', JSON.stringify(deviceList));
+        localStorage.setItem('push_notification_devices_timestamp', Date.now().toString());
+        console.log('Devices cached in localStorage');
+
+        setDevices(deviceList);
       } catch (error) {
         console.error('Error loading devices:', error);
-        toast.error("Error",{
-          // title: 'Error',
-          description: 'Failed to load registered devices',
-          // variant: 'destructive'
+        toast.error("Error", {
+          description: 'Failed to load registered devices. Please try again.',
         });
       } finally {
+        console.log('Device loading completed, resetting loading state');
         setIsLoading(false);
+        clearTimeout(safetyTimeout);
       }
     };
 
+    // Only load devices if push notifications are supported and user is logged in
     if (checkSupport() && user) {
       loadDevices();
     } else {
+      console.log('Not loading devices: support=', checkSupport(), 'user=', !!user);
       setIsLoading(false);
+      clearTimeout(safetyTimeout);
     }
-  }, [user]);
+
+    // Clean up function
+    return () => {
+      console.log('PushNotificationSettings component unmounting');
+      clearTimeout(safetyTimeout);
+    };
+  }, [user]); // Only depend on user, not isLoading
 
   // Helper function to reset notification permissions (for debugging)
   const resetNotificationPermissions = async () => {
@@ -116,8 +173,21 @@ export function PushNotificationSettings() {
   };
 
   const handleRegisterDevice = async () => {
+    // Create a safety timeout to reset the loading state if something goes wrong
+    const safetyTimeout = setTimeout(() => {
+      console.log('Safety timeout triggered - resetting loading state');
+      setIsRegistering(false);
+    }, 30000); // 30 seconds safety timeout
+
     try {
+      console.log('Starting device registration process...');
       setIsRegistering(true);
+
+      // Determine if we're in production or development
+      const isProduction = window.location.hostname !== 'localhost' &&
+                           window.location.hostname !== '127.0.0.1';
+
+      console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
 
       // Log VAPID key for debugging
       console.log('Using VAPID key:', FIREBASE_VAPID_KEY ? `${FIREBASE_VAPID_KEY.substring(0, 10)}...` : 'Missing');
@@ -228,30 +298,66 @@ export function PushNotificationSettings() {
         // Show a loading toast
         const loadingToast = toast.loading("Registering device...");
 
-        // Initialize push notifications
-        const token = await initializePushNotifications(FIREBASE_VAPID_KEY);
+        // Add a timeout to prevent hanging
+        const timeoutPromise = new Promise<null>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Registration timed out after 15 seconds. Please try again.'));
+          }, 15000);
+        });
+
+        // Race between the initialization and the timeout
+        const token = await Promise.race([
+          initializePushNotifications(FIREBASE_VAPID_KEY),
+          timeoutPromise
+        ]);
 
         if (token) {
           // Dismiss the loading toast
+          console.log('Registration successful, dismissing loading toast');
           toast.dismiss(loadingToast);
 
+          // Show success message
+          console.log('Showing success toast');
           toast.success("Success", {
             description: 'Device registered for push notifications successfully!',
           });
 
+          // Show a test notification to verify everything is working
+          try {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              const testNotification = new Notification('Push Notifications Enabled', {
+                body: 'You will now receive notifications from MyPts',
+                icon: '/logo192.png'
+              });
+
+              // Close the notification after 3 seconds
+              setTimeout(() => testNotification.close(), 3000);
+            }
+          } catch (notifyError) {
+            console.error('Error showing test notification:', notifyError);
+            // Continue anyway, this is just a test
+          }
+
           // Refresh the device list
+          console.log('Refreshing device list after successful registration');
           const response = await getUserDevices();
+          console.log('Device list refreshed:', response.devices?.length || 0, 'devices found');
           setDevices(response.devices || []);
         } else {
           // Dismiss the loading toast
+          console.log('No token received, dismissing loading toast');
           toast.dismiss(loadingToast);
 
+          console.log('Showing error toast for no token');
           toast.error("Registration Failed", {
             description: 'Failed to register device for push notifications. No token received.',
           });
         }
       } catch (error: any) {
         console.error('Error in push notification initialization:', error);
+
+        // Make sure to dismiss any loading toast that might be showing
+        toast.dismiss();
 
         // Provide more specific error messages based on the error
         let errorMessage = 'Failed to register device for push notifications';
@@ -270,31 +376,52 @@ export function PushNotificationSettings() {
           } else if (error.message.includes('service worker')) {
             errorTitle = "Service Worker Error";
             errorMessage = 'Service worker registration failed: ' + error.message;
+          } else if (error.message.includes('timed out')) {
+            errorTitle = "Timeout Error";
+            errorMessage = 'The registration process took too long. Please try again.';
           } else {
             errorMessage = error.message;
           }
         }
 
+        console.log(`Showing error toast: ${errorTitle} - ${errorMessage}`);
         toast.error(errorTitle, {
           description: errorMessage,
         });
       }
     } catch (error: any) {
       console.error('Unexpected error registering device:', error);
+
+      // Make sure to dismiss any loading toast that might be showing
+      toast.dismiss();
+
       toast.error("Error", {
         description: 'Unexpected error: ' + (error.message || 'Unknown error'),
       });
     } finally {
+      // Clear the safety timeout
+      clearTimeout(safetyTimeout);
+
       // Ensure we reset the loading state
+      console.log('Registration process completed, resetting loading state');
       setIsRegistering(false);
 
       // Refresh the device list even if there was an error
       try {
+        console.log('Refreshing device list...');
         const response = await getUserDevices();
+        console.log('Device list refreshed:', response.devices?.length || 0, 'devices found');
         setDevices(response.devices || []);
       } catch (refreshError) {
         console.error('Error refreshing device list:', refreshError);
       }
+
+      // Force a re-render to ensure UI is updated
+      setIsLoading(true);
+      setTimeout(() => {
+        console.log('Forcing UI refresh');
+        setIsLoading(false);
+      }, 100);
     }
   };
 
@@ -324,19 +451,37 @@ export function PushNotificationSettings() {
       setIsTesting(true);
       setSelectedDevice(deviceId);
 
-      await testPushNotification(deviceId);
+      // Try to send a test notification via the backend
+      try {
+        await testPushNotification(deviceId);
+        toast.success("Success", {
+          description: 'Test notification sent to device',
+        });
+      } catch (backendError) {
+        console.warn('Backend notification failed, using local notification instead:', backendError);
 
+        // If backend fails, show a local notification instead
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const notification = new Notification('Test Notification', {
+            body: 'This is a test notification from MyPts',
+            icon: '/logo192.png',
+            tag: 'test-notification'
+          });
 
-      toast.success("Success",{
-        // title: 'Success',
-        description: 'Device registered for push notifications',
-      });
+          // Close the notification after 5 seconds
+          setTimeout(() => notification.close(), 5000);
+
+          toast.success("Success", {
+            description: 'Local test notification shown',
+          });
+        } else {
+          throw new Error('Cannot show local notification: permission not granted');
+        }
+      }
     } catch (error) {
       console.error('Error testing notification:', error);
-      toast.error("Error",{
-        // title: 'Error',
-        description: 'Failed to register device for push notifications',
-        // variant: 'destructive'
+      toast.error("Error", {
+        description: 'Failed to show test notification',
       });
     } finally {
       setIsTesting(false);
@@ -368,14 +513,14 @@ export function PushNotificationSettings() {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-0 sm:border shadow-none sm:shadow">
+      <CardHeader className="px-0 sm:px-6 pt-0 sm:pt-6">
         <CardTitle>Push Notifications</CardTitle>
         <CardDescription>Receive notifications on this device</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 sm:px-6">
         {isLoading ? (
-          <div className="flex justify-center p-6">
+          <div className="flex justify-center p-4 sm:p-6">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
@@ -383,36 +528,79 @@ export function PushNotificationSettings() {
             <div className="space-y-4">
               {devices.length > 0 ? (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Registered Devices</h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium">Registered Devices</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        console.log('Manual refresh requested');
+                        setIsLoading(true);
+                        getUserDevices()
+                          .then(response => {
+                            console.log(`Refreshed ${response.devices?.length || 0} devices`);
+                            setDevices(response.devices || []);
+
+                            // Update cache
+                            localStorage.setItem('push_notification_devices', JSON.stringify(response.devices || []));
+                            localStorage.setItem('push_notification_devices_timestamp', Date.now().toString());
+
+                            toast.success("Refreshed", {
+                              description: 'Device list refreshed successfully'
+                            });
+                          })
+                          .catch(error => {
+                            console.error('Error refreshing devices:', error);
+                            toast.error("Error", {
+                              description: 'Failed to refresh device list'
+                            });
+                          })
+                          .finally(() => {
+                            setIsLoading(false);
+                          });
+                      }}
+                      className="h-8 w-8 p-0"
+                      title="Refresh device list"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                        <path d="M21 3v5h-5" />
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                        <path d="M3 21v-5h5" />
+                      </svg>
+                    </Button>
+                  </div>
                   {devices.map((device) => (
-                    <div key={device.id} className="flex items-center justify-between rounded-lg border p-4">
-                      <div className="flex items-center space-x-4">
-                        <Smartphone className="h-6 w-6 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{device.name}</p>
+                    <div key={device.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 sm:p-4 gap-3 sm:gap-0">
+                      <div className="flex items-center space-x-3">
+                        <Smartphone className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{device.name}</p>
                           <p className="text-xs text-muted-foreground">
                             Last active: {new Date(device.lastActive).toLocaleString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 self-end sm:self-auto">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleTestNotification(device.id)}
                           disabled={isTesting && selectedDevice === device.id}
+                          className="h-8 px-2 sm:px-3"
                         >
                           {isTesting && selectedDevice === device.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Send className="h-4 w-4" />
                           )}
-                          <span className="ml-2">Test</span>
+                          <span className="ml-1 sm:ml-2 text-xs sm:text-sm">Test</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleUnregisterDevice(device.id)}
+                          className="h-8 w-8 p-0"
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -421,11 +609,11 @@ export function PushNotificationSettings() {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center justify-center p-6">
+                <div className="flex items-center justify-center p-4 sm:p-6">
                   <div className="text-center">
-                    <Bell className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-medium">No Devices Registered</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <Bell className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
+                    <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-medium">No Devices Registered</h3>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-muted-foreground">
                       Register this device to receive push notifications.
                     </p>
                   </div>
@@ -436,11 +624,11 @@ export function PushNotificationSettings() {
         )}
       </CardContent>
       <Separator />
-      <CardFooter className="flex flex-col space-y-4 pt-4">
+      <CardFooter className="flex flex-col space-y-4 pt-4 px-0 sm:px-6">
         {/* Show notification permission status */}
         {typeof window !== 'undefined' && 'Notification' in window && (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium">Notification Permission:</span>
               {Notification.permission === 'granted' ? (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -457,12 +645,13 @@ export function PushNotificationSettings() {
               )}
             </div>
 
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               {/* Reset permissions button - always show this */}
               <Button
                 onClick={resetNotificationPermissions}
                 variant="outline"
                 size="sm"
+                className="text-xs sm:text-sm h-8"
               >
                 Reset Permissions
               </Button>
@@ -564,6 +753,7 @@ export function PushNotificationSettings() {
                   }}
                   variant="outline"
                   size="sm"
+                  className="text-xs sm:text-sm h-8"
                 >
                   Request Permission
                 </Button>
@@ -572,7 +762,7 @@ export function PushNotificationSettings() {
           </div>
         )}
 
-        <div className="flex justify-between w-full">
+        <div className="flex flex-col sm:flex-row justify-between w-full gap-4 sm:gap-0">
           <div className="flex items-center space-x-2">
             <Switch id="push-enabled" />
             <Label htmlFor="push-enabled">Enable push notifications</Label>
@@ -580,6 +770,7 @@ export function PushNotificationSettings() {
           <Button
             onClick={handleRegisterDevice}
             disabled={isRegistering || (typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted')}
+            className="w-full sm:w-auto"
           >
             {isRegistering ? (
               <>
