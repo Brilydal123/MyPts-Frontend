@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     if (!profileId) {
       return NextResponse.json(
-        { success: false, message: 'Profile ID is required' },
+        { success: false, message: 'Profile ID is required..' },
         { status: 400 }
       );
     }
