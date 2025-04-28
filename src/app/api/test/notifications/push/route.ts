@@ -132,11 +132,11 @@ export async function POST(req: NextRequest) {
 
         // Send the notification
         console.log('Frontend API: Sending Firebase message...');
-        const message = {
+        const notificationMessage = {
           token,
           notification: {
             title,
-            body: message
+            body: message // Using the message parameter from the function
           },
           data: {
             notificationType: 'test',
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
           }
         };
 
-        const response = await admin.messaging().send(message);
+        const response = await admin.messaging().send(notificationMessage);
         console.log('Frontend API: Firebase message sent:', response);
 
         return NextResponse.json({
