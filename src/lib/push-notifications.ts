@@ -31,6 +31,12 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 // Get the FCM token
 export const getFCMToken = async (vapidKey: string): Promise<string> => {
   try {
+    console.log('Getting FCM token with VAPID key:', vapidKey ? vapidKey.substring(0, 10) + '...' : 'Missing');
+
+    if (!vapidKey) {
+      throw new Error('VAPID key is required for FCM token generation');
+    }
+
     // Import Firebase messaging dynamically to avoid SSR issues
     const { getMessaging, getToken } = await import('firebase/messaging');
     const { firebaseApp } = await import('./firebase') as { firebaseApp: import('firebase/app').FirebaseApp };
@@ -39,10 +45,31 @@ export const getFCMToken = async (vapidKey: string): Promise<string> => {
       throw new Error('Firebase app not initialized');
     }
 
+    console.log('Firebase app initialized, getting messaging instance');
     const messaging = getMessaging(firebaseApp);
-    return await getToken(messaging, { vapidKey });
+
+    if (!messaging) {
+      throw new Error('Firebase messaging not initialized');
+    }
+
+    console.log('Getting FCM token...');
+    const token = await getToken(messaging, { vapidKey });
+
+    if (!token) {
+      throw new Error('No FCM token received from Firebase');
+    }
+
+    console.log('FCM token received successfully:', token.substring(0, 10) + '...');
+    return token;
   } catch (error: any) {
     console.error('Error getting FCM token:', error);
+
+    // Provide more detailed error information
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
     throw error;
   }
 };

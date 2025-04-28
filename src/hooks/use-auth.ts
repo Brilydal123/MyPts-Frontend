@@ -32,59 +32,97 @@ export function useAuth() {
     isDirectAdmin || // From direct API call
     localStorageAdmin; // From local storage (set after mount)
 
-  // Debug: log the user object and detected role
-  console.log('Auth user:', session?.user);
-  console.log('Is admin from session:', session?.user?.role === 'admin' || session?.user?.isAdmin === true);
-  console.log('Is admin from direct API:', isDirectAdmin);
-  console.log('Final admin status:', isAdmin);
+  // Debug logging only in development mode
+  if (process.env.NODE_ENV === 'development') {
+    // Log only once when session changes to avoid console spam
+    useEffect(() => {
+      console.log('Auth user:', session?.user);
+      console.log('Is admin from session:', session?.user?.role === 'admin' || session?.user?.isAdmin === true);
+      console.log('Is admin from direct API:', isDirectAdmin);
+      console.log('Final admin status:', isAdmin);
+    }, [session?.user?.id, isDirectAdmin, isAdmin]);
+  }
 
-  // If authenticated, always fetch directly from API to be sure
+  // Track if we've already fetched the user role to prevent excessive API calls
+  const [hasFetchedRole, setHasFetchedRole] = useState(false);
+
+  // If authenticated, fetch directly from API only once per session
   useEffect(() => {
-    if (isAuthenticated && session?.accessToken) {
-      console.log('Fetching user role directly from backend API');
+    // Skip if we've already fetched the role or if not authenticated
+    if (!isAuthenticated || !session?.accessToken || hasFetchedRole) {
+      return;
+    }
 
-      // Get the backend API URL
-      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      console.log('Backend API URL:', BACKEND_URL);
+    // Check if we already have role information in localStorage
+    if (typeof window !== 'undefined') {
+      const storedRole = localStorage.getItem('userRole');
+      const storedIsAdmin = localStorage.getItem('isAdmin') === 'true';
 
-      // Make a direct request to the me endpoint to get role information
-      fetch(`${BACKEND_URL}/users/me`, {
-        headers: {
-          'Authorization': `Bearer ${session.accessToken}`
+      // If we have stored role info and it matches the session, don't fetch again
+      if (storedRole &&
+          ((storedRole === 'admin' && session?.user?.isAdmin) ||
+           (storedRole === session?.user?.role))) {
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Using stored role information:', storedRole);
         }
-      })
-      .then(res => res.json())
-      .then(data => {
-        console.log('User data from backend:', data);
+        setDirectRole(storedRole);
+        setIsDirectAdmin(storedIsAdmin);
+        setHasFetchedRole(true);
+        return;
+      }
+    }
 
-        if (data.success && data.user) {
-          const userRole = data.user.role;
-          const isUserAdmin = userRole === 'admin';
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fetching user role directly from backend API');
+    }
 
+    // Get the backend API URL
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+    // Make a direct request to the me endpoint to get role information
+    fetch(`${BACKEND_URL}/users/me`, {
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.user) {
+        const userRole = data.user.role;
+        const isUserAdmin = userRole === 'admin';
+
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
           console.log('User role from API:', userRole);
-          setDirectRole(userRole);
-          setIsDirectAdmin(isUserAdmin);
+        }
 
-          // Store role information in local storage as a workaround
-          // This allows persistence across page refreshes
-          if (userRole && typeof window !== 'undefined') {
-            console.log('Storing role information in local storage...');
-            localStorage.setItem('userRole', userRole);
-            localStorage.setItem('isAdmin', String(isUserAdmin));
+        setDirectRole(userRole);
+        setIsDirectAdmin(isUserAdmin);
 
-            // Force session refresh
-            getSession().then(() => {
-              console.log('✅ Session refreshed with role:', userRole);
-              console.log('✅ Local storage updated with isAdmin:', isUserAdmin);
-            });
+        // Store role information in local storage as a workaround
+        // This allows persistence across page refreshes
+        if (userRole && typeof window !== 'undefined') {
+          localStorage.setItem('userRole', userRole);
+          localStorage.setItem('isAdmin', String(isUserAdmin));
+
+          // Only log in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Local storage updated with role:', userRole);
           }
         }
-      })
-      .catch((err: Error) => {
-        console.error('Error fetching user role:', err);
-      });
-    }
-  }, [isAuthenticated, session?.accessToken, session?.user]);
+      }
+
+      // Mark as fetched regardless of result to prevent repeated calls
+      setHasFetchedRole(true);
+    })
+    .catch((err: Error) => {
+      console.error('Error fetching user role:', err);
+      // Mark as fetched even on error to prevent repeated calls
+      setHasFetchedRole(true);
+    });
+  }, [isAuthenticated, session?.accessToken, hasFetchedRole]);
 
   const logout = async () => {
     try {

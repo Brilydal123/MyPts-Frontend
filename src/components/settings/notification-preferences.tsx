@@ -189,33 +189,50 @@ export function NotificationPreferences() {
     let username = preferences.telegram.username;
 
     if (!username) {
-      toast.error('Please enter your Telegram username');
+      toast.error('Please enter your Telegram username or ID');
       return;
     }
 
     try {
       setIsVerifying(true);
 
-      // Clean up username (remove @ if present)
-      if (username.startsWith('@')) {
-        username = username.substring(1);
-        // Update the input field to show the cleaned username
-        handleTelegramUsernameChange(username);
-        toast.info('Note: We\'ve removed the @ symbol from your username', {
-          description: 'Telegram usernames should be entered without the @ symbol',
+      // Check if the input is a Telegram ID (numeric) or a username
+      const isNumericId = /^\d+$/.test(username);
+
+      if (isNumericId) {
+        // If it's a numeric ID, we'll send it as both username and telegramId
+        toast.info('Using Telegram ID for verification', {
+          description: 'Attempting to send verification message using your Telegram ID',
           duration: 3000
         });
+
+        // Continue with the verification process
+        // The backend will handle this as a Telegram ID
+      } else {
+        // Clean up username (remove @ if present)
+        if (username.startsWith('@')) {
+          username = username.substring(1);
+          // Update the input field to show the cleaned username
+          handleTelegramUsernameChange(username);
+          toast.info('Note: We\'ve removed the @ symbol from your username', {
+            description: 'Telegram usernames should be entered without the @ symbol',
+            duration: 3000
+          });
+        }
       }
 
-      // Basic validation before sending to server
-      const usernameRegex = /^[a-zA-Z0-9_]{5,32}$/;
-      if (!usernameRegex.test(username)) {
-        toast.error('Invalid Telegram username format', {
-          description: 'Usernames must be 5-32 characters and can only contain letters, numbers, and underscores',
-          duration: 5000
-        });
-        setIsVerifying(false);
-        return;
+      // Skip username validation for numeric IDs
+      if (!isNumericId) {
+        // Basic validation before sending to server
+        const usernameRegex = /^[a-zA-Z0-9_]{5,32}$/;
+        if (!usernameRegex.test(username)) {
+          toast.error('Invalid Telegram username format', {
+            description: 'Usernames must be 5-32 characters and can only contain letters, numbers, and underscores',
+            duration: 5000
+          });
+          setIsVerifying(false);
+          return;
+        }
       }
 
       // Show a helpful message about what to expect
@@ -224,7 +241,10 @@ export function NotificationPreferences() {
         duration: 3000
       });
 
-      const response = await notificationApi.verifyTelegramConnection(username);
+      // If it's a numeric ID, pass it as both username and telegramId
+      const response = isNumericId
+        ? await notificationApi.verifyTelegramConnection(username, username)
+        : await notificationApi.verifyTelegramConnection(username);
 
       if (response && response.success) {
         const method = response.method || 'default';
@@ -271,9 +291,27 @@ export function NotificationPreferences() {
           description: 'Usernames must be 5-32 characters and can only contain letters, numbers, and underscores',
           duration: 5000
         });
+      } else if (errorMessage.includes('chat not found')) {
+        toast.error('Telegram username not found', {
+          description: 'Please check that you entered your username correctly and have started a chat with @MyPtsBot. Try entering your username without the @ symbol.',
+          duration: 8000,
+          action: {
+            label: 'Open Telegram',
+            onClick: () => window.open('https://t.me/MyPtsBot', '_blank')
+          }
+        });
+      } else if (errorMessage.includes('bot can\'t initiate conversation')) {
+        toast.error('Bot conversation not started', {
+          description: 'You need to start a chat with @MyPtsBot first before we can send you messages. Click the button below to open Telegram.',
+          duration: 8000,
+          action: {
+            label: 'Open Telegram',
+            onClick: () => window.open('https://t.me/MyPtsBot', '_blank')
+          }
+        });
       } else if (errorMessage.includes('Error contacting Telegram')) {
         toast.error('Error connecting to Telegram', {
-          description: 'There was a problem contacting Telegram. Please try again later or try using your Telegram ID instead of username.',
+          description: 'There was a problem contacting Telegram. Please try again later.',
           duration: 6000,
           action: {
             label: 'Open Telegram',
@@ -281,9 +319,9 @@ export function NotificationPreferences() {
           }
         });
       } else {
-        toast.error(errorMessage, {
-          description: 'Please make sure you have entered your correct Telegram username and have started a chat with @MyPtsBot',
-          duration: 6000,
+        toast.error('Telegram verification failed', {
+          description: 'Please make sure you have entered your correct Telegram username and have started a chat with @MyPtsBot. See the troubleshooting tips below.',
+          duration: 8000,
           action: {
             label: 'Open Telegram',
             onClick: () => window.open('https://t.me/MyPtsBot', '_blank')
@@ -708,7 +746,6 @@ export function NotificationPreferences() {
                           <strong>Important:</strong> Follow these steps to connect Telegram:
                         </p>
                         <ol className="text-xs text-muted-foreground list-decimal pl-5">
-                          <li>Enter your Telegram username (not your display name)</li>
                           <li>
                             <a
                               href="https://t.me/MyPtsBot"
@@ -717,10 +754,60 @@ export function NotificationPreferences() {
                               className="text-blue-500 hover:underline"
                             >
                               Open @MyPtsBot in Telegram
-                            </a> and click "Start"
+                            </a> and click "Start" or send a message
                           </li>
+                          <li>
+                            <strong>Important:</strong> Send the message <code>/start</code> to the bot
+                          </li>
+                          <li>Enter your Telegram username (without the @ symbol)</li>
+                          <li>Make sure your username is set in Telegram Settings → Username</li>
                           <li>Return here and click "Verify" to test the connection</li>
                         </ol>
+
+                        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            <strong>Troubleshooting:</strong> If verification fails, try these steps:
+                          </p>
+                          <ul className="text-xs text-blue-600 dark:text-blue-400 list-disc pl-5 mt-1">
+                            <li>Make sure you've started a chat with @MyPtsBot</li>
+                            <li><strong>Send the message "/start" to the bot</strong> - this is crucial!</li>
+                            <li>Check that your Telegram username is correct</li>
+                            <li>Try entering your username without the @ symbol</li>
+                            <li>Ensure your Telegram privacy settings allow bot messages</li>
+                            <li>Try closing and reopening Telegram, then send "/start" again</li>
+                            <li>If using Telegram Web, try using the mobile app instead</li>
+                          </ul>
+
+                          <details className="mt-2">
+                            <summary className="text-xs text-blue-700 dark:text-blue-300 cursor-pointer">
+                              <strong>Advanced: Use Telegram ID instead</strong>
+                            </summary>
+                            <div className="mt-2 pl-2">
+                              <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+                                If username verification isn't working, you can find your Telegram ID by:
+                              </p>
+                              <ol className="text-xs text-blue-600 dark:text-blue-400 list-decimal pl-5">
+                                <li>Messaging @userinfobot on Telegram</li>
+                                <li>Copy your ID number (e.g., 7935903970)</li>
+                                <li>Enter it in the username field above</li>
+                              </ol>
+                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                                The system will detect numeric IDs automatically.
+                              </p>
+                            </div>
+                          </details>
+
+                          <div className="mt-2">
+                            <a
+                              href="https://t.me/MyPtsBot"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              <span>Click here to open Telegram and start a chat with our bot</span>
+                            </a>
+                          </div>
+                        </div>
                         <div className="mt-2">
                           <a
                             href="https://t.me/MyPtsBot"

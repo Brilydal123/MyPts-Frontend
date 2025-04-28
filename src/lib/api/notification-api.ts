@@ -97,12 +97,19 @@ export const getUnreadNotificationsCount = async () => {
 
 /**
  * Verify Telegram connection by sending a test message
+ * @param username - Telegram username (without @ symbol)
+ * @param telegramId - Optional Telegram ID for direct verification
  */
-export const verifyTelegramConnection = async (username: string) => {
+export const verifyTelegramConnection = async (username: string, telegramId?: string) => {
   try {
-    const response = await apiClient.post('/user/notification-preferences/verify-telegram', {
-      username
-    });
+    const payload: { username: string; telegramId?: string } = { username };
+
+    // Only include telegramId if it's provided and not empty
+    if (telegramId) {
+      payload.telegramId = telegramId;
+    }
+
+    const response = await apiClient.post('/user/notification-preferences/verify-telegram', payload);
     return response.data;
   } catch (error) {
     console.error('Error verifying Telegram connection:', error);

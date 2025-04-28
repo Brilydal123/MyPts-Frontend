@@ -85,7 +85,14 @@ class ApiClient {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-      const response = await fetch(url, {
+      // Add a timestamp to the URL to prevent caching
+      const urlWithTimestamp = url.includes('?')
+        ? `${url}&_t=${Date.now()}`
+        : `${url}?_t=${Date.now()}`;
+
+      console.log(`Adding cache-busting timestamp to URL: ${urlWithTimestamp}`);
+
+      const response = await fetch(urlWithTimestamp, {
         method: 'GET',
         headers,
         credentials: 'include', // This is crucial for sending cookies
@@ -289,8 +296,15 @@ export class MyPtsApi extends ApiClient {
     // Get profile ID from localStorage
     const profileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
 
+    // Add a cache-busting parameter to prevent caching issues
+    const cacheBuster = `_cb=${Date.now()}`;
+
     // Include profileId as a query parameter
-    return this.get<any>(`/my-pts/transactions/${transactionId}${profileId ? `?profileId=${profileId}` : ''}`);
+    const queryParams = profileId ? `?profileId=${profileId}&${cacheBuster}` : `?${cacheBuster}`;
+
+    console.log(`Fetching transaction ${transactionId} with profileId: ${profileId}`);
+
+    return this.get<any>(`/my-pts/transactions/${transactionId}${queryParams}`);
   }
 
   /**
