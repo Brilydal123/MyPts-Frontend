@@ -12,28 +12,65 @@ import { API_URL, REQUEST_TIMEOUT, TransactionType } from '@/lib/constants';
  * Base API client with authentication handling
  */
 class ApiClient {
+  // Custom token for authentication
+  private customToken: string | null = null;
+
+  /**
+   * Set a custom token to use for authentication
+   * @param token The token to use for authentication
+   */
+  setToken(token: string): void {
+    console.log('Setting custom token for API client');
+    this.customToken = token;
+  }
+
   protected getHeaders(): HeadersInit {
     // Create headers with content type
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
+    // If we have a custom token, use it (highest priority)
+    if (this.customToken) {
+      headers['Authorization'] = `Bearer ${this.customToken}`;
+      console.log('Using custom token for authorization');
+      return headers;
+    }
+
     // Only run this code in browser environment
     if (typeof window !== 'undefined') {
-      // Check for profile info in localStorage first (most reliable)
-      const storedProfileId = localStorage.getItem('selectedProfileId');
-      const storedProfileToken = localStorage.getItem('selectedProfileToken');
+      // Check for authentication tokens in localStorage
       const storedAccessToken = localStorage.getItem('accessToken');
+      const nextAuthToken = localStorage.getItem('next-auth.session-token');
+      const storedProfileToken = localStorage.getItem('selectedProfileToken');
+      const storedProfileId = localStorage.getItem('selectedProfileId');
 
-      // First priority: Use the user's access token for authentication
+      // Log available tokens for debugging
+      console.log('Available tokens:', {
+        hasAccessToken: !!storedAccessToken,
+        hasNextAuthToken: !!nextAuthToken,
+        hasProfileToken: !!storedProfileToken,
+        hasProfileId: !!storedProfileId
+      });
+
+      // Priority order for authorization:
+      // 1. Access token from localStorage
+      // 2. Profile token from localStorage
+      // 3. NextAuth session token
       if (storedAccessToken) {
         headers['Authorization'] = `Bearer ${storedAccessToken}`;
         console.log('Using stored access token for authorization');
+      } else if (storedProfileToken) {
+        headers['Authorization'] = `Bearer ${storedProfileToken}`;
+        console.log('Using stored profile token for authorization');
+      } else if (nextAuthToken) {
+        headers['Authorization'] = `Bearer ${nextAuthToken}`;
+        console.log('Using NextAuth session token for authorization');
       } else {
-        console.warn('No access token found in localStorage');
+        console.warn('No authentication token found in localStorage');
       }
 
-      // We'll rely on cookies for profile information, not headers
+      // Always include profile information in cookies if available
       if (storedProfileId) {
         console.log('Profile info will be sent via cookies:', { profileId: storedProfileId });
 

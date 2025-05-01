@@ -19,16 +19,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the request body
-    const body = await req.json();
-    const { token, title, message } = body;
+    const requestBody = await req.json();
+    const { token, title, message: body } = requestBody;
 
     console.log('Frontend API: Request body:', {
       token: token ? `${token.substring(0, 10)}...` : 'missing',
       title,
-      message
+      body
     });
 
-    if (!token || !title || !message) {
+    if (!token || !title || !body) {
       console.log('Frontend API: Missing required fields');
       return NextResponse.json(
         { success: false, message: 'Missing required fields: token, title, message' },
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           token,
           title,
-          message,
+          message: body,
           // Include additional data for the notification
           data: {
             notificationType: 'test',
@@ -136,24 +136,38 @@ export async function POST(req: NextRequest) {
           token,
           notification: {
             title,
-            body: "Test notification from Pts"
+            body: body || "Test notification from MyPts"
           },
           data: {
             notificationType: 'test',
             timestamp: Date.now().toString(),
-            url: '/notifications'
+            url: '/notifications',
+            // Add a unique ID to prevent notification collapsing
+            id: `test-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
           },
           android: {
             notification: {
               clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-              sound: 'default'
+              sound: 'default',
+              channelId: 'high_importance_channel',
+              priority: 'high',
+              // Add a unique tag to prevent notification collapsing
+              tag: `test-${Date.now()}`
             }
           },
           apns: {
             payload: {
               aps: {
-                sound: 'default'
+                sound: 'default',
+                badge: 1,
+                contentAvailable: true,
+                mutableContent: true,
+                // Add a unique thread-id to prevent notification collapsing
+                threadId: `test-${Date.now()}`
               }
+            },
+            fcmOptions: {
+              imageUrl: 'https://my-pts-dashboard-management.vercel.app/logo192.png'
             }
           }
         };

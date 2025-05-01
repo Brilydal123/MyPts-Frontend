@@ -9,9 +9,42 @@ export function useAuth() {
   const router = useRouter();
   const [directRole, setDirectRole] = useState<string | null>(null);
   const [isDirectAdmin, setIsDirectAdmin] = useState(false);
+  const [socialAuthUser, setSocialAuthUser] = useState<any>(null);
 
-  const isAuthenticated = status === 'authenticated';
-  const isLoading = status === 'loading';
+  // Check for social authentication
+  const [isSocialAuthenticated, setIsSocialAuthenticated] = useState(false);
+
+  // Effect to check for social authentication
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const accessToken = localStorage.getItem('accessToken');
+      const userDataString = localStorage.getItem('user');
+
+      if (accessToken && userDataString) {
+        try {
+          const userData = JSON.parse(userDataString);
+          console.log('Social auth user data from localStorage:', userData);
+
+          // Make sure we have the correct properties
+          const enhancedUserData = {
+            ...userData,
+            // Ensure we have name property (for compatibility with NextAuth)
+            name: userData.fullName || userData.name || userData.username,
+            // Ensure we have image property (for compatibility with NextAuth)
+            image: userData.profileImage || userData.image
+          };
+
+          setSocialAuthUser(enhancedUserData);
+          setIsSocialAuthenticated(true);
+        } catch (e) {
+          console.error('Error parsing user data from localStorage:', e);
+        }
+      }
+    }
+  }, []);
+
+  const isAuthenticated = status === 'authenticated' || isSocialAuthenticated;
+  const isLoading = status === 'loading' && !isSocialAuthenticated;
 
   // State to store localStorage values after component mounts
   const [localStorageAdmin, setLocalStorageAdmin] = useState<boolean>(false);
@@ -30,7 +63,8 @@ export function useAuth() {
     session?.user?.role === 'admin' || // From session
     session?.user?.isAdmin === true || // From session fallback
     isDirectAdmin || // From direct API call
-    localStorageAdmin; // From local storage (set after mount)
+    localStorageAdmin || // From local storage (set after mount)
+    socialAuthUser?.role === 'admin'; // From social auth user
 
   // Debug logging only in development mode
   if (process.env.NODE_ENV === 'development') {
@@ -145,30 +179,106 @@ export function useAuth() {
         });
       }
 
-      // Sign out from NextAuth
-      await signOut({ redirect: false });
-
-      // Clear all localStorage items
+      // Clear all localStorage items first
       if (typeof window !== 'undefined') {
         console.log('Clearing localStorage...');
         localStorage.clear();
 
-        // Clear all cookies
+        // Clear all cookies with different path and domain combinations
         console.log('Clearing cookies...');
-        document.cookie.split(';').forEach(cookie => {
+        const cookiesToClear = document.cookie.split(';');
+
+        // Clear cookies with different path combinations
+        const paths = ['/', '/api', ''];
+        const domains = [window.location.hostname, `.${window.location.hostname}`, ''];
+
+        cookiesToClear.forEach(cookie => {
           const [name] = cookie.trim().split('=');
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          if (!name) return;
+
+          // Try different combinations of paths and domains
+          paths.forEach(path => {
+            domains.forEach(domain => {
+              // Clear with domain
+              if (domain) {
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}; domain=${domain};`;
+              } else {
+                // Clear without specifying domain
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path};`;
+              }
+            });
+          });
+
+          // Also try secure flag combinations
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=none;`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=lax;`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict;`;
+        });
+
+        // Specifically target NextAuth.js cookies
+        ['next-auth.session-token', 'next-auth.callback-url', 'next-auth.csrf-token', '__Secure-next-auth.session-token'].forEach(cookieName => {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;`;
+        });
+
+        // Specifically target our custom cookies
+        ['accesstoken', 'refreshtoken'].forEach(cookieName => {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;`;
         });
 
         console.log('✅ All localStorage items and cookies cleared');
       }
+
+      // Call our custom logout API endpoint to clear cookies server-side
+      try {
+        console.log('Calling custom logout API endpoint...');
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        console.log('✅ Custom logout API call completed');
+      } catch (logoutApiError) {
+        console.error('Error calling custom logout API:', logoutApiError);
+      }
+
+      // Sign out from NextAuth with redirect: false to prevent automatic redirect
+      await signOut({ redirect: false });
+
+      console.log('✅ NextAuth signOut completed');
+
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       // Always redirect to login page, even if there was an error
+      console.log('Redirecting to login page...');
       router.push('/login');
     }
   };
+
+  // Combine user data from NextAuth session and social auth
+  const user = session?.user || socialAuthUser;
+
+  // Add debugging for the user object
+  useEffect(() => {
+    if (user) {
+      console.log('User object in useAuth:', user);
+      console.log('Social auth user:', socialAuthUser);
+    }
+  }, [user, socialAuthUser]);
+
+  // Get profile ID from various sources
+  const profileId = session?.profileId ||
+                   (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null);
+
+  // Get access token from various sources
+  const accessToken = session?.accessToken ||
+                     (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null);
+
+  // Get profile token from various sources
+  const profileToken = session?.profileToken ||
+                      (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileToken') : null);
 
   return {
     session,
@@ -177,9 +287,10 @@ export function useAuth() {
     isLoading,
     isAdmin,
     logout,
-    user: session?.user,
-    accessToken: session?.accessToken,
-    profileId: session?.profileId,
-    profileToken: session?.profileToken,
+    user,
+    accessToken,
+    profileId,
+    profileToken,
+    isSocialAuthenticated
   };
 }

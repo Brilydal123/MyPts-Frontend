@@ -177,11 +177,24 @@ function PaymentSuccessContent() {
           <CardFooter className="flex justify-center gap-4">
             {status === 'success' && (
               <>
+                {/* Button to refresh balance */}
                 <Button variant="outline" onClick={refreshTransactionStatus} disabled={isRefreshing}>
                   <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                   Refresh Balance
                 </Button>
+                {/* Button to go to dashboard */}
                 <Button onClick={handleGoToDashboard}>Go to Dashboard</Button>
+                {/* Show View Transaction Details link if transactionId is available */}
+                {transactionId && (
+                  <a
+                    href={`/dashboard/transactions/${transactionId}`}
+                    className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-center"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View Transaction Details
+                  </a>
+                )}
               </>
             )}
             {status === 'error' && (

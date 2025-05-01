@@ -10,6 +10,16 @@ console.log('User API using URL:', API_URL);
  * User API service
  */
 export class UserApi {
+  private token: string | null = null;
+
+  /**
+   * Set the token to use for API requests
+   */
+  setToken(token: string) {
+    this.token = token;
+    console.log('Token set in UserApi');
+  }
+
   /**
    * Get headers with authentication tokens
    */
@@ -22,26 +32,37 @@ export class UserApi {
       'Content-Type': 'application/json',
     };
 
-    // Add authorization headers if session exists
-    if (session) {
-      console.log('Session found for User API request:', {
-        hasAccessToken: !!session.accessToken,
-        userId: session.user?.id
+    // Check for token in localStorage (for social auth)
+    let accessTokenFromStorage = '';
+    if (typeof window !== 'undefined') {
+      accessTokenFromStorage = localStorage.getItem('accessToken') || '';
+    }
+
+    // Add authorization headers if session exists or we have a token
+    if (session || this.token || accessTokenFromStorage) {
+      console.log('Authentication info for User API request:', {
+        hasSession: !!session,
+        hasAccessTokenInSession: !!session?.accessToken,
+        hasAccessTokenInInstance: !!this.token,
+        hasAccessTokenInStorage: !!accessTokenFromStorage,
+        userId: session?.user?.id
       });
 
-      // We'll rely on cookies for authentication, but we'll still include the token
-      // in the Authorization header as a fallback
-      if (session.accessToken) {
-        // Check if the token already has 'Bearer ' prefix
-        const token = session.accessToken.startsWith('Bearer ')
-          ? session.accessToken
-          : `Bearer ${session.accessToken}`;
+      // Use the best available token
+      // Priority: 1. Instance token, 2. Session token, 3. localStorage token
+      const tokenToUse = this.token || session?.accessToken || accessTokenFromStorage;
 
-        headers['Authorization'] = token;
-        console.log('Including token in Authorization header:', token);
+      if (tokenToUse) {
+        // Check if the token already has 'Bearer ' prefix
+        const formattedToken = tokenToUse.startsWith('Bearer ')
+          ? tokenToUse
+          : `Bearer ${tokenToUse}`;
+
+        headers['Authorization'] = formattedToken;
+        console.log('Including token in Authorization header');
       }
     } else {
-      console.warn('No session found for User API request');
+      console.warn('No authentication info found for User API request');
     }
 
     return headers;
@@ -53,16 +74,42 @@ export class UserApi {
   async getCurrentUser(): Promise<ApiResponse<any>> {
     try {
       const session = await getSession();
-      console.log("🚀 ~ UserApi ~ getCurrentUser ~ session:", session)
-      if (!session?.user?.id) {
+      console.log("🚀 ~ UserApi ~ getCurrentUser ~ session:", session);
+
+      // Check for user data in localStorage (for social auth)
+      let userDataFromStorage = null;
+      let accessTokenFromStorage = null;
+
+      if (typeof window !== 'undefined') {
+        const userDataString = localStorage.getItem('user');
+        accessTokenFromStorage = localStorage.getItem('accessToken');
+
+        try {
+          if (userDataString) {
+            userDataFromStorage = JSON.parse(userDataString);
+          }
+        } catch (e) {
+          console.error('Error parsing user data from localStorage:', e);
+        }
+      }
+
+      console.log('User data in localStorage:', userDataFromStorage ? 'Present' : 'Not found');
+      console.log('Access token in localStorage:', accessTokenFromStorage ? 'Present' : 'Not found');
+
+      // For social auth, we might not have a session but we have data in localStorage
+      if (!session?.user?.id && !userDataFromStorage) {
         return {
           success: false,
-          message: 'No user found in session'
+          message: 'No user found in session or localStorage'
         };
       }
 
-      // Even if accessToken is empty, we'll proceed because the backend might be using cookies
+      // If we have a token in the instance, use it
+      if (this.token) {
+        console.log('Using token from instance');
+      }
 
+      // Even if accessToken is empty, we'll proceed because the backend might be using cookies
       const headers = await this.getHeaders();
       console.log(`Making GET request to ${API_URL}/users/me`, { headers });
 

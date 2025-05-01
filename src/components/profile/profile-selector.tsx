@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { profileApi } from '@/lib/api/profile-api';
 import { userApi } from '@/lib/api/user-api';
+import { AnimatedButton } from '../ui/animated-button';
 
 // Interface for profile data
 interface ProfileData {
@@ -31,17 +32,100 @@ export function ProfileSelector() {
       console.log('===== PROFILE SELECTOR =====');
       console.log('Session:', JSON.stringify(session, null, 2));
 
-      if (!session?.user?.id) {
-        console.log('Missing user ID in session');
+      // Check for access token and user data in localStorage (for social auth)
+      const accessTokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const userDataString = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      let userDataFromStorage = null;
+
+      try {
+        if (userDataString) {
+          userDataFromStorage = JSON.parse(userDataString);
+        }
+      } catch (e) {
+        console.error('Error parsing user data from localStorage:', e);
+      }
+
+      console.log('Access token in localStorage:', accessTokenFromStorage ? 'Present' : 'Not found');
+      console.log('User data in localStorage:', userDataFromStorage ? 'Present' : 'Not found');
+
+      // If we have an access token in localStorage, set it in the API clients
+      if (accessTokenFromStorage) {
+        console.log('Setting access token from localStorage in API clients');
+        profileApi.setToken(accessTokenFromStorage);
+        userApi.setToken(accessTokenFromStorage);
+      }
+
+      // For social auth, we might not have a session but we have data in localStorage
+      if (!session?.user?.id && !userDataFromStorage) {
+        console.log('Missing user ID in session and no user data in localStorage');
         setLoading(false);
         return;
       }
 
-      // Even if accessToken is empty, we'll proceed because the backend might be using cookies
-      console.log('Access token in session:', session.accessToken || 'Using cookie authentication');
+      // Use user ID from session or localStorage
+      const userId = session?.user?.id || userDataFromStorage?.id;
+      console.log('Using user ID:', userId);
 
-      console.log('User ID:', session.user.id);
-      console.log('Access token present:', !!session.accessToken);
+      // Even if accessToken is empty, we'll proceed because the backend might be using cookies
+      console.log('Access token in session:', session?.accessToken || 'Using cookie or localStorage authentication');
+
+      console.log('Access token present:', !!(session?.accessToken || accessTokenFromStorage));
+
+      // If we're using social auth, try to get profiles directly from the user data in localStorage
+      if (!session?.user?.id && userDataFromStorage && userDataFromStorage.profiles && userDataFromStorage.profiles.length > 0) {
+        console.log('Found profiles in localStorage user data:', userDataFromStorage.profiles);
+
+        try {
+          // Map the profiles to the expected format
+          const mappedProfiles = userDataFromStorage.profiles.map((profileId: string) => {
+            // Create a basic profile object with the ID
+            // We'll need to fetch the full profile details later
+            return {
+              id: profileId,
+              name: `Profile ${profileId.substring(0, 6)}...`,
+              description: 'Loading profile details...',
+              profileType: 'personal',
+              accessToken: accessTokenFromStorage || ''
+            };
+          });
+
+          setProfiles(mappedProfiles);
+
+          // If user only has one profile, select it automatically
+          if (mappedProfiles.length === 1) {
+            setSelectedProfileId(mappedProfiles[0].id);
+            console.log('Auto-selecting the only profile from localStorage:', mappedProfiles[0].id);
+          }
+
+          // Try to fetch full profile details for each profile
+          mappedProfiles.forEach(async (profile: { id: string; }) => {
+            try {
+              const profileDetails = await profileApi.getProfileDetails(profile.id);
+              console.log(`Profile details for ${profile.id}:`, profileDetails);
+
+              if (profileDetails.success && profileDetails.data) {
+                // Update the profile in the list with the full details
+                setProfiles(prevProfiles =>
+                  prevProfiles.map(p =>
+                    p.id === profile.id
+                      ? {
+                          ...p,
+                          name: profileDetails.data.name || p.name,
+                          description: profileDetails.data.description || p.description,
+                          profileType: profileDetails.data.profileType || profileDetails.data.type || p.profileType
+                        }
+                      : p
+                  )
+                );
+              }
+            } catch (e) {
+              console.error(`Error fetching details for profile ${profile.id}:`, e);
+            }
+          });
+        } catch (e) {
+          console.error('Error processing profiles from localStorage:', e);
+        }
+      }
 
       try {
         // Get the full user details including profiles
@@ -83,7 +167,7 @@ export function ProfileSelector() {
           }
 
           // If user already has a profile selected in the session, select it
-          if (session.profileId) {
+          if (session?.profileId) {
             setSelectedProfileId(session.profileId);
           }
 
@@ -174,7 +258,7 @@ export function ProfileSelector() {
         }
 
         // If user already has a profile selected in the session, select it
-        if (session.profileId) {
+        if (session?.profileId) {
           setSelectedProfileId(session.profileId);
         }
       } catch (error) {
@@ -246,6 +330,14 @@ export function ProfileSelector() {
         } catch (sessionError) {
           console.error('Error getting session:', sessionError);
         }
+      }
+
+      // For social auth users, make sure we're using the correct access token for the profile token
+      // This ensures that the profile token is set correctly for API calls
+      const accessToken = localStorage.getItem('accessToken');
+      if (accessToken && (!profileToken || profileToken === '')) {
+        console.log('Using access token as profile token for social auth user');
+        profileToken = accessToken;
       }
 
       toast.success('Profile selected');
@@ -355,13 +447,34 @@ export function ProfileSelector() {
         ))}
       </CardContent>
       <CardFooter className="flex justify-end space-x-2">
-        <Button
+        {/* <Button
           variant="outline"
+          className='cursor-not-allowed'
           onClick={() => router.push('/create-profile')}
         >
           Create New Profile
-        </Button>
-        <Button
+        </Button> */}
+        <AnimatedButton
+         onClick={() => {
+          const selectedProfile = profiles.find(p => p.id === selectedProfileId);
+          if (selectedProfile) {
+            handleSelectProfile(selectedProfile.id, selectedProfile.accessToken);
+          } else {
+            toast.error('Please select a profile');
+          }
+        }}
+        disabled={!selectedProfileId}
+          type="button"
+          className="h-12 w-full bg-black"
+          // active={referralAnswer === 'yes'}
+          // onClick={() => setReferralAnswer('yes')}
+          style={{ backgroundColor: selectedProfileId? 'black' : 'white', color:selectedProfileId ? 'white' : 'black', borderColor: 'black', borderWidth: '1px' }}
+        >
+          Continue
+        </AnimatedButton>
+
+        {/* </AnimatedButton> */}
+        {/* <Button
           onClick={() => {
             const selectedProfile = profiles.find(p => p.id === selectedProfileId);
             if (selectedProfile) {
@@ -373,7 +486,7 @@ export function ProfileSelector() {
           disabled={!selectedProfileId}
         >
           Continue
-        </Button>
+        </Button> */}
       </CardFooter>
     </Card>
   );

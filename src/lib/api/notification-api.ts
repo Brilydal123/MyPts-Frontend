@@ -5,7 +5,9 @@ import { apiClient } from './api-client';
  */
 export const getUserNotificationPreferences = async () => {
   try {
+    console.log('Fetching user notification preferences from API...');
     const response = await apiClient.get('/user/notification-preferences');
+    console.log('Notification preferences response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching notification preferences:', error);
@@ -109,7 +111,15 @@ export const verifyTelegramConnection = async (username: string, telegramId?: st
       payload.telegramId = telegramId;
     }
 
+    console.log('Verifying Telegram connection with payload:', payload);
     const response = await apiClient.post('/user/notification-preferences/verify-telegram', payload);
+    console.log('Telegram verification response:', response.data);
+
+    // If the response includes a telegramId, log it
+    if (response.data && response.data.telegramId) {
+      console.log('Received telegramId from server:', response.data.telegramId);
+    }
+
     return response.data;
   } catch (error) {
     console.error('Error verifying Telegram connection:', error);

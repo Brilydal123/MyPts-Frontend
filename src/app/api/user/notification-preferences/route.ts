@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     // Get the user session
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       telegram: {
         enabled: false,
         username: '',
+        telegramId: '', // Use the telegramId from the user's document
         transactions: true,
         transactionUpdates: true,
         purchaseConfirmations: true,
@@ -62,7 +63,7 @@ export async function PUT(req: NextRequest) {
   try {
     // Get the user session
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
@@ -75,7 +76,7 @@ export async function PUT(req: NextRequest) {
 
     // In a real implementation, you would save the user's notification preferences to your database
     // For now, we'll just return success
-    
+
     // Validate the preferences (basic validation)
     if (!preferences || typeof preferences !== 'object') {
       return NextResponse.json(

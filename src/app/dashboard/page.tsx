@@ -9,6 +9,7 @@ import { TransactionList } from '@/components/shared/transaction-list';
 import { DashboardStats } from '@/components/dashboard/dashboard-stats';
 import { ProfileInfo } from '@/components/profile/profile-info';
 import { myPtsApi, myPtsValueApi } from '@/lib/api/mypts-api';
+import { API_URL } from '../../lib/constants';
 import { MyPtsBalance, MyPtsTransaction, MyPtsValue } from '@/types/mypts';
 import { toast } from 'sonner';
 
@@ -27,12 +28,43 @@ export default function DashboardPage() {
     hasMore: false,
   });
   const [currency, setCurrency] = useState('USD');
+  const [referralCount, setReferralCount] = useState<number>(0);
+  const [referralCode, setReferralCode] = useState<string>('');
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      // Get all possible tokens
+      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const profileToken = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileToken') : null;
+      const nextAuthToken = typeof window !== 'undefined' ? localStorage.getItem('next-auth.session-token') : null;
+
+      // Use the first available token in priority order
+      const token = accessToken || profileToken || nextAuthToken;
+
+      // Check if we're authenticated
+      const isAuthenticated = !!token;
+
+      if (!isAuthenticated) {
+        console.warn('Not authenticated, redirecting to login');
+        toast.error('Authentication required', {
+          description: 'Please log in to continue',
+        });
+        router.push('/login');
+        return;
+      }
+
       // Check if we have a profile ID
       const profileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
+
+      // Log profile information for debugging
+      console.log('Dashboard - Profile information:', {
+        profileId,
+        hasProfileToken: !!profileToken,
+        hasAccessToken: !!accessToken,
+        hasNextAuthToken: !!nextAuthToken,
+        usingToken: token ? token.substring(0, 10) + '...' : null
+      });
 
       // Check if we're in a redirect loop
       const redirectAttempts = parseInt(localStorage.getItem('redirectAttempts') || '0');
@@ -68,12 +100,71 @@ export default function DashboardPage() {
       localStorage.setItem('redirectAttempts', '0');
       console.log('Using profile ID from localStorage:', profileId);
 
+      // Log available tokens for debugging
+      console.log('Dashboard - available tokens for API calls:', {
+        hasAccessToken: !!accessToken,
+        hasProfileToken: !!profileToken,
+        hasNextAuthToken: !!nextAuthToken,
+        usingToken: token ? token.substring(0,10) + '...' : 'none'
+      });
+
+      // Set the token for API calls
+      if (token) {
+        console.log('Setting token for API clients');
+        // Update the API clients with the token
+        myPtsApi.setToken(token);
+        myPtsValueApi.setToken(token);
+      } else {
+        console.warn('No token available for API calls');
+      }
+
       // Fetch all data in parallel
       const [balanceResponse, valueResponse, transactionsResponse] = await Promise.all([
         myPtsApi.getBalance(currency),
         myPtsValueApi.getCurrentValue(),
         myPtsApi.getTransactions(pagination.limit, pagination.offset)
       ]);
+
+      // Fetch referrals count from current user
+      try {
+        // Get all possible tokens
+        const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const profileToken = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileToken') : null;
+        const nextAuthToken = typeof window !== 'undefined' ? localStorage.getItem('next-auth.session-token') : null;
+
+        // Use the first available token in priority order
+        const token = accessToken || profileToken || nextAuthToken;
+
+        if (token) {
+          console.log('Dashboard - available tokens:', {
+            hasAccessToken: !!accessToken,
+            hasProfileToken: !!profileToken,
+            hasNextAuthToken: !!nextAuthToken,
+            usingToken: token.substring(0,10) + '...'
+          });
+
+          console.log('Dashboard - fetching referral code from', API_URL + '/users/me');
+          const meRes = await fetch(API_URL + '/users/me', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: 'include',
+          });
+          console.log('Dashboard - meRes status:', meRes.status, 'ok:', meRes.ok);
+          const meJson = await meRes.json();
+          console.log('Dashboard - meJson:', meJson);
+          if (meRes.ok && meJson.success && meJson.user) {
+            setReferralCount(meJson.user.referralRewards?.totalReferrals ?? meJson.user.referrals?.length ?? 0);
+            setReferralCode(meJson.user.referralCode ?? '');
+          } else {
+            console.warn('Failed to fetch referrals:', meJson);
+          }
+        }
+      } catch (e) {
+        console.warn('Error fetching referrals:', e);
+      }
 
       // Process balance response
       if (balanceResponse.success && balanceResponse.data) {
@@ -139,11 +230,17 @@ export default function DashboardPage() {
         const isAdmin = typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true';
         console.log('Dashboard - isAdmin check:', isAdmin);
 
+        // Check for authentication tokens
+        const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const nextAuthToken = typeof window !== 'undefined' ? localStorage.getItem('next-auth.session-token') : null;
+
         // Check for profile information in localStorage
         const storedProfileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
         const storedProfileToken = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileToken') : null;
 
-        console.log('Dashboard - Profile check:', {
+        console.log('Dashboard - Auth check:', {
+          hasAccessToken: !!accessToken,
+          hasNextAuthToken: !!nextAuthToken,
           hasProfileId: !!storedProfileId,
           hasProfileToken: !!storedProfileToken,
           profileId: storedProfileId
@@ -157,6 +254,18 @@ export default function DashboardPage() {
           console.warn('Too many redirect attempts, staying on dashboard');
           localStorage.setItem('redirectAttempts', '0');
           setIsAuthenticated(true);
+          return;
+        }
+
+        // Check if we're authenticated
+        const isAuthenticated = !!accessToken || !!nextAuthToken;
+
+        if (!isAuthenticated) {
+          console.warn('Not authenticated, redirecting to login');
+          toast.error('Authentication required', {
+            description: 'Please log in to continue',
+          });
+          router.push('/login');
           return;
         }
 
@@ -237,7 +346,7 @@ export default function DashboardPage() {
         </div>
 
         {balance && value ? (
-          <DashboardStats balance={balance} value={value} isLoading={isLoading} currency={currency} />
+          <DashboardStats balance={balance} value={value} isLoading={isLoading} currency={currency} referralsCount={referralCount} referralCode={referralCode} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (

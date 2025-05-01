@@ -6,6 +6,7 @@ import { getStripe } from '@/lib/stripe';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { AnimatedButton } from '../ui/animated-button';
 
 interface CheckoutFormProps {
   clientSecret: string;
@@ -81,13 +82,33 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
     <form onSubmit={handleSubmit}>
       <PaymentElement />
       {errorMessage && <div className="text-red-500 mt-4">{errorMessage}</div>}
-      <div className="flex justify-between mt-6">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+      <div className="flex justify-between mawmd mt-6">
+        {/* <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           Cancel
-        </Button>
-        <Button type="submit" disabled={!stripe || isLoading}>
-          {isLoading ? 'Processing...' : `Pay ${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`}
-        </Button>
+        </Button> */}
+
+        <div className="max-w-[14rem] ">
+
+          <AnimatedButton
+            type="button" variant="outline" onClick={onCancel} disabled={isLoading}
+            className="   px-[4rem] h-12"
+          >
+            Cancel
+          </AnimatedButton>
+        </div>
+        <div className="max-w-[14rem] w-full ">
+
+          <AnimatedButton
+            type="submit" className=" auth-button active px-[4rem] h-12" disabled={!stripe || isLoading}
+
+          >
+            {isLoading ? 'Processing...' : `Pay ${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`}
+          </AnimatedButton>
+        </div>
+
+        {/* <Button type="submit" disabled={!stripe || isLoading}>
+
+        </Button> */}
       </div>
     </form>
   );
@@ -116,12 +137,13 @@ export function StripePayment({ clientSecret, amount, currency, onSuccess, onCan
         {myPtsAmount && (
           <div className="mt-2 text-center">
             <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full font-medium">
-              {myPtsAmount} MyPts for {(amount / 100).toFixed(2)} {currency.toUpperCase()}
+              <span></span> {myPtsAmount} MyPts for {(amount / 100).toFixed(2)} {currency.toUpperCase()}
             </span>
           </div>
         )}
       </CardHeader>
       <CardContent>
+
         <Elements stripe={stripePromise} options={{ clientSecret }}>
           <CheckoutForm
             clientSecret={clientSecret}

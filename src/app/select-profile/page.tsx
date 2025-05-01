@@ -12,8 +12,28 @@ export default function SelectProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // If not authenticated, redirect to login
-    if (status === 'unauthenticated') {
+    // Check for social auth tokens in localStorage
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const userDataString = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    let userData = null;
+
+    try {
+      if (userDataString) {
+        userData = JSON.parse(userDataString);
+      }
+    } catch (e) {
+      console.error('Error parsing user data from localStorage:', e);
+    }
+
+    console.log('Select profile page - social auth check:', {
+      hasAccessToken: !!accessToken,
+      hasUserData: !!userData,
+      userData: userData ? { id: userData.id, email: userData.email } : null
+    });
+
+    // If not authenticated via NextAuth and no social auth tokens, redirect to login
+    if (status === 'unauthenticated' && !accessToken) {
+      console.log('Not authenticated and no social auth tokens, redirecting to login');
       router.push('/login');
       return;
     }
@@ -21,7 +41,8 @@ export default function SelectProfilePage() {
     // Check if user is admin
     const isAdmin = session?.user?.role === 'admin' ||
                    session?.user?.isAdmin === true ||
-                   (typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true');
+                   (typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true') ||
+                   userData?.role === 'admin';
 
     console.log('Select profile page - isAdmin check:', isAdmin);
 
@@ -84,17 +105,38 @@ export default function SelectProfilePage() {
     );
   }
 
-  // If authenticated but no profile selected, show profile selector
-  if (status === 'authenticated') {
+  // Check for social auth tokens
+  const isSocialAuthenticated = typeof window !== 'undefined' &&
+                               localStorage.getItem('accessToken') !== null &&
+                               localStorage.getItem('user') !== null;
+
+  console.log('Select profile page - authentication check:', {
+    nextAuthStatus: status,
+    isSocialAuthenticated
+  });
+
+  // If authenticated via NextAuth or social auth, show profile selector
+  if (status === 'authenticated' || isSocialAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <ProfileSelector />
-        {/* <DirectApiTest /> */}
-        <ApiDebug />
+        <div className="w-full max-w-md">
+          <h1 className="text-2xl font-bold mb-6 text-center">Select a Profile</h1>
+          <ProfileSelector />
+          <div className="mt-8">
+            <ApiDebug />
+          </div>
+        </div>
       </div>
     );
   }
 
   // This should not be visible due to the redirect in useEffect
-  return null;
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="text-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Checking authentication status...</p>
+      </div>
+    </div>
+  );
 }

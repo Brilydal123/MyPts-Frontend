@@ -6,10 +6,11 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
+
 import { toast } from 'sonner';
-import { Bell, Mail, CreditCard, AlertCircle, MessageCircle } from 'lucide-react';
+import { Bell, Mail, MessageCircle } from 'lucide-react';
 import { notificationApi } from '@/lib/api/notification-api';
+import { TelegramUserInfo } from '@/components/telegram/telegram-user-info';
 
 // Lazy load the PushNotificationSettings component
 const PushNotificationSettingsLazy = lazy(() =>
@@ -47,6 +48,7 @@ interface NotificationPreferences {
   telegram: {
     enabled: boolean;
     username: string;
+    telegramId?: string; // Added telegramId field
     transactions: boolean;
     transactionUpdates: boolean;
     purchaseConfirmations: boolean;
@@ -87,6 +89,7 @@ export function NotificationPreferences() {
     telegram: {
       enabled: false,
       username: '',
+      telegramId: undefined, // Added telegramId field
       transactions: true,
       transactionUpdates: true,
       purchaseConfirmations: true,
@@ -109,7 +112,40 @@ export function NotificationPreferences() {
         const response = await notificationApi.getUserNotificationPreferences();
 
         if (response && response.success) {
-          setPreferences(response.data);
+          console.log('Fetched notification preferences:', response.data);
+
+          // Make sure we handle the telegramId if it exists in the response
+          const telegramData = response.data.telegram || {};
+
+          // Log the raw telegram data from the server
+          console.log('Raw telegram data from server:', telegramData);
+
+          // Create a complete preferences object with all expected fields
+          const completePreferences = {
+            ...response.data,
+            telegram: {
+              ...telegramData,
+              // Ensure telegramId is included if it exists in the response
+              telegramId: telegramData.telegramId || undefined
+            }
+          };
+
+          setPreferences(completePreferences);
+
+          // Log the Telegram settings for debugging
+          console.log('Processed Telegram settings:', completePreferences.telegram);
+
+          // If we have a telegramId but no username, use the telegramId as the username
+          if (completePreferences.telegram.telegramId && !completePreferences.telegram.username) {
+            console.log('Using telegramId as username since username is empty');
+            setPreferences(prev => ({
+              ...prev,
+              telegram: {
+                ...prev.telegram,
+                username: prev.telegram.telegramId || ''
+              }
+            }));
+          }
         }
       } catch (error) {
         console.error('Error fetching notification preferences:', error);
@@ -126,10 +162,46 @@ export function NotificationPreferences() {
   const savePreferences = async () => {
     try {
       setIsSaving(true);
+
+      // If we have a username that looks like a Telegram ID (all numbers), make sure it's also set as telegramId
+      if (preferences.telegram.username && /^\d+$/.test(preferences.telegram.username) && !preferences.telegram.telegramId) {
+        console.log('Username looks like a Telegram ID, setting it as telegramId as well');
+        setPreferences(prev => ({
+          ...prev,
+          telegram: {
+            ...prev.telegram,
+            telegramId: prev.telegram.username
+          }
+        }));
+      }
+
+      // Log what we're about to save
+      console.log('Saving preferences:', preferences);
+
       const response = await notificationApi.updateUserNotificationPreferences(preferences);
 
       if (response && response.success) {
         toast.success('Notification preferences saved');
+
+        // Update preferences with the response data to ensure we have the latest values
+        if (response.data) {
+          console.log('Updating preferences with response data:', response.data);
+
+          // Make sure we handle the telegramId if it exists in the response
+          const telegramData = response.data.telegram || {};
+
+          // Create a complete preferences object with all expected fields
+          const updatedPreferences = {
+            ...response.data,
+            telegram: {
+              ...telegramData,
+              // Ensure telegramId is included if it exists in the response
+              telegramId: telegramData.telegramId || preferences.telegram.telegramId
+            }
+          };
+
+          setPreferences(updatedPreferences);
+        }
       } else {
         toast.error('Failed to save preferences');
       }
@@ -175,13 +247,30 @@ export function NotificationPreferences() {
   };
 
   const handleTelegramUsernameChange = (username: string) => {
+    // Clean up username (remove @ if present)
+    let cleanUsername = username;
+    if (cleanUsername.startsWith('@')) {
+      cleanUsername = cleanUsername.substring(1);
+      toast.info('Note: We\'ve removed the @ symbol from your username', {
+        description: 'Telegram usernames should be entered without the @ symbol',
+        duration: 3000
+      });
+    }
+
+    // Check if the username is a numeric ID
+    const isNumericId = /^\d+$/.test(cleanUsername);
+
     setPreferences(prev => ({
       ...prev,
       telegram: {
         ...prev.telegram,
-        username
+        username: cleanUsername,
+        // If it's a numeric ID, also set it as telegramId
+        ...(isNumericId ? { telegramId: cleanUsername } : {})
       }
     }));
+
+    console.log('Updated Telegram username:', cleanUsername, isNumericId ? '(numeric ID)' : '');
   };
 
   // Verify Telegram connection
@@ -248,6 +337,22 @@ export function NotificationPreferences() {
 
       if (response && response.success) {
         const method = response.method || 'default';
+
+        // Update the telegramId in preferences if it was returned from the server
+        if (response.telegramId) {
+          setPreferences(prev => ({
+            ...prev,
+            telegram: {
+              ...prev.telegram,
+              telegramId: response.telegramId,
+              // Also enable Telegram notifications if verification was successful
+              enabled: true
+            }
+          }));
+
+          console.log('Updated telegramId:', response.telegramId);
+        }
+
         if (method === 'telegram_id') {
           toast.success('Verification message sent to your Telegram account using ID', {
             description: 'Please check your Telegram app for the message',
@@ -257,6 +362,22 @@ export function NotificationPreferences() {
           toast.success('Verification message sent to your Telegram account', {
             description: 'Please check your Telegram app for the message',
             duration: 5000
+          });
+        }
+
+        // Automatically enable Telegram notifications if verification was successful
+        if (!preferences.telegram.enabled) {
+          setPreferences(prev => ({
+            ...prev,
+            telegram: {
+              ...prev.telegram,
+              enabled: true
+            }
+          }));
+
+          toast.success('Telegram notifications enabled', {
+            description: 'You will now receive notifications via Telegram',
+            duration: 3000
           });
         }
       } else {
@@ -724,23 +845,36 @@ export function NotificationPreferences() {
 
                 {preferences.telegram.enabled && (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="telegram-username">Telegram Username</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="telegram-username"
-                          placeholder="username (without @)"
-                          value={preferences.telegram.username}
-                          onChange={(e) => handleTelegramUsernameChange(e.target.value)}
-                        />
+                    <div className="space-y-4">
+                      <div className="mb-2">
+                        <Label>Telegram Connection</Label>
+                        <div className="mt-2">
+                          <TelegramUserInfo
+                            telegramId={preferences.telegram.telegramId}
+                            username={preferences.telegram.username}
+                            onUpdate={handleTelegramUsernameChange}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 mt-4">
                         <Button
                           variant="outline"
                           onClick={verifyTelegramConnection}
                           disabled={isVerifying}
+                          className="w-full"
                         >
-                          {isVerifying ? 'Sending...' : 'Verify'}
+                          {isVerifying ? 'Sending Verification...' : 'Verify Telegram Connection'}
                         </Button>
                       </div>
+
+                      {!preferences.telegram.telegramId && !(/^\d+$/.test(preferences.telegram.username || '')) && (
+                        <div className="mt-2">
+                          <p className="text-xs text-yellow-600">
+                            <strong>Note:</strong> Please verify your Telegram connection to receive notifications.
+                          </p>
+                        </div>
+                      )}
                       <div className="space-y-1 mt-1">
                         <p className="text-xs text-muted-foreground">
                           <strong>Important:</strong> Follow these steps to connect Telegram:

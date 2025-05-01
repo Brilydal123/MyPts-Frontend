@@ -14,7 +14,23 @@ export function ApiDebug() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
 
-  if (!session) {
+  // Check for social auth tokens
+  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const userDataString = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+  let userData = null;
+
+  try {
+    if (userDataString) {
+      userData = JSON.parse(userDataString);
+    }
+  } catch (e) {
+    console.error('Error parsing user data from localStorage:', e);
+  }
+
+  const isSocialAuthenticated = !!accessToken && !!userData;
+
+  // If not authenticated via NextAuth or social auth, don't show the debug panel
+  if (!session && !isSocialAuthenticated) {
     return null;
   }
 
@@ -83,11 +99,17 @@ export function ApiDebug() {
                     console.log('===== DIRECT API TEST =====');
                     // Make a direct fetch request to the API
                     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+                    // Use the best available token (social auth or NextAuth)
+                    const tokenToUse = accessToken || session?.accessToken || '';
+                    console.log('Using token for direct API test:', tokenToUse ? 'Present' : 'Missing');
+
                     const response = await fetch(`${API_URL}/profiles/user-profiles`, {
                       headers: {
-                        'Authorization': `Bearer ${session?.accessToken || ''}`,
+                        'Authorization': `Bearer ${tokenToUse}`,
                         'Content-Type': 'application/json'
-                      }
+                      },
+                      credentials: 'include' // Include cookies
                     });
 
                     console.log('Direct API response status:', response.status);
@@ -131,13 +153,27 @@ export function ApiDebug() {
             )}
 
             <div className="mt-4">
-              <h4 className="text-sm font-medium mb-2">Session Info:</h4>
+              <h4 className="text-sm font-medium mb-2">Authentication Info:</h4>
               <pre className="text-xs overflow-auto bg-muted p-2 rounded-md max-h-40">
                 {JSON.stringify({
-                  accessToken: session.accessToken ? 'Present' : 'Missing',
-                  profileToken: session.profileToken ? 'Present' : 'Missing',
-                  profileId: session.profileId,
-                  userId: session.user?.id
+                  nextAuth: {
+                    isAuthenticated: !!session,
+                    accessToken: session?.accessToken ? 'Present' : 'Missing',
+                    profileToken: session?.profileToken ? 'Present' : 'Missing',
+                    profileId: session?.profileId,
+                    userId: session?.user?.id
+                  },
+                  socialAuth: {
+                    isAuthenticated: isSocialAuthenticated,
+                    accessToken: accessToken ? 'Present' : 'Missing',
+                    userId: userData?.id,
+                    profileId: userData?.profileId,
+                    profiles: userData?.profiles
+                  },
+                  localStorage: {
+                    selectedProfileId: typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null,
+                    selectedProfileToken: typeof window !== 'undefined' ? localStorage.getItem('selectedProfileToken') ? 'Present' : 'Missing' : null,
+                  }
                 }, null, 2)}
               </pre>
             </div>

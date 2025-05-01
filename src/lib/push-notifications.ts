@@ -385,16 +385,48 @@ export const testPushNotification = async (deviceId: string) => {
           // Try the direct test endpoint
           console.log('Calling direct test endpoint with token...');
           try {
+            // Log user notification preferences
+            try {
+              const prefsResponse = await apiClient.get('/user/notification-preferences');
+              console.log('User notification preferences:', prefsResponse.data);
+            } catch (prefsError) {
+              console.warn('Could not fetch notification preferences:', prefsError);
+            }
+
             // First try the backend test endpoint
+            console.log('Sending test notification with token:', device.pushToken.substring(0, 20) + '...');
             const directBackendResponse = await apiClient.post('/test/notifications/push', {
               token: device.pushToken,
               title: 'Test Notification (Backend)',
-              message: 'This is a test notification from MyPts Backend'
+              message: 'This is a test notification from MyPts Backend',
+              // Add timestamp to make each notification unique
+              timestamp: new Date().toISOString()
             });
             console.log('Direct backend test response:', directBackendResponse.data);
+
+            // Check if the notification was actually sent
+            if (directBackendResponse.data.success) {
+              console.log('Backend reports notification was sent successfully');
+
+              // Show a local notification as confirmation
+              try {
+                const { showNotification } = await import('./notification-helper');
+                await showNotification('Test Notification Sent', {
+                  body: 'A push notification has been sent to your device. You should receive it shortly.',
+                  icon: '/logo192.png',
+                  closeAfter: 5000
+                });
+              } catch (localNotifyError) {
+                console.warn('Could not show local confirmation notification:', localNotifyError);
+              }
+            } else {
+              console.warn('Backend reports notification sending failed:', directBackendResponse.data);
+            }
+
             return directBackendResponse.data;
           } catch (backendError: any) {
             console.error('Error with backend direct test:', backendError);
+            console.log('Backend error details:', backendError.response?.data || 'No response data');
 
             // If backend fails, try the frontend API route
             console.log('Trying frontend API route...');

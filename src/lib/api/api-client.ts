@@ -3,11 +3,14 @@ import { getAuthToken } from './auth-helper';
 
 // Create axios instance with default config
 const apiClientInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://my-profile-server-api.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Log the API URL for debugging
+console.log('API client using URL:', apiClientInstance.defaults.baseURL);
 
 // Request interceptor for adding auth token - safely handle browser vs server
 apiClientInstance.interceptors.request.use(

@@ -32,7 +32,12 @@ export default function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="notifications">
-              <NotificationPreferences />
+              <div className="space-y-6">
+                <NotificationPreferences />
+                {/* {process.env.NODE_ENV === 'development' && (
+                  <TelegramDebug />
+                )} */}
+              </div>
             </TabsContent>
 
             <TabsContent value="preferences">

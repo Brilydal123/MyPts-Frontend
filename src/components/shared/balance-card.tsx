@@ -63,9 +63,9 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-primary text-primary-foreground">
+      <CardHeader className="bg-primary text-primary-foreground -mt-[1.5rem] p-5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold">MyPts Balance</CardTitle>
+          <CardTitle className="text-xl font-bold">Local Currencies Convension</CardTitle>
           <Select value={currency} onValueChange={handleCurrencyChange}>
             <SelectTrigger className="w-[120px] bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20">
               <SelectValue placeholder="Currency" />

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { profileApi } from '@/lib/api/profile-api';
+import Image from 'next/image';
 
 interface ProfileInfoProps {
   profileId?: string;
@@ -126,6 +127,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
       </div>
     );
   }
+console.log(profile);
 
   // Full version (for dashboard)
   return (
@@ -137,6 +139,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
         <div className="flex items-center space-x-4">
           <Avatar className="h-12 w-12">
             <AvatarImage src={profile.profileImage} alt={profile.name} />
+
             <AvatarFallback>{profile.name?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
           </Avatar>
           <div>

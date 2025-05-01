@@ -9,6 +9,16 @@ console.log('Profile API using URL:', API_URL);
  * Profile API service
  */
 export class ProfileApi {
+  private token: string | null = null;
+
+  /**
+   * Set the token to use for API requests
+   */
+  setToken(token: string) {
+    this.token = token;
+    console.log('Token set in ProfileApi');
+  }
+
   /**
    * Get headers with authentication tokens
    */
@@ -17,37 +27,51 @@ export class ProfileApi {
     const session = await getSession();
 
     // Create headers with content type
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    // Add authorization headers if session exists
-    if (session) {
-      console.log('Session found for API request:', {
-        hasAccessToken: !!session.accessToken,
-        hasProfileToken: !!session.profileToken || !!profileToken,
-        profileId: session.profileId
+    // Try to get tokens from localStorage first (for social auth users)
+    let accessToken = '';
+    let storedProfileToken = '';
+
+    if (typeof window !== 'undefined') {
+      accessToken = localStorage.getItem('accessToken') || '';
+      storedProfileToken = localStorage.getItem('selectedProfileToken') || '';
+    }
+
+    // Add authorization headers if session exists or we have a token in localStorage
+    if (session || accessToken) {
+      console.log('Authentication info for API request:', {
+        hasSession: !!session,
+        hasAccessTokenInSession: !!session?.accessToken,
+        hasAccessTokenInStorage: !!accessToken,
+        hasProfileTokenInSession: !!session?.profileToken,
+        hasProfileTokenInStorage: !!storedProfileToken,
+        hasProvidedProfileToken: !!profileToken,
+        profileId: session?.profileId || localStorage.getItem('selectedProfileId')
       });
 
-      // We'll rely on cookies for authentication, but we'll still include the token
-      // in the Authorization header as a fallback
-      if (session.accessToken) {
-        // Check if the token already has 'Bearer ' prefix
-        const token = session.accessToken.startsWith('Bearer ')
-          ? session.accessToken
-          : `Bearer ${session.accessToken}`;
+      // Use the access token from session or localStorage
+      const tokenToUse = session?.accessToken || accessToken;
 
-        headers['Authorization'] = token;
-        console.log('Including token in Authorization header:', token);
+      if (tokenToUse) {
+        // Check if the token already has 'Bearer ' prefix
+        const formattedToken = tokenToUse.startsWith('Bearer ')
+          ? tokenToUse
+          : `Bearer ${tokenToUse}`;
+
+        headers['Authorization'] = formattedToken;
+        console.log('Including token in Authorization header');
       }
 
       // For profile-specific endpoints, we might need the profile token
-      const token = profileToken || session.profileToken;
-      if (token) {
-        console.log('Profile token available:', token);
+      const profileTokenToUse = profileToken || storedProfileToken || session?.profileToken;
+      if (profileTokenToUse) {
+        console.log('Profile token available');
       }
     } else {
-      console.warn('No session found for API request');
+      console.warn('No authentication info found for API request');
     }
 
     return headers;
@@ -122,12 +146,23 @@ export class ProfileApi {
    */
   async getProfileDetails(profileId: string, profileToken?: string): Promise<ApiResponse<any>> {
     try {
-      const headers = await this.getHeaders(profileToken);
+      const headers: Record<string, string> = await this.getHeaders(profileToken) as Record<string, string>;
       console.log(`Making GET request to ${API_URL}/profiles/${profileId}`, { headers });
+
+      // For social auth users, we need to include the access token in the Authorization header
+      // Get the access token from localStorage if available
+      if (typeof window !== 'undefined') {
+        const accessToken = localStorage.getItem('accessToken');
+        if (accessToken && !headers['Authorization']) {
+          headers['Authorization'] = `Bearer ${accessToken}`;
+          console.log('Added access token from localStorage to Authorization header');
+        }
+      }
 
       const response = await fetch(`${API_URL}/profiles/${profileId}`, {
         method: 'GET',
         headers,
+        credentials: 'include', // Include cookies in the request
       });
 
       console.log(`Response from /profiles/${profileId}:`, {

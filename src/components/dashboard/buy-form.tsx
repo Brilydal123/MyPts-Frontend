@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { StripePayment } from '@/components/payment/stripe-payment';
+import { AnimatedButton } from '../ui/animated-button';
 
 // Define form validation schema
 const formSchema = z.object({
@@ -66,7 +67,7 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: 100,
+      amount: 50,
       paymentMethod: 'credit',
     },
   });
@@ -183,7 +184,7 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                         <div className="flex items-center">
                           <Input
                             type="number"
-                            placeholder="100"
+                            placeholder="50"
                             {...field}
                             min={1}
                           />
@@ -226,10 +227,16 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                     </FormItem>
                   )}
                 />
+                <div className="max-w-[14rem] mx-auto ">
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <AnimatedButton
+                  type="submit" className=" auth-button active px-[4rem] h-12" disabled={isSubmitting}
+
+                >
                   {isSubmitting ? 'Processing...' : 'Continue to Payment'}
-                </Button>
+                </AnimatedButton>
+</div>
+
               </form>
             </Form>
           </CardContent>
