@@ -69,7 +69,7 @@ export function Navbar({
                 <ChevronRightIcon className="h-5 w-5" />
               )}
             </Button>
-          </div>https://my-profile-server-api.onrender.com/api/stripe/webhook
+          </div>
           {/* https://my-profile-server-api.onrender.com/api/stripe/webhook */}
           {/* Search section */}
           <div className="flex-1 max-w-xl">
