@@ -15,6 +15,7 @@ import { authApi } from '@/lib/api/auth-api';
 import { toast } from 'sonner';
 import { SocialLoginButtons } from '@/components/auth/social-login-buttons';
 import { Separator } from '@/components/ui/separator';
+import { motion } from 'framer-motion';
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -149,7 +150,28 @@ export function EmailRegistrationStep({
   return (
     <div className="flex flex-col h-full">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold mb-2">MyProfile</h1>
+        <div className="mr-4 p-2 flex justify-center items-center pb-4 space-x-2">
+          <motion.img
+            src="/profilewhite.png"
+            alt="MyProfile"
+            width="55"
+            height="55"
+            className="object-contain"
+            whileHover={{ rotate: 10, scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300, damping: 10 }}
+          />
+          <motion.h1
+            className="text-3xl font-bold"
+            style={{ fontFamily: 'Manrope' }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+          >
+            <span className="bg-clip-text font-extrabold text-4xl">My</span>
+            <span className="font-normal bg-clip-text  bg-gradient-to-r from-gray-700 to-gray-400">Profile</span>
+          </motion.h1>
+        </div>
+
         <h2 className="text-xl font-semibold mb-1">Register for your free account!</h2>
         <p className="text-gray-600 text-sm">
           To start your journey with us, provide a valid email address.
@@ -162,15 +184,14 @@ export function EmailRegistrationStep({
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem>
-                <FormControl>
+              <FormItem className=' flex flex-col justify-center items-center'>
+                <FormControl >
                   <FloatingLabelInput
                     label="Email address"
                     icon={<Mail className="h-5 w-5 text-gray-500" />}
                     {...field}
-                    className={`rounded-md ${
-                      email ? (isEmailValid ? 'border-green-300' : 'border-red-300') : ''
-                    }`}
+                    className={`rounded-md  ${email ? (isEmailValid ? 'border-green-300' : 'border-red-300') : 'sdffff'
+                      }`}
                   />
                 </FormControl>
                 <FormMessage />
@@ -186,9 +207,8 @@ export function EmailRegistrationStep({
           <div className="flex justify-center">
             <Button
               type="submit"
-              className={`auth-button h-12 transition-all duration-300 px-10 max-w-xs ${
-                isEmailValid ? 'active' : 'opacity-70'
-              }`}
+              className={`auth-button h-12 transition-all duration-300 px-10 max-w-xs ${isEmailValid ? 'active' : 'opacity-70'
+                }`}
               disabled={isLoading || !isEmailValid}
             >
               {isLoading ? 'Processing...' : isEmailValid ? 'Save & Continue' : 'Enter Valid Email'}

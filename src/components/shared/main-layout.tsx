@@ -74,7 +74,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#c4c4c4]">
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-40  ">
         <Button

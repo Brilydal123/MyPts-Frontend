@@ -35,18 +35,18 @@ const FloatingLabelInput = forwardRef<HTMLInputElement, FloatingLabelInputProps>
     };
 
     return (
-      <div className={cn("relative", containerClassName)}>
+      <div className={cn("relative  max-w-md mx-auto w-full max-sm:max-w-full", containerClassName)}>
         <div>
 
         </div>
         <div className="relative">
           {icon && (
-            <div className='bg-gray-100 h-full w-[2.5rem] absolute
+            <div className=' max-w-md mx-autobg-gray-100 h-full w-[2.5rem] absolute
             rounded-l-md
             '>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500  z-10">
-              {icon}
-            </div>
+              <div className=" absolute left-3 top-1/2 -translate-y-1/2 text-gray-500  z-10">
+                {icon}
+              </div>
             </div>
           )}
 

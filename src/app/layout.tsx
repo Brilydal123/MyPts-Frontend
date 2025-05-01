@@ -36,7 +36,7 @@ export default function RootLayout({
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
               <div className="font-manrope">
-                <nav className="shadow-sm text-white px-6 py-6 flex items-center justify-between">
+                {/* <nav className="shadow-sm text-white px-6 py-6 flex items-center justify-between">
                   <Link href="/" className="flex items-center">
                     <Image
                       src="/profilewhite.png"
@@ -60,7 +60,7 @@ export default function RootLayout({
                       Transactions
                     </Link>
                   </div>
-                </nav>
+                </nav> */}
                 {children}
               </div>
               <Toaster position="top-right" richColors />
