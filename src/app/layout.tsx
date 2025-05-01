@@ -22,6 +22,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MyPts Manager",
   description: "Manage your MyPts virtual currency",
+  icons: {
+    icon: "/profileblack.png",
+  },
 };
 
 export default function RootLayout({
