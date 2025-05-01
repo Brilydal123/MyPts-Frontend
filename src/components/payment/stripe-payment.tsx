@@ -142,7 +142,7 @@ export function StripePayment({ clientSecret, amount, currency, onSuccess, onCan
           </div>
         )}
       </CardHeader>
-      <CardContent className='p-1'>
+      <CardContent className='p-1 border-0'>
 
         <Elements stripe={stripePromise} options={{ clientSecret }}>
           <CheckoutForm
