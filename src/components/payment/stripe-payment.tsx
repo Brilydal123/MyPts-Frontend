@@ -82,7 +82,7 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
     <form onSubmit={handleSubmit}>
       <PaymentElement />
       {errorMessage && <div className="text-red-500 mt-4">{errorMessage}</div>}
-      <div className="flex justify-between mawmd mt-6">
+      <div className="flex justify-between space-x-5 mt-6">
         {/* <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           Cancel
         </Button> */}
