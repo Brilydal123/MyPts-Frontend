@@ -5,6 +5,16 @@ import { API_BASE_URL } from '@/lib/config';
  */
 export const socialAuthApi = {
   /**
+   * Set the access token for API requests
+   * @param token The access token to use for API requests
+   */
+  setToken: (token: string): void => {
+    // Store the token for future API calls
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', token);
+    }
+  },
+  /**
    * Get the Google OAuth URL
    * @param frontendCallbackUrl The frontend URL to redirect to after authentication
    * @param state Optional state parameter for CSRF protection
@@ -108,10 +118,22 @@ export const socialAuthApi = {
         throw new Error(errorData.message || 'Failed to get user profile');
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log('Social auth getCurrentUser response:', data);
+
+      // Ensure we return a consistent format
+      return {
+        success: data.success || true,
+        user: data.user || data.data || data,
+        message: data.message || ''
+      };
     } catch (error) {
       console.error('Error getting current user:', error);
-      throw error;
+      return {
+        success: false,
+        user: null,
+        message: error instanceof Error ? error.message : 'Failed to get user profile'
+      };
     }
   },
 };

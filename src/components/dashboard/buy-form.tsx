@@ -67,7 +67,7 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: 50,
+      amount: 0,
       paymentMethod: 'credit',
     },
   });
@@ -184,7 +184,7 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                         <div className="flex items-center">
                           <Input
                             type="number"
-                            placeholder="50"
+                            placeholder="0"
                             {...field}
                             min={1}
                           />
@@ -229,13 +229,13 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                 />
                 <div className="max-w-[14rem] mx-auto ">
 
-                <AnimatedButton
-                  type="submit" className=" auth-button active px-[4rem] h-12" disabled={isSubmitting}
+                  <AnimatedButton
+                    type="submit" className=" auth-button active px-[4rem] h-12" disabled={isSubmitting}
 
-                >
-                  {isSubmitting ? 'Processing...' : 'Continue to Payment'}
-                </AnimatedButton>
-</div>
+                  >
+                    {isSubmitting ? 'Processing...' : 'Continue to Payment'}
+                  </AnimatedButton>
+                </div>
 
               </form>
             </Form>

@@ -9,6 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { profileApi } from '@/lib/api/profile-api';
 import { userApi } from '@/lib/api/user-api';
+import { socialAuthApi } from '@/lib/api/social-auth-api';
+import { myPtsApi } from '@/lib/api/mypts-api';
+import { Coins } from 'lucide-react';
 import { AnimatedButton } from '../ui/animated-button';
 
 // Interface for profile data
@@ -18,6 +21,9 @@ interface ProfileData {
   description?: string;
   profileType?: string;
   accessToken?: string;
+  balance?: number;
+  formattedBalance?: string;
+  isLoadingBalance?: boolean;
 }
 
 export function ProfileSelector() {
@@ -58,8 +64,34 @@ export function ProfileSelector() {
       // For social auth, we might not have a session but we have data in localStorage
       if (!session?.user?.id && !userDataFromStorage) {
         console.log('Missing user ID in session and no user data in localStorage');
-        setLoading(false);
-        return;
+
+        // Try to fetch user data from the API if we have an access token
+        if (accessTokenFromStorage) {
+          console.log('Attempting to fetch user data with access token');
+          try {
+            const userResponse = await socialAuthApi.getCurrentUser();
+            if (userResponse.success && userResponse.user) {
+              console.log('Successfully fetched user data from API:', userResponse.user);
+
+              // Store the user data in localStorage
+              localStorage.setItem('user', JSON.stringify(userResponse.user));
+
+              // Update userDataFromStorage with the fetched data
+              userDataFromStorage = userResponse.user;
+            } else {
+              console.error('Failed to fetch user data from API:', userResponse);
+              setLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error('Error fetching user data from API:', error);
+            setLoading(false);
+            return;
+          }
+        } else {
+          setLoading(false);
+          return;
+        }
       }
 
       // Use user ID from session or localStorage
@@ -109,11 +141,11 @@ export function ProfileSelector() {
                   prevProfiles.map(p =>
                     p.id === profile.id
                       ? {
-                          ...p,
-                          name: profileDetails.data.name || p.name,
-                          description: profileDetails.data.description || p.description,
-                          profileType: profileDetails.data.profileType || profileDetails.data.type || p.profileType
-                        }
+                        ...p,
+                        name: profileDetails.data.name || p.name,
+                        description: profileDetails.data.description || p.description,
+                        profileType: profileDetails.data.profileType || profileDetails.data.type || p.profileType
+                      }
                       : p
                   )
                 );
@@ -145,8 +177,8 @@ export function ProfileSelector() {
               description: profile.description || '',
               // Handle different ways the type might be returned
               profileType: profile.type?.subtype ||
-                          (typeof profile.type === 'string' ? profile.type :
-                           profile.profileType || 'unknown'),
+                (typeof profile.type === 'string' ? profile.type :
+                  profile.profileType || 'unknown'),
               accessToken: profile.accessToken || ''
             };
           });
@@ -183,8 +215,8 @@ export function ProfileSelector() {
         if (!response.success || !response.data) {
           // If we get an authentication error, we might need to redirect to login
           if (response.message?.includes('authentication') ||
-              response.message?.includes('token') ||
-              response.message?.includes('Unauthorized')) {
+            response.message?.includes('token') ||
+            response.message?.includes('Unauthorized')) {
             console.error('Authentication error:', response.message);
             toast.error('Your session has expired. Please log in again.');
             // Wait a moment before redirecting
@@ -218,8 +250,8 @@ export function ProfileSelector() {
                   description: profile.description || '',
                   // Handle different ways the type might be returned
                   profileType: profile.type?.subtype ||
-                              (typeof profile.type === 'string' ? profile.type :
-                               profile.profileType || 'unknown'),
+                    (typeof profile.type === 'string' ? profile.type :
+                      profile.profileType || 'unknown'),
                   accessToken: profile.accessToken || ''
                 };
               });
@@ -236,8 +268,8 @@ export function ProfileSelector() {
             description: profile.description || '',
             // Handle different ways the type might be returned
             profileType: profile.type?.subtype ||
-                        (typeof profile.type === 'string' ? profile.type :
-                         profile.profileType || 'unknown'),
+              (typeof profile.type === 'string' ? profile.type :
+                profile.profileType || 'unknown'),
             accessToken: profile.accessToken || ''
           }));
         }
@@ -271,6 +303,97 @@ export function ProfileSelector() {
 
     loadProfiles();
   }, [session]);
+
+  // Function to fetch balance for a profile
+  const fetchProfileBalance = async (profileId: string) => {
+    try {
+      // Store the current profile ID to restore it later
+      const currentProfileId = localStorage.getItem('selectedProfileId');
+
+      // Temporarily set the profile ID to the one we want to fetch balance for
+      localStorage.setItem('selectedProfileId', profileId);
+
+      // Fetch the balance
+      const response = await myPtsApi.getBalance();
+
+      // Restore the original profile ID
+      if (currentProfileId) {
+        localStorage.setItem('selectedProfileId', currentProfileId);
+      } else {
+        localStorage.removeItem('selectedProfileId');
+      }
+
+      if (response.success && response.data) {
+        return {
+          balance: response.data.balance,
+          formattedBalance: `${response.data.balance.toLocaleString()} MyPts`
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error fetching balance for profile ${profileId}:`, error);
+      return null;
+    }
+  };
+
+  // Function to fetch balances for all profiles
+  const fetchProfileBalances = async (profilesList: ProfileData[]) => {
+    // Update profiles with loading state
+    setProfiles(profilesList.map(profile => ({
+      ...profile,
+      isLoadingBalance: true
+    })));
+
+    // Fetch balances for each profile
+    for (const profile of profilesList) {
+      try {
+        const balanceData = await fetchProfileBalance(profile.id);
+
+        if (balanceData) {
+          // Update the profile with balance information
+          setProfiles(prevProfiles =>
+            prevProfiles.map(p =>
+              p.id === profile.id
+                ? {
+                  ...p,
+                  balance: balanceData.balance,
+                  formattedBalance: balanceData.formattedBalance,
+                  isLoadingBalance: false
+                }
+                : p
+            )
+          );
+        } else {
+          // Update just the loading state if balance fetch failed
+          setProfiles(prevProfiles =>
+            prevProfiles.map(p =>
+              p.id === profile.id
+                ? { ...p, isLoadingBalance: false }
+                : p
+            )
+          );
+        }
+      } catch (error) {
+        console.error(`Error processing balance for profile ${profile.id}:`, error);
+        // Update loading state on error
+        setProfiles(prevProfiles =>
+          prevProfiles.map(p =>
+            p.id === profile.id
+              ? { ...p, isLoadingBalance: false }
+              : p
+          )
+        );
+      }
+    }
+  };
+
+  // Effect to fetch balances after profiles are loaded
+  useEffect(() => {
+    if (profiles.length > 0 && !loading) {
+      fetchProfileBalances(profiles);
+    }
+  }, [profiles.length, loading]);
 
   const handleSelectProfile = async (profileId: string, profileToken: string) => {
     try {
@@ -424,11 +547,10 @@ export function ProfileSelector() {
         {profiles.map((profile) => (
           <div
             key={profile.id}
-            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-              selectedProfileId === profile.id
-                ? 'border-primary bg-primary/5'
-                : 'hover:bg-muted'
-            }`}
+            className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedProfileId === profile.id
+              ? 'border-primary bg-primary/5'
+              : 'hover:bg-muted'
+              }`}
             onClick={() => setSelectedProfileId(profile.id)}
           >
             <div className="flex items-center justify-between">
@@ -438,6 +560,18 @@ export function ProfileSelector() {
                   {profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">{profile.description}</p>
+
+                {/* Balance display */}
+                <div className="mt-2 flex items-center">
+                  <Coins className="h-4 w-4 mr-1 text-amber-500" />
+                  {profile.isLoadingBalance ? (
+                    <Skeleton className="h-4 w-20" />
+                  ) : profile.balance !== undefined ? (
+                    <span className="text-sm font-medium">{profile.formattedBalance}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Balance unavailable</span>
+                  )}
+                </div>
               </div>
               {selectedProfileId === profile.id && (
                 <div className="h-3 w-3 rounded-full bg-primary"></div>
@@ -455,20 +589,20 @@ export function ProfileSelector() {
           Create New Profile
         </Button> */}
         <AnimatedButton
-         onClick={() => {
-          const selectedProfile = profiles.find(p => p.id === selectedProfileId);
-          if (selectedProfile) {
-            handleSelectProfile(selectedProfile.id, selectedProfile.accessToken);
-          } else {
-            toast.error('Please select a profile');
-          }
-        }}
-        disabled={!selectedProfileId}
+          onClick={() => {
+            const selectedProfile = profiles.find(p => p.id === selectedProfileId);
+            if (selectedProfile) {
+              handleSelectProfile(selectedProfile.id, selectedProfile.accessToken);
+            } else {
+              toast.error('Please select a profile');
+            }
+          }}
+          disabled={!selectedProfileId}
           type="button"
           className="h-12 w-full bg-black"
           // active={referralAnswer === 'yes'}
           // onClick={() => setReferralAnswer('yes')}
-          style={{ backgroundColor: selectedProfileId? 'black' : 'white', color:selectedProfileId ? 'white' : 'black', borderColor: 'black', borderWidth: '1px' }}
+          style={{ backgroundColor: selectedProfileId ? 'black' : 'white', color: selectedProfileId ? 'white' : 'black', borderColor: 'black', borderWidth: '1px' }}
         >
           Continue
         </AnimatedButton>

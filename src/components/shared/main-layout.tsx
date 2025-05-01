@@ -4,12 +4,9 @@ import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-// Removed unused dropdown menu imports
 import { Button } from "@/components/ui/button";
-// Removed unused avatar imports
-import { UserAvatar } from "@/components/shared/user-avatar";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
-import { NotificationCenter } from "@/components/shared/notification-center";
+import { Navbar } from "@/components/shared/navbar";
 import Image from "next/image";
 import {
   Settings as SettingsIcon,
@@ -19,10 +16,6 @@ import {
   ShoppingBag as BuyIcon,
   DollarSign as SellIcon,
   History as TransactionsIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  Menu as MenuIcon,
-  X as CloseIcon,
 } from "lucide-react";
 
 interface MainLayoutProps {
@@ -35,19 +28,32 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Debug user object
+  // Auth check on mount
   useEffect(() => {
-    if (user) {
-      console.log("User object in MainLayout:", user);
-      console.log("User properties:", Object.keys(user));
-      console.log("User profile image:", user.profileImage);
-      console.log("User name:", user.name, user.fullName);
+    const checkAuth = () => {
+      const accessToken = localStorage.getItem('accessToken');
+      const nextAuthToken = localStorage.getItem('next-auth.session-token');
+      const profileToken = localStorage.getItem('selectedProfileToken');
+
+      if (!accessToken && !nextAuthToken && !profileToken) {
+        // Force hard navigation to login
+        window.location.href = '/login';
+        return false;
+      }
+      return true;
+    };
+
+    const isAuth = checkAuth();
+    if (!isAuth) {
+      return; // Return early if not authenticated
     }
-  }, [user]);
+  }, []);
 
-  // User avatar is now handled by the UserAvatar component
+  // If not authenticated, render nothing
+  if (!isAuthenticated) {
+    return null;
+  }
 
-  // Navigation items
   const navItems = [
     {
       name: "Dashboard",
@@ -73,24 +79,20 @@ export function MainLayout({ children }: MainLayoutProps) {
       : []),
   ];
 
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/login';
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-40  ">
-        <Button
-          variant="outline"
-          size="icon"
-          className={`${mobileMenuOpen ? "absolute  -right-[16rem] top-[1rem]" : ""}`}
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle mobile menu"
-        >
-          {mobileMenuOpen ? (
-            <CloseIcon className="h-5 w-5" />
-          ) : (
-            <MenuIcon className="h-5 w-5 " />
-          )}
-        </Button>
-      </div>
+    <div className="min-h-screen flex flex-col pt-16">
+      <Navbar
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+        mobileMenuOpen={mobileMenuOpen}
+        onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+      />
+
       {/* Mobile sidebar */}
       {mobileMenuOpen && (
         <div
@@ -101,7 +103,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             className="fixed left-0 top-0 h-full w-72 bg-black shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex h-24  items-center border-b px-6">
+            <div className="flex h-24 items-center border-b px-6">
               <Link
                 href="/"
                 className="flex items-center space-x-2"
@@ -123,8 +125,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                     key={item.name}
                     href={item.href}
                     className={`flex items-center px-3 py-2 rounded-md ${pathname === item.href
-                      ? "bg-white text-black"
-                      : "text-white hover:bg-muted"
+                        ? "bg-white text-black"
+                        : "text-white hover:bg-muted"
                       } ${item.isAdmin ? "text-primary" : ""}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -134,58 +136,38 @@ export function MainLayout({ children }: MainLayoutProps) {
                 ))}
               </nav>
               <div className="border-t my-4"></div>
-              {isAuthenticated ? (
-                <div className="space-y-2">
-                  <div className="flex items-center p-3 ">
-                    <GoogleAvatar
-                      profileImageUrl={user?.profileImage || ""}
-                      fallbackText={user?.fullName || user?.name || "User"}
-                      size={32}
-                      className="mr-3"
-                    />
-                    <div className="text-sm text-white">
-                      <p className="font-medium">
-                        {user?.fullName || user?.name || "User"}
-                      </p>
-                      <p className="text-white text-xs">{user?.email}</p>
-                    </div>
+              <div className="space-y-2">
+                <div className="flex items-center p-3">
+                  <GoogleAvatar
+                    profileImageUrl={user?.profileImage || ""}
+                    fallbackText={user?.fullName || user?.name || "User"}
+                    size={32}
+                    className="mr-3"
+                  />
+                  <div className="text-sm text-white">
+                    <p className="font-medium">
+                      {user?.fullName || user?.name || "User"}
+                    </p>
+                    <p className="text-white text-xs">{user?.email}</p>
                   </div>
-                  <Link
-                    href="/settings"
-                    className="flex items-center px-3 py-2 rounded-md text-white hover:text-black w-full"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <SettingsIcon className="mr-3 h-5 w-5" />
-                    <span className="text-white">Settings</span>
-                  </Link>
-                  <div className="px-3 py-2">
-                    <NotificationCenter />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full justify-start"
-                    onClick={async () => {
-                      // Import the new logout function
-                      const { logout: logoutFunction } = await import(
-                        "@/lib/logout"
-                      );
-                      await logoutFunction();
-                    }}
-                  >
-                    <LogOutIcon className="mr-3 h-5 w-5" />
-                    <span>Log out</span>
-                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-2 p-3">
-                  <Button asChild className="w-full" variant="outline">
-                    <Link href="/login">Log in</Link>
-                  </Button>
-                  <Button asChild className="w-full">
-                    <Link href="/register">Sign up</Link>
-                  </Button>
-                </div>
-              )}
+                <Link
+                  href="/settings"
+                  className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <SettingsIcon className="mr-3 h-5 w-5" />
+                  <span>Settings</span>
+                </Link>
+                <Button
+                  variant="ghost"
+                  className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full justify-start"
+                  onClick={handleLogout}
+                >
+                  <LogOutIcon className="mr-3 h-5 w-5" />
+                  <span>Log out</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -194,16 +176,16 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Desktop sidebar */}
       <div
         className={`hidden lg:block fixed left-0 top-0 h-full ${sidebarOpen ? "w-64" : "w-20"
-          } dark:bg-white bg-black    transition-all duration-300 z-30`}
+          } dark:bg-white bg-black transition-all duration-300 z-30`}
       >
         <div
           className={`relative ${sidebarOpen
-            ? "w-flex  pb-5 items-center -b px-6 justify-between "
-            : "flex  justify-center items-center mx-auto pt-[2rem] "
-            } `}
+              ? "flex pb-5 items-center px-6 justify-between pt-7"
+              : "flex justify-center items-center pt-7"
+            }`}
         >
           {sidebarOpen ? (
-            <Link href="/" className="flex items-center space-x-2  pt-7">
+            <Link href="/" className="flex items-center space-x-2">
               <Image
                 src="/profilewhite.png"
                 alt="MyPts"
@@ -211,39 +193,24 @@ export function MainLayout({ children }: MainLayoutProps) {
                 height={50}
                 className="h-[3.7rem] w-[3.7rem] object-contain"
               />
-              <div className="flex justify-center items-center relative place-items-center">
+              <div className="flex justify-center items-center">
                 <span className="text-white text-3xl font-extrabold">My</span>
-                <span className="text-white text-2xl font-extralight">
-                  Profile
-                </span>
+                <span className="text-white text-2xl font-extralight">Profile</span>
               </div>
             </Link>
           ) : (
-            <Link href="/" className="flex items-center space-x-2 relative">
+            <Link href="/" className="flex items-center">
               <Image
                 src="/profilewhite.png"
                 alt="MyPts"
                 width={32}
                 height={32}
-                className="h-[1.7rem] w-[1.7rem] "
+                className="h-[1.7rem] w-[1.7rem]"
               />
             </Link>
           )}
-          <Button
-            // variant="dest"
-            // size="icon"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-            className={`bg-black absolute -right-[2.6rem] text-white  cursor-pointer hover:text-black,${!sidebarOpen ? "w-full " : "relative  top-[1.8rem]"
-              }`}
-          >
-            {sidebarOpen ? (
-              <ChevronLeftIcon className="h-5 w-5" />
-            ) : (
-              <ChevronRightIcon className="h-5 w-5" />
-            )}
-          </Button>
         </div>
+
         <div className="py-4 px-4">
           <nav className="flex flex-col space-y-1">
             {navItems.map((item) => (
@@ -262,86 +229,58 @@ export function MainLayout({ children }: MainLayoutProps) {
             ))}
           </nav>
           <div className="border-t my-4"></div>
-          {isAuthenticated ? (
-            <div className="space-y-2">
-              {sidebarOpen && (
-                <div className="flex items-center p-3">
-                  <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
-                    size={32}
-                    className="mr-3"
-                  />
-                  <div className="text-sm">
-                    <p className="font-medium text-white">
-                      {user?.fullName || user?.name || "User"}
-                    </p>
-                    <p className="text-white text-xs truncate">{user?.email}</p>
-                  </div>
+          <div className="space-y-2">
+            {sidebarOpen && (
+              <div className="flex items-center p-3">
+                <GoogleAvatar
+                  profileImageUrl={user?.profileImage || ""}
+                  fallbackText={user?.fullName || user?.name || "User"}
+                  size={32}
+                  className="mr-3"
+                />
+                <div className="text-sm">
+                  <p className="font-medium text-white">
+                    {user?.fullName || user?.name || "User"}
+                  </p>
+                  <p className="text-white text-xs truncate">{user?.email}</p>
                 </div>
-              )}
-              {!sidebarOpen && (
-                <div className="flex justify-center p-2">
-                  <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
-                    size={32}
-                  />
-                </div>
-              )}
-              <Link
-                href="/settings"
-                className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                  } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
-              >
-                <span className={sidebarOpen ? "mr-3" : ""}>
-                  <SettingsIcon className="h-5 w-5" />
-                </span>
-                {sidebarOpen && <span>Settings</span>}
-              </Link>
-              <div
-                className={`relative ${sidebarOpen ? "px-3" : "flex justify-center"
-                  } py-2`}
-              >
-                <NotificationCenter />
               </div>
-              <Button
-                variant="ghost"
-                className={`flex items-center  ${sidebarOpen ? "px-3" : "justify-center"
-                  } py-2 rounded-md text-white hover:bg-muted w-full ${sidebarOpen ? "justify-start" : "justify-center"
-                  }`}
-                onClick={() => logout()}
-              >
-                <span className={sidebarOpen ? "mr-2" : ""}>
-                  <LogOutIcon className="h-5 w-5 -rotate-180" />
-                </span>
-                {sidebarOpen && <span>Log out</span>}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2 p-3">
-              {sidebarOpen ? (
-                <>
-                  {/* <Button asChild className="w-full" variant="outline">
-                    <Link href="/login">Log in</Link>
-                  </Button>
-                  <Button asChild className="w-full">
-                    <Link href="/register">Sign up</Link>
-                  </Button> */}
-                </>
-              ) : (
-                <div className="flex flex-col items-center space-y-2">
-                  <Link href="/login">
-                    <Button size="icon" variant="outline">
-                      <LogOutIcon className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+            {!sidebarOpen && (
+              <div className="flex justify-center p-2">
+                <GoogleAvatar
+                  profileImageUrl={user?.profileImage || ""}
+                  fallbackText={user?.fullName || user?.name || "User"}
+                  size={32}
+                />
+              </div>
+            )}
+            <Link
+              href="/settings"
+              className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
+                } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
+            >
+              <span className={sidebarOpen ? "mr-3" : ""}>
+                <SettingsIcon className="h-5 w-5" />
+              </span>
+              {sidebarOpen && <span>Settings</span>}
+            </Link>
+            <Button
+              variant="ghost"
+              className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
+                } py-2 rounded-md text-white hover:bg-muted w-full ${sidebarOpen ? "justify-start" : "justify-center"
+                }`}
+              onClick={handleLogout}
+            >
+              <span className={sidebarOpen ? "mr-2" : ""}>
+                <LogOutIcon className="h-5 w-5 -rotate-180" />
+              </span>
+              {sidebarOpen && <span>Log out</span>}
+            </Button>
+          </div>
         </div>
       </div>
+
       {/* Main Content with padding for sidebar */}
       <main
         className={`flex-1 ${sidebarOpen ? "lg:ml-64" : "lg:ml-20"
@@ -349,6 +288,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       >
         {children}
       </main>
+
       {/* Footer */}
       <footer
         className={`border-t py-6 md:py-0 ${sidebarOpen ? "lg:ml-64" : "lg:ml-20"
@@ -362,10 +302,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <Link href="/terms" className="text-sm text-white hover:underline">
               Terms
             </Link>
-            <Link
-              href="/privacy"
-              className="text-sm text-white hover:underline"
-            >
+            <Link href="/privacy" className="text-sm text-white hover:underline">
               Privacy
             </Link>
           </div>

@@ -118,7 +118,7 @@ export function TransactionList({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className="rounded-md border transition-all duration-300 hover:shadow-lg shadow-md bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -166,7 +166,7 @@ export function TransactionList({
               </TableRow>
             ) : (
               transactions.map((transaction) => (
-                <TableRow key={transaction._id}>
+                <TableRow key={transaction._id} className="hover:bg-muted/50 transition-colors">
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {getTransactionIcon(transaction.type, transaction.amount)}
@@ -196,12 +196,13 @@ export function TransactionList({
                           variant="ghost"
                           size="icon"
                           onClick={() => setSelectedTransaction(transaction)}
+                          className="hover:bg-primary/10"
                         >
                           <Info className="h-4 w-4" />
                           <span className="sr-only">View details</span>
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
+                      <DialogContent className="sm:max-w-[425px] shadow-lg">
                         <DialogHeader>
                           <DialogTitle>Transaction Details</DialogTitle>
                           <div className="text-xs font-mono text-muted-foreground mt-1">
@@ -226,11 +227,10 @@ export function TransactionList({
                               <div>
                                 <p className="text-sm font-medium text-muted-foreground">Amount</p>
                                 <p
-                                  className={`text-sm font-semibold ${
-                                    selectedTransaction.amount > 0
+                                  className={`text-sm font-semibold ${selectedTransaction.amount > 0
                                       ? 'text-green-600'
                                       : 'text-red-600'
-                                  }`}
+                                    }`}
                                 >
                                   {selectedTransaction.amount > 0 ? '+' : ''}
                                   {selectedTransaction.amount.toLocaleString()}
@@ -248,12 +248,14 @@ export function TransactionList({
                                   {formatDate(selectedTransaction.createdAt)}
                                 </p>
                               </div>
-                              <div className="col-span-2">
-                                <p className="text-sm font-medium text-muted-foreground">
-                                  Description
-                                </p>
-                                <p className="text-sm">{selectedTransaction.description}</p>
-                              </div>
+                              {selectedTransaction.description && (
+                                <div className="col-span-2">
+                                  <p className="text-sm font-medium text-muted-foreground">
+                                    Description
+                                  </p>
+                                  <p className="text-sm">{selectedTransaction.description}</p>
+                                </div>
+                              )}
                               {selectedTransaction.referenceId && (
                                 <div className="col-span-2">
                                   <p className="text-sm font-medium text-muted-foreground">
@@ -310,6 +312,7 @@ export function TransactionList({
               size="sm"
               onClick={handlePrevPage}
               disabled={pagination.offset === 0}
+              className="shadow-sm hover:shadow"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Previous
@@ -319,6 +322,7 @@ export function TransactionList({
               size="sm"
               onClick={handleNextPage}
               disabled={!pagination.hasMore}
+              className="shadow-sm hover:shadow"
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />

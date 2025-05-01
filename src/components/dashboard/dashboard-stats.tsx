@@ -15,12 +15,11 @@ interface DashboardStatsProps {
   balance: MyPtsBalance;
   value: MyPtsValue;
   isLoading?: boolean;
-  currency: string; // Selected currency code
+  currency: string;
   referralsCount: number;
   referralCode: string;
 }
 
-// DashboardStats now accepts a currency prop for dynamic formatting
 export function DashboardStats({
   balance,
   value,
@@ -29,9 +28,7 @@ export function DashboardStats({
   referralsCount,
   referralCode,
 }: DashboardStatsProps) {
-  // Format currency using the selected currency code
   const formatCurrency = (amount: number): string => {
-    // For XAF and other special currencies, use custom formatting
     if (currency === "XAF") {
       return `FCFA ${amount.toFixed(2)}`;
     } else if (currency === "NGN") {
@@ -39,7 +36,6 @@ export function DashboardStats({
     } else if (currency === "PKR") {
       return `₨${amount.toFixed(2)}`;
     } else {
-      // Use Intl.NumberFormat for standard currencies
       return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: currency,
@@ -49,20 +45,18 @@ export function DashboardStats({
     }
   };
 
-  // Get the direct conversion value for a currency
   const getDirectConversionValue = (): number => {
     const directConversions: Record<string, number> = {
-      XAF: 13.61, // 1 MyPt = 13.61 XAF
-      EUR: 0.0208, // 1 MyPt = 0.0208 EUR
-      GBP: 0.0179, // 1 MyPt = 0.0179 GBP
-      NGN: 38.26, // 1 MyPt = 38.26 NGN
-      PKR: 6.74, // 1 MyPt = 6.74 PKR
+      XAF: 13.61,
+      EUR: 0.0208,
+      GBP: 0.0179,
+      NGN: 38.26,
+      PKR: 6.74,
     };
 
     return directConversions[currency] || 0;
   };
 
-  // Get the value per MyPt based on the selected currency
   const getValuePerMyPt = (): number => {
     const directValue = getDirectConversionValue();
     if (directValue > 0) {
@@ -76,10 +70,8 @@ export function DashboardStats({
       return { percentage: 0, isPositive: true };
     }
 
-    // Handle both valuePerPts and valuePerMyPt for backward compatibility
     const currentValue = value.valuePerPts || value.valuePerMyPt || 0;
-    const change =
-      ((currentValue - value.previousValue) / value.previousValue) * 100;
+    const change = ((currentValue - value.previousValue) / value.previousValue) * 100;
     return {
       percentage: Math.abs(change),
       isPositive: change >= 0,
@@ -99,9 +91,11 @@ export function DashboardStats({
       .catch(console.error);
   };
 
+  const cardClasses = "transition-all duration-300 hover:shadow-lg shadow-md bg-card";
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
+      <Card className={cardClasses}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">MyPts Value</CardTitle>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -111,7 +105,6 @@ export function DashboardStats({
             <div className="h-9 bg-muted rounded animate-pulse"></div>
           ) : (
             <>
-              {/* Show global value per MyPt using direct conversion if available */}
               <div className="text-2xl font-bold">
                 {getValuePerMyPt().toFixed(6)}
               </div>
@@ -127,11 +120,7 @@ export function DashboardStats({
                 ) : (
                   <ArrowDownRight className="mr-1 h-3 w-3 text-red-600" />
                 )}
-                <p
-                  className={`text-xs ${
-                    change.isPositive ? "text-green-600" : "text-red-600"
-                  }`}
-                >
+                <p className={`text-xs ${change.isPositive ? "text-green-600" : "text-red-600"}`}>
                   {change.percentage.toFixed(2)}% from previous
                 </p>
               </div>
@@ -139,7 +128,8 @@ export function DashboardStats({
           )}
         </CardContent>
       </Card>
-      <Card>
+
+      <Card className={cardClasses}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -153,7 +143,6 @@ export function DashboardStats({
                 {balance.balance.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
-                {/* Show total value using direct conversion if available */}
                 {formatCurrency(balance.balance * getValuePerMyPt())}
                 {currency === "XAF"
                   ? " (FCFA "
@@ -165,7 +154,7 @@ export function DashboardStats({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={cardClasses}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Lifetime Earned</CardTitle>
           <ArrowUpRight className="h-4 w-4 text-green-600" />
@@ -179,14 +168,14 @@ export function DashboardStats({
                 {balance.lifetimeEarned.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
-                {/* Calculate using value.valuePerPts for global stats */}
                 {formatCurrency(balance.lifetimeEarned * getValuePerMyPt())}
               </p>
             </>
           )}
         </CardContent>
       </Card>
-      <Card>
+
+      <Card className={cardClasses}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Lifetime Spent</CardTitle>
           <ArrowDownRight className="h-4 w-4 text-red-600" />
@@ -206,9 +195,10 @@ export function DashboardStats({
           )}
         </CardContent>
       </Card>
-      <Card>
+
+      <Card className={cardClasses}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-sm font-medium ">Referrals</CardTitle>
+          <CardTitle className="text-sm font-medium">Referrals</CardTitle>
           <UserPlus className="h-4 w-4 text-black" />
         </CardHeader>
         <CardContent>
@@ -217,9 +207,8 @@ export function DashboardStats({
           ) : (
             <>
               <div className="text-2xl font-bold">{referralsCount}</div>
-              {/* <p className="mt-4 text-sm text-muted-foreground">Your referral code:</p> */}
               <div className="mt-1 flex items-center space-x-4">
-                <span className="font-mono  bg-gray-100 border border-gray-200 px-3 rounded-full text-gray-800">
+                <span className="font-mono bg-gray-100 border border-gray-200 px-3 rounded-full text-gray-800">
                   {referralCode}
                 </span>
                 <motion.button
@@ -231,7 +220,7 @@ export function DashboardStats({
                   className="cursor-pointer relative"
                 >
                   <Copy className="h-4 w-4" />
-                  <span className="text-sm  absolute top-[1.3rem] -right-[1.4rem] text-muted-foreground">
+                  <span className="text-sm absolute top-[1.3rem] -right-[1.4rem] text-muted-foreground">
                     {copied ? "Copied!" : ""}
                   </span>
                 </motion.button>

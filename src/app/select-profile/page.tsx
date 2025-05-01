@@ -40,9 +40,9 @@ export default function SelectProfilePage() {
 
     // Check if user is admin
     const isAdmin = session?.user?.role === 'admin' ||
-                   session?.user?.isAdmin === true ||
-                   (typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true') ||
-                   userData?.role === 'admin';
+      session?.user?.isAdmin === true ||
+      (typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true') ||
+      userData?.role === 'admin';
 
     console.log('Select profile page - isAdmin check:', isAdmin);
 
@@ -106,13 +106,15 @@ export default function SelectProfilePage() {
   }
 
   // Check for social auth tokens
-  const isSocialAuthenticated = typeof window !== 'undefined' &&
-                               localStorage.getItem('accessToken') !== null &&
-                               localStorage.getItem('user') !== null;
+  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const userDataString = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+  const isSocialAuthenticated = !!accessToken && !!userDataString;
 
   console.log('Select profile page - authentication check:', {
     nextAuthStatus: status,
-    isSocialAuthenticated
+    isSocialAuthenticated,
+    hasAccessToken: !!accessToken,
+    hasUserData: !!userDataString
   });
 
   // If authenticated via NextAuth or social auth, show profile selector

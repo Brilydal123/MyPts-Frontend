@@ -9,7 +9,7 @@ interface BalanceCardProps {
   isLoading?: boolean;
   onCurrencyChange?: (currency: string) => void;
   onRefresh?: () => Promise<void> | void;
-  currency: string; // Selected currency code
+  currency: string;
 }
 
 const currencies = [
@@ -21,29 +21,25 @@ const currencies = [
   { value: 'PKR', label: 'PKR (₨)', symbol: '₨' },
 ];
 
-// BalanceCard now accepts a currency prop for dynamic formatting
 export function BalanceCard({ balance, isLoading = false, onCurrencyChange, currency }: BalanceCardProps) {
-  // Use the currency prop instead of local state
   const handleCurrencyChange = (value: string) => {
     if (onCurrencyChange) {
       onCurrencyChange(value);
     }
   };
 
-  // Get the direct conversion value for a currency
   const getDirectConversionValue = (): number => {
     const directConversions: Record<string, number> = {
-      'XAF': 13.61,  // 1 MyPt = 13.61 XAF
-      'EUR': 0.0208, // 1 MyPt = 0.0208 EUR
-      'GBP': 0.0179, // 1 MyPt = 0.0179 GBP
-      'NGN': 38.26,  // 1 MyPt = 38.26 NGN
-      'PKR': 6.74    // 1 MyPt = 6.74 PKR
+      'XAF': 13.61,
+      'EUR': 0.0208,
+      'GBP': 0.0179,
+      'NGN': 38.26,
+      'PKR': 6.74
     };
 
     return directConversions[currency] || 0;
   };
 
-  // Get the value per MyPt based on the selected currency
   const getValuePerMyPt = (): number => {
     const directValue = getDirectConversionValue();
     if (directValue > 0) {
@@ -52,7 +48,6 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
     return balance.value.valuePerMyPt;
   };
 
-  // Format the total value based on the currency
   const getFormattedTotalValue = (): string => {
     const currencyInfo = currencies.find(c => c.value === currency);
     const valuePerMyPt = getValuePerMyPt();
@@ -62,7 +57,7 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg shadow-md">
       <CardHeader className="bg-primary text-primary-foreground -mt-[1.5rem] p-5">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-bold">Local Currencies Convension</CardTitle>
@@ -110,7 +105,7 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-6">
-              <div className="flex items-center p-4 border rounded-lg">
+              <div className="flex items-center p-4 border rounded-lg transition-all duration-300 hover:shadow-md bg-card">
                 <div className="mr-4 rounded-full p-2 bg-green-100 text-green-600">
                   <ArrowUpRight className="h-5 w-5" />
                 </div>
@@ -119,7 +114,7 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
                   <p className="text-xl font-bold">{balance.lifetimeEarned.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="flex items-center p-4 border rounded-lg">
+              <div className="flex items-center p-4 border rounded-lg transition-all duration-300 hover:shadow-md bg-card">
                 <div className="mr-4 rounded-full p-2 bg-red-100 text-red-600">
                   <ArrowDownRight className="h-5 w-5" />
                 </div>

@@ -19,8 +19,6 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     const fetchProfileInfo = async () => {
       try {
         setLoading(true);
-
-        // Get profile ID from props or localStorage
         const id = profileId || localStorage.getItem('selectedProfileId');
 
         if (!id) {
@@ -29,10 +27,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
           return;
         }
 
-        // Get profile token from localStorage
         const profileToken = localStorage.getItem('selectedProfileToken');
-
-        // Fetch profile details
         const response = await profileApi.getProfileDetails(id, profileToken || undefined);
 
         if (response.success && response.data) {
@@ -51,7 +46,6 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     fetchProfileInfo();
   }, [profileId]);
 
-  // Loading state
   if (loading) {
     if (compact) {
       return (
@@ -66,7 +60,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     }
 
     return (
-      <Card>
+      <Card className="transition-all duration-300 hover:shadow-lg shadow-md">
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
@@ -83,7 +77,6 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     );
   }
 
-  // Error state
   if (error) {
     if (compact) {
       return (
@@ -94,7 +87,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     }
 
     return (
-      <Card>
+      <Card className="transition-all duration-300 hover:shadow-lg shadow-md border-destructive/50">
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
@@ -105,11 +98,10 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     );
   }
 
-  // Compact version (for dropdown)
   if (compact && profile) {
     return (
-      <div className="flex items-center space-x-3">
-        <Avatar className="h-10 w-10">
+      <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-colors">
+        <Avatar className="h-10 w-10 ring-2 ring-primary/10">
           <AvatarImage src={profile.profileImage} alt={profile.name} />
           <AvatarFallback>{profile.name?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
         </Avatar>
@@ -127,19 +119,16 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
       </div>
     );
   }
-console.log(profile);
 
-  // Full version (for dashboard)
   return (
-    <Card>
+    <Card className="transition-all duration-300 hover:shadow-lg shadow-md bg-card">
       <CardHeader>
         <CardTitle>Profile Information</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center space-x-4">
-          <Avatar className="h-12 w-12">
+          <Avatar className="h-12 w-12 ring-2 ring-primary/10">
             <AvatarImage src={profile.profileImage} alt={profile.name} />
-
             <AvatarFallback>{profile.name?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
           </Avatar>
           <div>
@@ -150,7 +139,7 @@ console.log(profile);
               )}
             </p>
             {profile.description && (
-              <p className="text-sm mt-2">{profile.description}</p>
+              <p className="text-sm mt-2 text-muted-foreground/90">{profile.description}</p>
             )}
           </div>
         </div>
