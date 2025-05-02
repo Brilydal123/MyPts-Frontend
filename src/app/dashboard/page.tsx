@@ -6,28 +6,50 @@ import { BalanceCard } from '@/components/shared/balance-card';
 import { TransactionList } from '@/components/shared/transaction-list';
 import { DashboardStats } from '@/components/dashboard/dashboard-stats';
 import { ProfileInfo } from '@/components/profile/profile-info';
-import { myPtsApi, myPtsValueApi } from '@/lib/api/mypts-api';
-import { API_URL } from '../../lib/constants';
-import { MyPtsBalance, MyPtsTransaction, MyPtsValue } from '@/types/mypts';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useBalance, useMyPtsValue, useTransactions, useReferralData } from '@/hooks/use-mypts-data';
+import { useCurrency } from '@/hooks/use-currency';
 
 export default function DashboardPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [balance, setBalance] = useState<MyPtsBalance | null>(null);
-  const [value, setValue] = useState<MyPtsValue | null>(null);
-  const [transactions, setTransactions] = useState<MyPtsTransaction[]>([]);
+  // Use global currency state
+  const { currency, setCurrency } = useCurrency();
+
   const [pagination, setPagination] = useState({
     total: 0,
     limit: 10,
     offset: 0,
     hasMore: false,
   });
-  const [currency, setCurrency] = useState('USD');
-  const [referralCount, setReferralCount] = useState<number>(0);
-  const [referralCode, setReferralCode] = useState<string>('');
 
+  // Use React Query hooks for data fetching
+  const {
+    data: balance,
+    isLoading: isBalanceLoading,
+    refetch: refetchBalance
+  } = useBalance(currency);
+
+  const {
+    data: value,
+    isLoading: isValueLoading,
+    refetch: refetchValue
+  } = useMyPtsValue();
+
+  const {
+    data: transactionsData,
+    isLoading: isTransactionsLoading,
+    refetch: refetchTransactions
+  } = useTransactions(pagination.limit, pagination.offset);
+
+  const {
+    data: referralData,
+    isLoading: isReferralLoading,
+    refetch: refetchReferral
+  } = useReferralData();
+
+  // Check if user is authenticated
   useEffect(() => {
-    // Check auth on mount
     const accessToken = localStorage.getItem('accessToken');
     const nextAuthToken = localStorage.getItem('next-auth.session-token');
     const profileToken = localStorage.getItem('selectedProfileToken');
@@ -36,97 +58,29 @@ export default function DashboardPage() {
       toast.error('Authentication required', {
         description: 'Please log in to continue',
       });
-      // Force hard navigation
       window.location.href = '/login';
-      return;
     }
   }, []);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const profileToken = localStorage.getItem('selectedProfileToken');
-      const nextAuthToken = localStorage.getItem('next-auth.session-token');
-      const token = accessToken || profileToken || nextAuthToken;
-      const profileId = localStorage.getItem('selectedProfileId');
+  // Extract data from query results
+  const transactions = transactionsData?.transactions || [];
+  const referralCount = referralData?.referralCount || 0;
+  const referralCode = referralData?.referralCode || '';
 
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
+  // Combined loading state
+  const isLoading = isBalanceLoading || isValueLoading || isTransactionsLoading || isReferralLoading;
 
-      if (!profileId) {
-        toast.error('No profile selected');
-        window.location.href = '/select-profile';
-        return;
-      }
-
-      if (token) {
-        myPtsApi.setToken(token);
-        myPtsValueApi.setToken(token);
-      }
-
-      const [balanceResponse, valueResponse, transactionsResponse] = await Promise.all([
-        myPtsApi.getBalance(currency),
-        myPtsValueApi.getCurrentValue(),
-        myPtsApi.getTransactions(pagination.limit, pagination.offset)
-      ]);
-
-      // Fetch referrals
-      try {
-        const meRes = await fetch(`${API_URL}/users/me`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: 'include',
-        });
-        const meJson = await meRes.json();
-        if (meRes.ok && meJson.success && meJson.user) {
-          setReferralCount(meJson.user.referralRewards?.totalReferrals ?? meJson.user.referrals?.length ?? 0);
-          setReferralCode(meJson.user.referralCode ?? '');
-        }
-      } catch (e) {
-        console.warn('Error fetching referrals:', e);
-      }
-
-      if (balanceResponse.success && balanceResponse.data) {
-        setBalance(balanceResponse.data);
-      } else {
-        toast.error('Failed to fetch balance');
-      }
-
-      if (valueResponse.success && valueResponse.data) {
-        setValue(valueResponse.data);
-      } else {
-        toast.error('Failed to fetch value data');
-      }
-
-      if (transactionsResponse.success && transactionsResponse.data) {
-        setTransactions(transactionsResponse.data.transactions);
-        setPagination(transactionsResponse.data.pagination);
-      } else {
-        toast.error('Failed to fetch transactions');
-      }
-
-    } catch (error) {
-      toast.error('Failed to fetch dashboard data');
-      if (error instanceof Response && error.status === 401) {
-        window.location.href = '/login';
-        return;
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  // Refresh all data
+  const refreshAllData = () => {
+    refetchBalance();
+    refetchValue();
+    refetchTransactions();
+    refetchReferral();
+    toast.success("Refreshing dashboard data...");
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [currency, pagination.offset, pagination.limit]);
-
   const handleCurrencyChange = (newCurrency: string) => {
+    // Update the global currency state
     setCurrency(newCurrency);
   };
 
@@ -139,13 +93,16 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <button
-            onClick={() => fetchData()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          <Button
+            onClick={() => refreshAllData()}
+            variant="outline"
+            size="sm"
             disabled={isLoading}
+            className="flex items-center gap-2"
           >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          </Button>
         </div>
 
         {balance && value ? (

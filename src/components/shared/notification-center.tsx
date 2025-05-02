@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Check,
@@ -12,18 +12,30 @@ import {
   User,
   CreditCard,
   ChevronRight,
-  X
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { motion, AnimatePresence } from 'framer-motion';
-import { notificationApi } from '@/lib/api/notification-api';
+  X,
+  RefreshCw,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  useNotifications,
+  useUnreadNotificationCount,
+  useMarkNotificationAsRead,
+  useMarkAllNotificationsAsRead,
+  useDeleteNotification
+} from "@/hooks/use-mypts-data";
 
 interface Notification {
   _id: string;
@@ -46,102 +58,61 @@ interface Notification {
 export function NotificationCenter() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState("all");
   const [isOpen, setIsOpen] = useState(false);
 
-  const fetchNotifications = async () => {
-    try {
-      setIsLoading(true);
-      const response = await notificationApi.getUserNotifications();
-      if (response && response.notifications) {
-        setNotifications(response.notifications);
-        const unread = response.notifications.filter((n: Notification) => !n.isRead).length;
-        setUnreadCount(unread);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      // Don't show toast for expected errors
-    } finally {
-      setIsLoading(false);
-    }
+  // Use React Query hooks for data fetching and mutations
+  const {
+    data: notificationsData,
+    isLoading: isNotificationsLoading,
+    refetch: refetchNotifications
+  } = useNotifications();
+
+  const {
+    data: unreadCount = 0,
+    isLoading: isUnreadCountLoading,
+    refetch: refetchUnreadCount
+  } = useUnreadNotificationCount();
+
+  const { mutate: markAsReadMutation } = useMarkNotificationAsRead();
+  const { mutate: markAllAsReadMutation } = useMarkAllNotificationsAsRead();
+  const { mutate: deleteNotificationMutation } = useDeleteNotification();
+
+  // Extract notifications from the response
+  const notifications: Notification[] = notificationsData?.notifications || [];
+
+  // Combined loading state
+  const isLoading = isNotificationsLoading || isUnreadCountLoading;
+
+  // Function to refresh all notification data
+  const refreshNotifications = () => {
+    refetchNotifications();
+    refetchUnreadCount();
+    toast.success("Refreshing notifications...");
   };
 
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await notificationApi.getUnreadNotificationsCount();
-      if (response && response.success) {
-        setUnreadCount(response.data.count);
-      }
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
+  // Function to mark a notification as read
+  const markAsRead = (id: string) => {
+    markAsReadMutation(id);
   };
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchNotifications();
-
-      // Set up polling for unread count
-      const interval = setInterval(fetchUnreadCount, 60000); // Check every minute
-      return () => clearInterval(interval);
-    } else {
-      setIsLoading(false);
-    }
-  }, [session]);
-
-  const markAsRead = async (id: string) => {
-    try {
-      const response = await notificationApi.markNotificationAsRead(id);
-      if (response) {
-        setNotifications(notifications.map(n =>
-          n._id === id ? { ...n, isRead: true } : n
-        ));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
+  // Function to mark all notifications as read
+  const markAllAsRead = () => {
+    markAllAsReadMutation();
   };
 
-  const markAllAsRead = async () => {
-    try {
-      const response = await notificationApi.markAllNotificationsAsRead();
-      if (response) {
-        setNotifications(notifications.map(n => ({ ...n, isRead: true })));
-        setUnreadCount(0);
-        toast.success('All notifications marked as read');
-      }
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      toast.error('Failed to mark all as read');
-    }
-  };
-
-  const deleteNotification = async (id: string) => {
-    try {
-      const response = await notificationApi.deleteNotification(id);
-      if (response) {
-        setNotifications(notifications.filter(n => n._id !== id));
-        if (!notifications.find(n => n._id === id)?.isRead) {
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
-        toast.success('Notification deleted');
-      }
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      toast.error('Failed to delete notification');
-    }
+  // Function to delete a notification
+  const deleteNotification = (id: string) => {
+    deleteNotificationMutation(id);
   };
 
   // Filter notifications based on active tab
-  const filteredNotifications = activeTab === 'all'
-    ? notifications
-    : activeTab === 'unread'
-      ? notifications.filter(n => !n.isRead)
-      : notifications.filter(n => n.type === activeTab);
+  const filteredNotifications =
+    activeTab === "all"
+      ? notifications
+      : activeTab === "unread"
+        ? notifications.filter((n) => !n.isRead)
+        : notifications.filter((n) => n.type === activeTab);
 
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
@@ -153,7 +124,7 @@ export function NotificationCenter() {
     if (notification.action?.url) {
       router.push(notification.action.url);
       setIsOpen(false);
-    } else if (notification.relatedTo?.model === 'Transaction') {
+    } else if (notification.relatedTo?.model === "Transaction") {
       router.push(`/dashboard/transactions/${notification.relatedTo.id}`);
       setIsOpen(false);
     }
@@ -166,15 +137,15 @@ export function NotificationCenter() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="relative"
+              className="relative h-9 w-9 rounded-full border-muted-foreground/20 hover:bg-accent/10 hover:text-accent-foreground"
               onClick={() => setIsOpen(!isOpen)}
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-[18px] w-[18px]" />
               {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white shadow-sm ring-2 ring-background">
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </Button>
@@ -193,46 +164,70 @@ export function NotificationCenter() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="fixed left-[2rem] top-16 md:absolute md:right-0 md:top-auto md:mt-2 w-80 sm:w-96 bg-card rounded-lg shadow-lg border z-50 max-h-[80vh] overflow-hidden"
+            className="fixed top-16 right-0 left-0 mx-auto md:mx-0 md:left-auto md:absolute md:right-0 md:top-auto md:mt-2 w-[95%] max-w-[30rem] sm:w-[30rem] bg-card rounded-lg shadow-lg border z-50 max-h-[80vh] overflow-hidden notification-panel"
+            style={{
+              maxHeight: 'calc(100vh - 5rem)'
+            }}
           >
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold">Notifications</h3>
-              <div className="flex items-center gap-2">
+            <div className="p-3 sm:p-4 border-b flex items-center justify-between">
+              <h3 className="font-semibold text-sm sm:text-base">Notifications</h3>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-full border-muted-foreground/20 hover:bg-accent/10 hover:text-accent-foreground"
+                  onClick={refreshNotifications}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isLoading ? "animate-spin" : ""}`} />
+                </Button>
                 {unreadCount > 0 && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-8 px-2 text-xs"
+                    className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs rounded-full border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
                     onClick={markAllAsRead}
                   >
-                    <Check className="h-3.5 w-3.5 mr-1" />
-                    Mark all read
+                    <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-1.5 text-blue-600" />
+                    <span className="hidden xs:inline">Mark all read</span>
+                    <span className="xs:hidden">Mark all</span>
                   </Button>
                 )}
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-full border-muted-foreground/20 hover:bg-accent/10 hover:text-accent-foreground"
                   onClick={() => setIsOpen(false)}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
 
-            <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-              <div className="px-4 pt-2">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="unread">
+            <Tabs
+              defaultValue="all"
+              className="w-full"
+              onValueChange={setActiveTab}
+            >
+              <div className="px-2 sm:px-4 pt-2">
+                <TabsList className="grid w-full grid-cols-3 h-9 sm:h-10 p-1 bg-muted/50 rounded-lg">
+                  <TabsTrigger value="all" className="text-xs sm:text-sm rounded-md">
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="unread" className="text-xs sm:text-sm rounded-md">
                     Unread
                     {unreadCount > 0 && (
-                      <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs">
+                      <Badge
+                        variant="secondary"
+                        className="ml-1.5 px-1.5 py-0 text-[10px] sm:text-xs bg-primary/10 text-primary border-none"
+                      >
                         {unreadCount}
                       </Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="system_notification">System</TabsTrigger>
+                  <TabsTrigger value="system_notification" className="text-xs sm:text-sm rounded-md">
+                    System
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -286,17 +281,17 @@ function NotificationList({
   isLoading,
   onMarkAsRead,
   onDelete,
-  onClick
+  onClick,
 }: NotificationListProps) {
   if (isLoading) {
     return (
-      <div className="p-4 space-y-4">
+      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-start gap-3">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-full" />
+          <div key={i} className="flex items-start gap-2 sm:gap-3">
+            <Skeleton className="h-6 w-6 sm:h-8 sm:w-8 rounded-full" />
+            <div className="space-y-1.5 sm:space-y-2 flex-1">
+              <Skeleton className="h-3 sm:h-4 w-3/4" />
+              <Skeleton className="h-2.5 sm:h-3 w-full" />
             </div>
           </div>
         ))}
@@ -306,104 +301,115 @@ function NotificationList({
 
   if (notifications.length === 0) {
     return (
-      <div className="p-8 text-center">
-        <Bell className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-        <p className="text-muted-foreground">No notifications to display</p>
+      <div className="p-6 sm:p-8 text-center">
+        <Bell className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground mb-2" />
+        <p className="text-xs sm:text-sm text-muted-foreground">No notifications to display</p>
       </div>
     );
   }
 
   return (
-    <ScrollArea className="h-[calc(60vh)] max-h-[400px]">
+    <ScrollArea className="h-[calc(50vh)] sm:h-[calc(60vh)] max-h-[400px]">
       <div className="p-2">
         {notifications.map((notification) => (
           <div
             key={notification._id}
-            className={`p-3 rounded-lg mb-1 cursor-pointer transition-all duration-200 hover:bg-accent group relative ${
-              !notification.isRead ? 'bg-accent/30' : ''
-            }`}
+            className={`p-2.5 sm:p-3.5 rounded-lg mb-2 cursor-pointer transition-all duration-200 hover:bg-accent/10 group relative border ${!notification.isRead
+              ? "bg-accent/5 border-accent/20 shadow-sm"
+              : "border-transparent hover:border-accent/10"
+              }`}
           >
             <div
-              className="flex items-start gap-3"
+              className="flex items-start gap-3 sm:gap-4"
               onClick={() => onClick(notification)}
             >
               <div className="flex-shrink-0">
-                {notification.type === 'system_notification' && notification.relatedTo?.model === 'Transaction' && (
-                  <div className="bg-blue-100 text-blue-700 p-1.5 rounded-full">
-                    <CreditCard className="h-4 w-4" />
+                {notification.type === "system_notification" &&
+                  notification.relatedTo?.model === "Transaction" && (
+                    <div className="bg-blue-100 text-blue-700 p-1.5 sm:p-2 rounded-full shadow-sm">
+                      <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </div>
+                  )}
+                {notification.type === "security_alert" && (
+                  <div className="bg-red-100 text-red-700 p-1.5 sm:p-2 rounded-full shadow-sm">
+                    <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                 )}
-                {notification.type === 'security_alert' && (
-                  <div className="bg-red-100 text-red-700 p-1.5 rounded-full">
-                    <AlertCircle className="h-4 w-4" />
-                  </div>
-                )}
-                {!notification.type || (notification.type !== 'system_notification' && notification.type !== 'security_alert') && (
-                  <div className="bg-gray-100 text-gray-700 p-1.5 rounded-full">
-                    <Bell className="h-4 w-4" />
-                  </div>
-                )}
+                {!notification.type ||
+                  (notification.type !== "system_notification" &&
+                    notification.type !== "security_alert" && (
+                      <div className="bg-gray-100 text-gray-700 p-1.5 sm:p-2 rounded-full shadow-sm">
+                        <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      </div>
+                    ))}
               </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
-                  <h4 className="font-medium text-sm truncate">{notification.title}</h4>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                  <h4 className="font-medium text-xs sm:text-sm truncate">
+                    {notification.title}
+                    {!notification.isRead && (
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500 ml-1.5 align-middle"></span>
+                    )}
+                  </h4>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap ml-1 sm:ml-2 bg-muted/50 px-1.5 py-0.5 rounded-full">
+                    {formatDistanceToNow(new Date(notification.createdAt), {
+                      addSuffix: true,
+                    })}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 sm:mt-1.5">
                   {notification.message}
                 </p>
                 {notification.action && (
-                  <div className="mt-2 flex items-center text-xs text-primary font-medium">
+                  <div className="mt-2 sm:mt-2.5 inline-flex items-center text-[10px] sm:text-xs text-primary font-medium bg-primary/5 self-start px-2 py-0.5 rounded-full">
                     {notification.action.text}
-                    <ChevronRight className="h-3 w-3 ml-1" />
+                    <ChevronRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-0.5 sm:ml-1" />
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+            <div className="absolute top-1 sm:top-2 right-1 sm:right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 sm:gap-2">
               {!notification.isRead && (
-                <TooltipProvider>
+                <TooltipProvider delayDuration={300}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700 p-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           onMarkAsRead(notification._id);
                         }}
                       >
-                        <Check className="h-3 w-3" />
+                        <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-600" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="left">
+                    <TooltipContent side="left" className="text-xs">
                       <p>Mark as read</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
 
-              <TooltipProvider>
+              <TooltipProvider delayDuration={300}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-6 w-6 text-destructive"
+                      className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border border-red-200 bg-red-50 hover:bg-red-100 hover:text-red-700 p-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(notification._id);
                       }}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-600" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="left">
+                  <TooltipContent side="left" className="text-xs">
                     <p>Delete</p>
                   </TooltipContent>
                 </Tooltip>

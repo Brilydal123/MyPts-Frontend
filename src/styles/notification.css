@@ -1,0 +1,28 @@
+/* Notification panel styles */
+.notification-panel {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 640px) {
+  .notification-panel {
+    width: 95% !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    max-height: calc(100vh - 5rem) !important;
+  }
+}
+
+/* Add smooth scrolling for the notification list */
+.notification-panel .scrollbar-thumb {
+  border-radius: 9999px;
+}
+
+/* Improve the appearance of the notification items on hover */
+.notification-panel [data-radix-scroll-area-viewport] > div > div > div:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Dark mode adjustments */
+.dark .notification-panel [data-radix-scroll-area-viewport] > div > div > div:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}

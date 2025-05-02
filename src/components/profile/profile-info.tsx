@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { profileApi } from '@/lib/api/profile-api';
-import Image from 'next/image';
+import { useProfileInfo } from '@/hooks/use-mypts-data';
 
 interface ProfileInfoProps {
   profileId?: string;
@@ -11,40 +9,15 @@ interface ProfileInfoProps {
 }
 
 export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Use React Query hook for profile data
+  const {
+    data: profile,
+    isLoading: loading,
+    error: queryError
+  } = useProfileInfo(profileId);
 
-  useEffect(() => {
-    const fetchProfileInfo = async () => {
-      try {
-        setLoading(true);
-        const id = profileId || localStorage.getItem('selectedProfileId');
-
-        if (!id) {
-          setError('No profile selected');
-          setLoading(false);
-          return;
-        }
-
-        const profileToken = localStorage.getItem('selectedProfileToken');
-        const response = await profileApi.getProfileDetails(id, profileToken || undefined);
-
-        if (response.success && response.data) {
-          setProfile(response.data);
-        } else {
-          setError(response.message || 'Failed to load profile');
-        }
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError('An error occurred while fetching profile information');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfileInfo();
-  }, [profileId]);
+  // Convert query error to string for display
+  const error = queryError ? (queryError as Error).message : null;
 
   if (loading) {
     if (compact) {

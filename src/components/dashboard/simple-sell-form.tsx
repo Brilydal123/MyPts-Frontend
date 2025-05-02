@@ -36,8 +36,8 @@ import { myPtsApi } from '@/lib/api/mypts-api';
 import { getCurrencySymbol } from '@/lib/currency';
 import { toast } from 'sonner';
 import { MyPtsBalance } from '@/types/mypts';
-import { TransactionStatus as TransactionStatusUI } from '@/components/dashboard/transaction-status';
-import { AlertCircle, CreditCard, HelpCircle, Info, RefreshCw, ShieldCheck } from 'lucide-react';
+import { TransactionStatus } from '@/components/dashboard/transaction-status';
+import { AlertCircle, CreditCard, HelpCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreditCardInput } from '@/components/payment/credit-card-input';
@@ -46,104 +46,11 @@ import { CVCInput } from '@/components/payment/cvc-input';
 import { CardPreview } from '@/components/payment/card-preview';
 import { useCurrency } from '@/hooks/use-currency';
 
-// Form schema with conditional validation based on payment method
+// Form schema
 const formSchema = z.object({
   amount: z.number().min(1, 'Amount must be at least 1'),
   paymentMethod: z.string().min(1, 'Payment method is required'),
-  accountDetails: z.record(z.string()).superRefine((data, ctx) => {
-    // Different validation based on payment method
-    const paymentMethod = ctx.path[0] === 'accountDetails' ?
-      ctx.path[2]?.toString() : undefined;
-
-    if (paymentMethod === 'bank_transfer') {
-      if (!data.accountName || data.accountName.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Account name is required',
-          path: ['accountName']
-        });
-      }
-      if (!data.accountNumber || data.accountNumber.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Account number is required',
-          path: ['accountNumber']
-        });
-      }
-      if (!data.routingNumber || data.routingNumber.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Routing number is required',
-          path: ['routingNumber']
-        });
-      }
-      if (!data.bankName || data.bankName.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Bank name is required',
-          path: ['bankName']
-        });
-      }
-    } else if (paymentMethod === 'paypal') {
-      if (!data.email || data.email.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'PayPal email is required',
-          path: ['email']
-        });
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Invalid email format',
-          path: ['email']
-        });
-      }
-    } else if (paymentMethod === 'stripe') {
-      if (!data.cardNumber || data.cardNumber.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Card number is required',
-          path: ['cardNumber']
-        });
-      }
-      if (!data.expiryDate || data.expiryDate.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Expiry date is required',
-          path: ['expiryDate']
-        });
-      }
-      if (!data.cvc || data.cvc.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'CVC is required',
-          path: ['cvc']
-        });
-      }
-      if (!data.cardholderName || data.cardholderName.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Cardholder name is required',
-          path: ['cardholderName']
-        });
-      }
-    } else if (paymentMethod === 'crypto') {
-      if (!data.walletAddress || data.walletAddress.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Wallet address is required',
-          path: ['walletAddress']
-        });
-      }
-      if (!data.cryptoType || data.cryptoType.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Cryptocurrency type is required',
-          path: ['cryptoType']
-        });
-      }
-    }
-  })
+  accountDetails: z.record(z.string()).optional(),
 });
 
 interface SellFormProps {
@@ -151,18 +58,17 @@ interface SellFormProps {
   onSuccess?: () => void;
 }
 
-export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
+export function SimpleSellForm({ balance, onSuccess }: SellFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  // Use global currency state
   const { currency, setCurrency } = useCurrency();
   const [myPtsAmount, setMyPtsAmount] = useState(0);
   const [currencyAmount, setCurrencyAmount] = useState(0);
   const [conversionRate, setConversionRate] = useState(0);
-  // We use activeTab instead of paymentMethod state
   const [showForm, setShowForm] = useState(true);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('bank_transfer');
 
+  // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -174,71 +80,29 @@ export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
 
   // Update conversion rate when currency changes
   useEffect(() => {
-    if (balance && balance.value) {
-      // Get value per MyPt from the balance object
+    if (balance?.value) {
       setConversionRate(balance.value.valuePerMyPt);
     }
   }, [balance, currency]);
 
-  // Calculate currency amount when MyPts amount changes
+  // Handle MyPts amount change
   const handleMyPtsAmountChange = (value: string) => {
     const amount = parseInt(value, 10) || 0;
     setMyPtsAmount(amount);
     form.setValue('amount', amount);
-
-    // Calculate currency amount
-    const currencyValue = amount * conversionRate;
-    setCurrencyAmount(currencyValue);
+    setCurrencyAmount(amount * conversionRate);
   };
 
-  // We only allow entering MyPts amount, not currency amount
-
-  // Function to check if payment method is complete - returns true/false directly
-  const isPaymentMethodComplete = () => {
-    const accountDetails = form.getValues('accountDetails') || {};
-    const paymentMethod = activeTab;
-
-    // Only validate fields for the active payment method
-    if (paymentMethod === 'bank_transfer') {
-      return !!(
-        accountDetails.accountName?.trim() &&
-        accountDetails.accountNumber?.trim() &&
-        accountDetails.routingNumber?.trim() &&
-        accountDetails.bankName?.trim()
-      );
-    } else if (paymentMethod === 'paypal') {
-      return !!(
-        accountDetails.email?.trim() &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountDetails.email?.trim() || '')
-      );
-    } else if (paymentMethod === 'stripe') {
-      return !!(
-        accountDetails.cardholderName?.trim() &&
-        accountDetails.cardNumber?.trim() &&
-        accountDetails.expiryDate?.trim() &&
-        accountDetails.cvc?.trim()
-      );
-    } else if (paymentMethod === 'crypto') {
-      return !!(
-        accountDetails.cryptoType?.trim() &&
-        accountDetails.walletAddress?.trim()
-      );
-    }
-
-    return false;
-  };
-
+  // Handle payment method change
   const handlePaymentMethodChange = (value: string) => {
     setActiveTab(value);
     form.setValue('paymentMethod', value);
-
-    // Reset account details when payment method changes
     form.setValue('accountDetails', {});
   };
 
+  // Form submission handler
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log('Form submission values:', values);
-
+    // Validate amount
     if (values.amount > balance.balance) {
       toast.error('Insufficient balance', {
         description: `You only have ${balance.balance.toLocaleString()} MyPts available.`,
@@ -246,30 +110,61 @@ export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
       return;
     }
 
-    // Double-check that payment method information is complete
-    if (!isPaymentMethodComplete()) {
+    // Validate payment method details
+    const accountDetails = values.accountDetails || {};
+    let isValid = false;
+    let errorMessage = '';
+
+    if (values.paymentMethod === 'bank_transfer') {
+      if (!accountDetails.accountName?.trim() || 
+          !accountDetails.accountNumber?.trim() || 
+          !accountDetails.routingNumber?.trim() || 
+          !accountDetails.bankName?.trim()) {
+        errorMessage = 'Please complete all bank transfer details';
+      } else {
+        isValid = true;
+      }
+    } else if (values.paymentMethod === 'paypal') {
+      if (!accountDetails.email?.trim() || 
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountDetails.email?.trim() || '')) {
+        errorMessage = 'Please enter a valid PayPal email address';
+      } else {
+        isValid = true;
+      }
+    } else if (values.paymentMethod === 'stripe') {
+      if (!accountDetails.cardholderName?.trim() || 
+          !accountDetails.cardNumber?.trim() || 
+          !accountDetails.expiryDate?.trim() || 
+          !accountDetails.cvc?.trim()) {
+        errorMessage = 'Please complete all card details';
+      } else {
+        isValid = true;
+      }
+    } else if (values.paymentMethod === 'crypto') {
+      if (!accountDetails.cryptoType?.trim() || 
+          !accountDetails.walletAddress?.trim()) {
+        errorMessage = 'Please complete all cryptocurrency details';
+      } else {
+        isValid = true;
+      }
+    }
+
+    if (!isValid) {
       toast.error('Incomplete payment information', {
-        description: 'Please complete all required payment method fields before proceeding.',
+        description: errorMessage || 'Please complete all required payment method fields before proceeding.',
       });
       return;
     }
 
-    // Account details are already validated by the form schema
-
     setIsLoading(true);
     try {
-      console.log('Sending sell request with:', {
-        amount: values.amount,
-        paymentMethod: values.paymentMethod,
-        accountDetails: values.accountDetails,
-        currency
-      });
-
-      const response = await myPtsApi.sellMyPts(values.amount, values.paymentMethod, values.accountDetails);
-      console.log('Sell response:', response);
+      const response = await myPtsApi.sellMyPts(
+        values.amount, 
+        values.paymentMethod, 
+        values.accountDetails || {}
+      );
 
       if (response.success && response.data) {
-        // Store the transaction ID and show the transaction status
         setTransactionId(response.data.transaction._id);
         setShowForm(false);
 
@@ -277,22 +172,17 @@ export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
           description: `Your request to sell ${values.amount.toLocaleString()} MyPts for ${getCurrencySymbol(currency)}${currencyAmount.toFixed(2)} is pending admin approval.`,
         });
 
-        // Reset form state
         form.reset();
         setMyPtsAmount(0);
         setCurrencyAmount(0);
 
-        // Call onSuccess to refresh the balance
         if (onSuccess) {
           onSuccess();
         }
       } else {
-        // Check if there are validation errors
         if (response.errors && Array.isArray(response.errors)) {
-          // Handle validation errors
           response.errors.forEach(error => {
             if (error.path) {
-              // Set form errors for specific fields
               const fieldPath = error.path.split('.');
               if (fieldPath.length > 1 && fieldPath[0] === 'accountDetails') {
                 form.setError(`accountDetails.${fieldPath[1]}` as any, {
@@ -352,24 +242,6 @@ export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
                   Your sell request will be reviewed by an admin. Once approved, you'll receive payment via your selected method within 1-3 business days.
                 </AlertDescription>
               </Alert>
-
-              {myPtsAmount > 0 && (
-                <Alert className={isPaymentMethodComplete() ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"}>
-                  {isPaymentMethodComplete() ? (
-                    <ShieldCheck className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                  )}
-                  <AlertTitle className={isPaymentMethodComplete() ? "text-green-800" : "text-amber-800"}>
-                    {isPaymentMethodComplete() ? "Ready to Submit" : "Action Required"}
-                  </AlertTitle>
-                  <AlertDescription className={isPaymentMethodComplete() ? "text-green-700" : "text-amber-700"}>
-                    {isPaymentMethodComplete()
-                      ? `You're all set to sell ${myPtsAmount.toLocaleString()} MyPts for ${getCurrencySymbol(currency)}${currencyAmount.toFixed(2)}.`
-                      : "Please complete all required payment information fields before submitting."}
-                  </AlertDescription>
-                </Alert>
-              )}
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -439,22 +311,7 @@ export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
               <Separator />
 
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <FormLabel>Payment Method</FormLabel>
-                  <div className={`text-xs flex items-center gap-1 ${isPaymentMethodComplete() ? 'text-green-600' : 'text-amber-600'}`}>
-                    {isPaymentMethodComplete() ? (
-                      <>
-                        <ShieldCheck className="h-3 w-3" />
-                        <span>Payment information complete</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-3 w-3" />
-                        <span>Please complete all required fields</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <FormLabel>Payment Method</FormLabel>
                 <Tabs value={activeTab} onValueChange={handlePaymentMethodChange} className="w-full">
                   <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="bank_transfer">Bank Transfer</TabsTrigger>
@@ -744,63 +601,13 @@ export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
               </Alert>
 
               <Button
-                type="button"
-                variant="outline"
-                className="w-full mb-2"
-                onClick={() => {
-                  const result = isPaymentMethodComplete();
-                  toast.info(`Payment information check: ${result ? 'Complete' : 'Incomplete'}`, {
-                    description: 'Please make sure all required fields are filled out correctly.'
-                  });
-                }}
-              >
-                <span className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4" /> Verify Payment Information
-                </span>
-              </Button>
-
-              <div className="mb-4 p-4 bg-blue-50 rounded-md border border-blue-200">
-                <h4 className="font-medium text-blue-800 mb-2">Payment Information Status</h4>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-3 h-3 rounded-full ${isPaymentMethodComplete() ? 'bg-green-500' : 'bg-amber-500'}`}></div>
-                  <p className="text-sm">
-                    {isPaymentMethodComplete()
-                      ? 'All required payment information is complete!'
-                      : 'Please complete all required fields for the selected payment method.'}
-                  </p>
-                </div>
-                <p className="text-xs text-blue-700">
-                  Current payment method: <span className="font-medium">{activeTab.replace('_', ' ').toUpperCase()}</span>
-                </p>
-              </div>
-
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mb-4 p-4 bg-gray-100 rounded-md">
-                  <p className="text-xs font-mono mb-2">Debug Info (Dev Only):</p>
-                  <p className="text-xs font-mono">Payment Method: {activeTab}</p>
-                  <p className="text-xs font-mono">Is Complete: {isPaymentMethodComplete() ? 'Yes' : 'No'}</p>
-                  <p className="text-xs font-mono">MyPts Amount: {myPtsAmount}</p>
-                  <details className="mt-2">
-                    <summary className="text-xs font-mono cursor-pointer">Form Values</summary>
-                    <pre className="text-xs font-mono mt-2 overflow-auto max-h-40">
-                      {JSON.stringify(form.getValues(), null, 2)}
-                    </pre>
-                  </details>
-                </div>
-              )}
-
-              <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading || myPtsAmount <= 0 || !isPaymentMethodComplete()}
+                disabled={isLoading || myPtsAmount <= 0}
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin">⏳</span> Processing...
-                  </span>
-                ) : !isPaymentMethodComplete() ? (
-                  <span className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" /> Complete Payment Information
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
@@ -813,7 +620,7 @@ export function ImprovedSellForm({ balance, onSuccess }: SellFormProps) {
         ) : (
           <div className="space-y-6">
             {transactionId && (
-              <TransactionStatusUI
+              <TransactionStatus
                 transactionId={transactionId}
                 onRefresh={onSuccess}
               />

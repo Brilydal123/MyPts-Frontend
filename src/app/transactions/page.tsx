@@ -1,62 +1,60 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/shared/main-layout';
 import { TransactionList } from '@/components/shared/transaction-list';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { myPtsApi } from '@/lib/api/mypts-api';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { MyPtsTransaction, TransactionType } from '@/types/mypts';
 import { toast } from 'sonner';
+import { useTransactions, useTransactionsByType } from '@/hooks/use-mypts-data';
 
 export default function TransactionsPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [transactions, setTransactions] = useState<MyPtsTransaction[]>([]);
   const [pagination, setPagination] = useState({
-    total: 0,
     limit: 20,
     offset: 0,
-    hasMore: false,
   });
   const [activeTab, setActiveTab] = useState('all');
   const [selectedType, setSelectedType] = useState<TransactionType | null>(null);
 
-  const fetchTransactions = async () => {
-    setIsLoading(true);
-    try {
-      let response;
-      
-      if (activeTab === 'all') {
-        response = await myPtsApi.getTransactions(pagination.limit, pagination.offset);
-      } else if (activeTab === 'type' && selectedType) {
-        response = await myPtsApi.getTransactionsByType(selectedType, pagination.limit, pagination.offset);
-      } else {
-        // Default to all transactions
-        response = await myPtsApi.getTransactions(pagination.limit, pagination.offset);
-      }
-      
-      if (response.success && response.data) {
-        setTransactions(response.data.transactions);
-        setPagination(response.data.pagination);
-      } else {
-        toast.error('Failed to fetch transactions', {
-          description: response.message || 'An error occurred',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      toast.error('Failed to fetch transactions', {
-        description: 'An unexpected error occurred',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use React Query hooks based on active tab
+  const {
+    data: allTransactionsData,
+    isLoading: isAllTransactionsLoading,
+    refetch: refetchAllTransactions
+  } = useTransactions(pagination.limit, pagination.offset);
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [activeTab, selectedType, pagination.offset, pagination.limit]);
+  const {
+    data: typeTransactionsData,
+    isLoading: isTypeTransactionsLoading,
+    refetch: refetchTypeTransactions
+  } = useTransactionsByType(selectedType, pagination.limit, pagination.offset);
+
+  // Determine which data to use based on active tab
+  const transactions = activeTab === 'all'
+    ? allTransactionsData?.transactions || []
+    : typeTransactionsData?.transactions || [];
+
+  // Get pagination from the active data source
+  const currentPagination = activeTab === 'all'
+    ? allTransactionsData?.pagination
+    : typeTransactionsData?.pagination;
+
+  // Combined loading state
+  const isLoading = activeTab === 'all' ? isAllTransactionsLoading : isTypeTransactionsLoading;
+
+  // Function to refresh the current data
+  const refreshData = () => {
+    if (activeTab === 'all') {
+      refetchAllTransactions();
+    } else {
+      refetchTypeTransactions();
+    }
+    toast.success('Refreshing transactions...');
+  };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -75,8 +73,20 @@ export default function TransactionsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Transaction History</h1>
-        
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Transaction History</h1>
+          <Button
+            onClick={refreshData}
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>My Transactions</CardTitle>
@@ -89,7 +99,7 @@ export default function TransactionsPage() {
                   <TabsTrigger value="all">All Transactions</TabsTrigger>
                   <TabsTrigger value="type">By Type</TabsTrigger>
                 </TabsList>
-                
+
                 {activeTab === 'type' && (
                   <Select value={selectedType || ''} onValueChange={handleTypeChange}>
                     <SelectTrigger className="w-[200px]">
@@ -109,22 +119,32 @@ export default function TransactionsPage() {
                   </Select>
                 )}
               </div>
-              
+
               <TabsContent value="all" className="mt-0">
-                <TransactionList 
-                  transactions={transactions} 
-                  isLoading={isLoading} 
-                  pagination={pagination}
+                <TransactionList
+                  transactions={transactions}
+                  isLoading={isLoading}
+                  pagination={currentPagination || {
+                    total: 0,
+                    limit: pagination.limit,
+                    offset: pagination.offset,
+                    hasMore: false
+                  }}
                   onPageChange={handlePageChange}
                 />
               </TabsContent>
-              
+
               <TabsContent value="type" className="mt-0">
                 {selectedType ? (
-                  <TransactionList 
-                    transactions={transactions} 
-                    isLoading={isLoading} 
-                    pagination={pagination}
+                  <TransactionList
+                    transactions={transactions}
+                    isLoading={isLoading}
+                    pagination={currentPagination || {
+                      total: 0,
+                      limit: pagination.limit,
+                      offset: pagination.offset,
+                      hasMore: false
+                    }}
                     onPageChange={handlePageChange}
                   />
                 ) : (

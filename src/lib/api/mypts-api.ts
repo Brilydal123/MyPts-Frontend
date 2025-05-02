@@ -264,11 +264,13 @@ class ApiClient {
 export class MyPtsApi extends ApiClient {
   /**
    * Get the current user's MyPts balance
+   * @param currency The currency to use for value calculation (default: USD)
+   * @param specificProfileId Optional profile ID to fetch balance for (overrides localStorage)
    */
-  async getBalance(currency: string = 'USD'): Promise<ApiResponse<MyPtsBalance>> {
+  async getBalance(currency: string = 'USD', specificProfileId?: string): Promise<ApiResponse<MyPtsBalance>> {
     try {
-      // Get profile ID from localStorage
-      const profileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
+      // Get profile ID from parameter or localStorage
+      const profileId = specificProfileId || (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null);
       console.log("🚀 ~ MyPtsApi ~ getBalance ~ profileId:", profileId)
 
       // For direct conversion currencies, handle the calculation in the frontend

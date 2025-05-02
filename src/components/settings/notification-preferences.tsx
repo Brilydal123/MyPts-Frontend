@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 import { toast } from 'sonner';
-import { Bell, Mail, MessageCircle } from 'lucide-react';
-import { notificationApi } from '@/lib/api/notification-api';
+import { Bell, Mail, MessageCircle, RefreshCw } from 'lucide-react';
 import { TelegramUserInfo } from '@/components/telegram/telegram-user-info';
+import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/use-mypts-data';
+import notificationApi from '@/lib/api/notification-api';
 
 // Lazy load the PushNotificationSettings component
 const PushNotificationSettingsLazy = lazy(() =>
@@ -60,7 +61,8 @@ interface NotificationPreferences {
 }
 
 export function NotificationPreferences() {
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
+  // Default preferences state
+  const defaultPreferences: NotificationPreferences = {
     email: {
       transactions: true,
       transactionUpdates: true,
@@ -89,7 +91,7 @@ export function NotificationPreferences() {
     telegram: {
       enabled: false,
       username: '',
-      telegramId: undefined, // Added telegramId field
+      telegramId: undefined,
       transactions: true,
       transactionUpdates: true,
       purchaseConfirmations: true,
@@ -98,124 +100,90 @@ export function NotificationPreferences() {
       connectionRequests: false,
       messages: false
     }
-  });
+  };
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  // Use React Query hooks for data fetching and mutations
+  const {
+    data: preferencesData,
+    isLoading,
+    refetch: refetchPreferences
+  } = useNotificationPreferences();
+
+  const {
+    mutate: updatePreferences,
+    isPending: isSaving
+  } = useUpdateNotificationPreferences();
+
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Fetch user's notification preferences
-  useEffect(() => {
-    const fetchPreferences = async () => {
-      try {
-        setIsLoading(true);
-        const response = await notificationApi.getUserNotificationPreferences();
+  // Process the preferences data from the API
+  const processPreferencesData = (data: any) => {
+    if (!data) return defaultPreferences;
 
-        if (response && response.success) {
-          console.log('Fetched notification preferences:', response.data);
+    // Make sure we handle the telegramId if it exists in the response
+    const telegramData = data.telegram || {};
 
-          // Make sure we handle the telegramId if it exists in the response
-          const telegramData = response.data.telegram || {};
-
-          // Log the raw telegram data from the server
-          console.log('Raw telegram data from server:', telegramData);
-
-          // Create a complete preferences object with all expected fields
-          const completePreferences = {
-            ...response.data,
-            telegram: {
-              ...telegramData,
-              // Ensure telegramId is included if it exists in the response
-              telegramId: telegramData.telegramId || undefined
-            }
-          };
-
-          setPreferences(completePreferences);
-
-          // Log the Telegram settings for debugging
-          console.log('Processed Telegram settings:', completePreferences.telegram);
-
-          // If we have a telegramId but no username, use the telegramId as the username
-          if (completePreferences.telegram.telegramId && !completePreferences.telegram.username) {
-            console.log('Using telegramId as username since username is empty');
-            setPreferences(prev => ({
-              ...prev,
-              telegram: {
-                ...prev.telegram,
-                username: prev.telegram.telegramId || ''
-              }
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching notification preferences:', error);
-        // Don't show error toast on initial load
-      } finally {
-        setIsLoading(false);
+    // Create a complete preferences object with all expected fields
+    const completePreferences = {
+      ...data,
+      telegram: {
+        ...telegramData,
+        // Ensure telegramId is included if it exists in the response
+        telegramId: telegramData.telegramId || undefined
       }
     };
 
-    fetchPreferences();
-  }, []);
+    // If we have a telegramId but no username, use the telegramId as the username
+    if (completePreferences.telegram.telegramId && !completePreferences.telegram.username) {
+      completePreferences.telegram.username = completePreferences.telegram.telegramId || '';
+    }
+
+    return completePreferences;
+  };
+
+  // Get the processed preferences
+  const preferences = processPreferencesData(preferencesData?.data);
+
+  // Local state to track changes before saving
+  const [localPreferences, setLocalPreferences] = useState<NotificationPreferences>(preferences);
+
+  // Update local preferences when API data changes
+  React.useEffect(() => {
+    if (preferencesData?.data) {
+      setLocalPreferences(processPreferencesData(preferencesData.data));
+    }
+  }, [preferencesData]);
+
+  // Function to refresh preferences data
+  const refreshPreferences = () => {
+    refetchPreferences();
+    toast.success("Refreshing notification preferences...");
+  };
 
   // Save notification preferences
-  const savePreferences = async () => {
-    try {
-      setIsSaving(true);
+  const savePreferences = () => {
+    // If we have a username that looks like a Telegram ID (all numbers), make sure it's also set as telegramId
+    let prefsToSave = { ...localPreferences };
 
-      // If we have a username that looks like a Telegram ID (all numbers), make sure it's also set as telegramId
-      if (preferences.telegram.username && /^\d+$/.test(preferences.telegram.username) && !preferences.telegram.telegramId) {
-        console.log('Username looks like a Telegram ID, setting it as telegramId as well');
-        setPreferences(prev => ({
-          ...prev,
-          telegram: {
-            ...prev.telegram,
-            telegramId: prev.telegram.username
-          }
-        }));
-      }
-
-      // Log what we're about to save
-      console.log('Saving preferences:', preferences);
-
-      const response = await notificationApi.updateUserNotificationPreferences(preferences);
-
-      if (response && response.success) {
-        toast.success('Notification preferences saved');
-
-        // Update preferences with the response data to ensure we have the latest values
-        if (response.data) {
-          console.log('Updating preferences with response data:', response.data);
-
-          // Make sure we handle the telegramId if it exists in the response
-          const telegramData = response.data.telegram || {};
-
-          // Create a complete preferences object with all expected fields
-          const updatedPreferences = {
-            ...response.data,
-            telegram: {
-              ...telegramData,
-              // Ensure telegramId is included if it exists in the response
-              telegramId: telegramData.telegramId || preferences.telegram.telegramId
-            }
-          };
-
-          setPreferences(updatedPreferences);
+    if (prefsToSave.telegram.username &&
+      /^\d+$/.test(prefsToSave.telegram.username) &&
+      !prefsToSave.telegram.telegramId) {
+      prefsToSave = {
+        ...prefsToSave,
+        telegram: {
+          ...prefsToSave.telegram,
+          telegramId: prefsToSave.telegram.username
         }
-      } else {
-        toast.error('Failed to save preferences');
-      }
-    } catch (error) {
-      console.error('Error saving notification preferences:', error);
-      toast.error('Failed to save preferences');
-    } finally {
-      setIsSaving(false);
+      };
     }
+
+    // Save using the mutation
+    updatePreferences(prefsToSave);
   };
 
   // Handle preference changes
-  const handleEmailPrefChange = (key: keyof typeof preferences.email) => {
-    setPreferences(prev => ({
+  const handleEmailPrefChange = (key: keyof typeof localPreferences.email) => {
+    setLocalPreferences(prev => ({
       ...prev,
       email: {
         ...prev.email,
@@ -224,8 +192,8 @@ export function NotificationPreferences() {
     }));
   };
 
-  const handlePushPrefChange = (key: keyof typeof preferences.push) => {
-    setPreferences(prev => ({
+  const handlePushPrefChange = (key: keyof typeof localPreferences.push) => {
+    setLocalPreferences(prev => ({
       ...prev,
       push: {
         ...prev.push,
@@ -234,10 +202,10 @@ export function NotificationPreferences() {
     }));
   };
 
-  const handleTelegramPrefChange = (key: keyof typeof preferences.telegram) => {
+  const handleTelegramPrefChange = (key: keyof typeof localPreferences.telegram) => {
     if (key === 'username') return; // Handle username separately
 
-    setPreferences(prev => ({
+    setLocalPreferences(prev => ({
       ...prev,
       telegram: {
         ...prev.telegram,
@@ -260,7 +228,7 @@ export function NotificationPreferences() {
     // Check if the username is a numeric ID
     const isNumericId = /^\d+$/.test(cleanUsername);
 
-    setPreferences(prev => ({
+    setLocalPreferences(prev => ({
       ...prev,
       telegram: {
         ...prev.telegram,
@@ -275,7 +243,7 @@ export function NotificationPreferences() {
 
   // Verify Telegram connection
   const verifyTelegramConnection = async () => {
-    let username = preferences.telegram.username;
+    let username = localPreferences.telegram.username;
 
     if (!username) {
       toast.error('Please enter your Telegram username or ID');
@@ -340,7 +308,7 @@ export function NotificationPreferences() {
 
         // Update the telegramId in preferences if it was returned from the server
         if (response.telegramId) {
-          setPreferences(prev => ({
+          setLocalPreferences(prev => ({
             ...prev,
             telegram: {
               ...prev.telegram,
@@ -366,8 +334,8 @@ export function NotificationPreferences() {
         }
 
         // Automatically enable Telegram notifications if verification was successful
-        if (!preferences.telegram.enabled) {
-          setPreferences(prev => ({
+        if (!localPreferences.telegram.enabled) {
+          setLocalPreferences(prev => ({
             ...prev,
             telegram: {
               ...prev.telegram,
@@ -389,7 +357,7 @@ export function NotificationPreferences() {
       // Get the error details from the response
       const errorData = error?.response?.data || {};
       const errorMessage = errorData.message ||
-                          'Failed to send verification message. Make sure you have started a chat with @MyPtsBot';
+        'Failed to send verification message. Make sure you have started a chat with @MyPtsBot';
       const errorReason = errorData.reason || '';
 
       // Show a more helpful error message based on the reason
@@ -457,10 +425,24 @@ export function NotificationPreferences() {
   return (
     <Card className="border-0 sm:border shadow-none sm:shadow">
       <CardHeader className="px-0 sm:px-6 pt-0 sm:pt-6">
-        <CardTitle>Notification Preferences</CardTitle>
-        <CardDescription>
-          Choose how you want to be notified about transactions and other activities
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Notification Preferences</CardTitle>
+            <CardDescription>
+              Choose how you want to be notified about transactions and other activities
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshPreferences}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            {isLoading ? "Refreshing..." : "Refresh"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="px-0 sm:px-6">
         {isLoading ? (
@@ -490,12 +472,12 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="email-transactions"
-                    checked={preferences.email.transactions}
+                    checked={localPreferences.email.transactions}
                     onCheckedChange={() => handleEmailPrefChange('transactions')}
                   />
                 </div>
 
-                {preferences.email.transactions && (
+                {localPreferences.email.transactions && (
                   <div className="ml-6 space-y-4 border-l-2 pl-4 border-muted">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
@@ -1071,10 +1053,20 @@ export function NotificationPreferences() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-4 gap-2">
+              <Button
+                variant="outline"
+                onClick={refreshPreferences}
+                disabled={isLoading || isSaving}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                {isLoading ? 'Refreshing...' : 'Refresh'}
+              </Button>
               <Button
                 onClick={savePreferences}
-                disabled={isSaving}
+                disabled={isSaving || isLoading}
+                className="flex items-center gap-2"
               >
                 {isSaving ? 'Saving...' : 'Save Preferences'}
               </Button>

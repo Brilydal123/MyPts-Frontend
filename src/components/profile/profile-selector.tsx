@@ -10,9 +10,10 @@ import { toast } from 'sonner';
 import { profileApi } from '@/lib/api/profile-api';
 import { userApi } from '@/lib/api/user-api';
 import { socialAuthApi } from '@/lib/api/social-auth-api';
-import { myPtsApi } from '@/lib/api/mypts-api';
-import { Coins } from 'lucide-react';
+// Removed unused import: import { myPtsApi } from '@/lib/api/mypts-api';
+import { Coins, Check } from 'lucide-react';
 import { AnimatedButton } from '../ui/animated-button';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Interface for profile data
 interface ProfileData {
@@ -170,7 +171,12 @@ export function ProfileSelector() {
 
           // Map the profiles to the expected format
           const mappedProfiles = userResponse.data.profiles.map((profile: any) => {
-            console.log('Processing profile:', profile);
+            console.log('Processing profile from user API:', JSON.stringify(profile, null, 2));
+
+            // Extract balance information if available
+            const balanceData = profile.balance || {};
+            console.log('Balance data:', JSON.stringify(balanceData, null, 2));
+
             return {
               id: profile._id,
               name: profile.name,
@@ -179,7 +185,13 @@ export function ProfileSelector() {
               profileType: profile.type?.subtype ||
                 (typeof profile.type === 'string' ? profile.type :
                   profile.profileType || 'unknown'),
-              accessToken: profile.accessToken || ''
+              accessToken: profile.accessToken || '',
+              // Include balance information directly from the profile data
+              balance: balanceData.balance || 0,
+              formattedBalance: balanceData.balance ?
+                `${balanceData.balance.toLocaleString()} MyPts` :
+                '0 MyPts',
+              isLoadingBalance: false
             };
           });
 
@@ -244,6 +256,9 @@ export function ProfileSelector() {
             if (Array.isArray(categoryProfiles)) {
               const mappedProfiles = categoryProfiles.map((profile: any) => {
                 console.log('Processing profile:', profile);
+                // Extract balance information if available
+                const balanceData = profile.balance || {};
+
                 return {
                   id: profile._id,
                   name: profile.name,
@@ -252,7 +267,13 @@ export function ProfileSelector() {
                   profileType: profile.type?.subtype ||
                     (typeof profile.type === 'string' ? profile.type :
                       profile.profileType || 'unknown'),
-                  accessToken: profile.accessToken || ''
+                  accessToken: profile.accessToken || '',
+                  // Include balance information directly from the profile data
+                  balance: balanceData.balance || 0,
+                  formattedBalance: balanceData.balance ?
+                    `${balanceData.balance.toLocaleString()} MyPts` :
+                    '0 MyPts',
+                  isLoadingBalance: false
                 };
               });
               allProfiles = [...allProfiles, ...mappedProfiles];
@@ -262,16 +283,30 @@ export function ProfileSelector() {
         // If profiles is already an array
         else if (Array.isArray(response.data)) {
           console.log(`Processing array of ${response.data.length} profiles`);
-          allProfiles = response.data.map((profile: any) => ({
-            id: profile._id,
-            name: profile.name,
-            description: profile.description || '',
-            // Handle different ways the type might be returned
-            profileType: profile.type?.subtype ||
-              (typeof profile.type === 'string' ? profile.type :
-                profile.profileType || 'unknown'),
-            accessToken: profile.accessToken || ''
-          }));
+          allProfiles = response.data.map((profile: any) => {
+            console.log('Processing profile from array:', JSON.stringify(profile, null, 2));
+
+            // Extract balance information if available
+            const balanceData = profile.balance || {};
+            console.log('Balance data from array profile:', JSON.stringify(balanceData, null, 2));
+
+            return {
+              id: profile._id,
+              name: profile.name,
+              description: profile.description || '',
+              // Handle different ways the type might be returned
+              profileType: profile.type?.subtype ||
+                (typeof profile.type === 'string' ? profile.type :
+                  profile.profileType || 'unknown'),
+              accessToken: profile.accessToken || '',
+              // Include balance information directly from the profile data
+              balance: balanceData.balance || 0,
+              formattedBalance: balanceData.balance ?
+                `${balanceData.balance.toLocaleString()} MyPts` :
+                '0 MyPts',
+              isLoadingBalance: false
+            };
+          });
         }
 
         setProfiles(allProfiles);
@@ -304,96 +339,10 @@ export function ProfileSelector() {
     loadProfiles();
   }, [session]);
 
-  // Function to fetch balance for a profile
-  const fetchProfileBalance = async (profileId: string) => {
-    try {
-      // Store the current profile ID to restore it later
-      const currentProfileId = localStorage.getItem('selectedProfileId');
+  // Removed fetchAllProfileBalances function as we're getting balance data directly from the profile
 
-      // Temporarily set the profile ID to the one we want to fetch balance for
-      localStorage.setItem('selectedProfileId', profileId);
-
-      // Fetch the balance
-      const response = await myPtsApi.getBalance();
-
-      // Restore the original profile ID
-      if (currentProfileId) {
-        localStorage.setItem('selectedProfileId', currentProfileId);
-      } else {
-        localStorage.removeItem('selectedProfileId');
-      }
-
-      if (response.success && response.data) {
-        return {
-          balance: response.data.balance,
-          formattedBalance: `${response.data.balance.toLocaleString()} MyPts`
-        };
-      }
-
-      return null;
-    } catch (error) {
-      console.error(`Error fetching balance for profile ${profileId}:`, error);
-      return null;
-    }
-  };
-
-  // Function to fetch balances for all profiles
-  const fetchProfileBalances = async (profilesList: ProfileData[]) => {
-    // Update profiles with loading state
-    setProfiles(profilesList.map(profile => ({
-      ...profile,
-      isLoadingBalance: true
-    })));
-
-    // Fetch balances for each profile
-    for (const profile of profilesList) {
-      try {
-        const balanceData = await fetchProfileBalance(profile.id);
-
-        if (balanceData) {
-          // Update the profile with balance information
-          setProfiles(prevProfiles =>
-            prevProfiles.map(p =>
-              p.id === profile.id
-                ? {
-                  ...p,
-                  balance: balanceData.balance,
-                  formattedBalance: balanceData.formattedBalance,
-                  isLoadingBalance: false
-                }
-                : p
-            )
-          );
-        } else {
-          // Update just the loading state if balance fetch failed
-          setProfiles(prevProfiles =>
-            prevProfiles.map(p =>
-              p.id === profile.id
-                ? { ...p, isLoadingBalance: false }
-                : p
-            )
-          );
-        }
-      } catch (error) {
-        console.error(`Error processing balance for profile ${profile.id}:`, error);
-        // Update loading state on error
-        setProfiles(prevProfiles =>
-          prevProfiles.map(p =>
-            p.id === profile.id
-              ? { ...p, isLoadingBalance: false }
-              : p
-          )
-        );
-      }
-    }
-  };
-
-  // Effect to fetch balances after profiles are loaded
-  useEffect(() => {
-    if (profiles.length > 0 && !loading) {
-      fetchProfileBalances(profiles);
-    }
-  }, [profiles.length, loading]);
+  // No need to fetch balances separately as they're included in the profile data
+  // This comment is kept to explain why we removed the balance fetching code
 
   const handleSelectProfile = async (profileId: string, profileToken: string) => {
     try {
@@ -501,127 +450,222 @@ export function ProfileSelector() {
 
   if (loading) {
     return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="w-full max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Select a Profile</CardTitle>
+            <CardDescription>Choose a profile to continue</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="flex items-center space-x-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.5,
+                  delay: i * 0.2,
+                  ease: "easeOut"
+                }}
+              >
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[200px]" />
+                  <Skeleton className="h-4 w-[150px]" />
+                </div>
+              </motion.div>
+            ))}
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  if (profiles.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        <Card className="w-full max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>No Profiles Found</CardTitle>
+            <CardDescription>You don't have any profiles yet</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full"
+            >
+              <Button onClick={() => router.push('/create-profile')} className="w-full">
+                Create a Profile
+              </Button>
+            </motion.div>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <CardTitle>Select a Profile</CardTitle>
           <CardDescription>Choose a profile to continue</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="flex items-center space-x-4">
-              <Skeleton className="h-12 w-12 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-[200px]" />
-                <Skeleton className="h-4 w-[150px]" />
+          {profiles.map((profile, index) => (
+            <motion.div
+              key={profile.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                borderColor: selectedProfileId === profile.id
+                  ? ["#000", "#3B82F6", "#000"]
+                  : "#e5e7eb",
+                borderWidth: selectedProfileId === profile.id ? "1px" : "1px",
+              }}
+              transition={{
+                duration: 0.4,
+                delay: index * 0.1,
+                ease: "easeOut",
+                borderColor: {
+                  duration: 2,
+                  repeat: selectedProfileId === profile.id ? Infinity : 0,
+                  ease: "easeInOut"
+                }
+              }}
+              whileHover={{
+                scale: 1.02,
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)"
+              }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                // Add a small animation effect when selecting a profile
+                if (selectedProfileId !== profile.id) {
+                  setSelectedProfileId(profile.id);
+                }
+              }}
+              className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedProfileId === profile.id
+                ? 'border-primary bg-primary/5'
+                : 'hover:bg-muted'
+                }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">{profile.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{profile.description}</p>
+
+                  {/* Balance display */}
+                  <div className="mt-2 flex items-center">
+                    <img src="/mdi_coins-outline.svg" className='h-4 w-4 mr-1' />
+                    {profile.isLoadingBalance ? (
+                      <span className="text-xs text-muted-foreground animate-pulse">Loading balance...</span>
+                    ) : (profile.balance !== undefined && profile.formattedBalance) ? (
+                      <span className="text-sm font-medium">{profile.formattedBalance}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        {typeof profile.balance === 'number' ? `${profile.balance.toLocaleString()} MyPts` : 'Balance unavailable'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <AnimatePresence>
+                  {selectedProfileId === profile.id && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0, rotate: -180 }}
+                      animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                      exit={{ scale: 0, opacity: 0, rotate: 180 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30
+                      }}
+                      className="flex items-center justify-center"
+                    >
+                      <motion.div
+                        className="h-8 w-8 rounded-full bg-primary flex items-center justify-center"
+                        whileHover={{ scale: 1.1 }}
+                        animate={{
+                          boxShadow: [
+                            "0 0 0 0 rgba(0, 0, 0, 0)",
+                            "0 0 0 4px rgba(0, 0, 0, 0.1)",
+                            "0 0 0 0 rgba(0, 0, 0, 0)"
+                          ]
+                        }}
+                        transition={{
+                          boxShadow: {
+                            repeat: Infinity,
+                            duration: 2,
+                            ease: "easeInOut"
+                          }
+                        }}
+                      >
+                        <Check className="h-5 w-5 text-white" />
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
+            </motion.div>
           ))}
         </CardContent>
-      </Card>
-    );
-  }
-
-  if (profiles.length === 0) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>No Profiles Found</CardTitle>
-          <CardDescription>You don't have any profiles yet</CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <Button onClick={() => router.push('/create-profile')} className="w-full">
-            Create a Profile
-          </Button>
+        <CardFooter className="flex justify-end space-x-2">
+          <motion.div
+            whileHover={selectedProfileId ? { scale: 1.02 } : {}}
+            whileTap={selectedProfileId ? { scale: 0.98 } : {}}
+            className="w-full"
+            animate={{
+              y: [0, selectedProfileId ? -5 : 0, 0],
+              transition: {
+                duration: 0.5,
+                repeat: selectedProfileId ? Infinity : 0,
+                repeatType: "reverse",
+                ease: "easeInOut",
+                repeatDelay: 2
+              }
+            }}
+          >
+            <AnimatedButton
+              onClick={() => {
+                const selectedProfile = profiles.find(p => p.id === selectedProfileId);
+                if (selectedProfile) {
+                  handleSelectProfile(selectedProfile.id, selectedProfile.accessToken);
+                } else {
+                  toast.error('Please select a profile');
+                }
+              }}
+              disabled={!selectedProfileId}
+              type="button"
+              className="h-12 w-full bg-black"
+              style={{
+                backgroundColor: selectedProfileId ? 'black' : 'white',
+                color: selectedProfileId ? 'white' : 'black',
+                borderColor: 'black',
+                borderWidth: '1px'
+              }}
+            >
+              Continue
+            </AnimatedButton>
+          </motion.div>
         </CardFooter>
       </Card>
-    );
-  }
-
-  return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Select a Profile</CardTitle>
-        <CardDescription>Choose a profile to continue</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {profiles.map((profile) => (
-          <div
-            key={profile.id}
-            className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedProfileId === profile.id
-              ? 'border-primary bg-primary/5'
-              : 'hover:bg-muted'
-              }`}
-            onClick={() => setSelectedProfileId(profile.id)}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">{profile.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">{profile.description}</p>
-
-                {/* Balance display */}
-                <div className="mt-2 flex items-center">
-                  <Coins className="h-4 w-4 mr-1 text-amber-500" />
-                  {profile.isLoadingBalance ? (
-                    <Skeleton className="h-4 w-20" />
-                  ) : profile.balance !== undefined ? (
-                    <span className="text-sm font-medium">{profile.formattedBalance}</span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Balance unavailable</span>
-                  )}
-                </div>
-              </div>
-              {selectedProfileId === profile.id && (
-                <div className="h-3 w-3 rounded-full bg-primary"></div>
-              )}
-            </div>
-          </div>
-        ))}
-      </CardContent>
-      <CardFooter className="flex justify-end space-x-2">
-        {/* <Button
-          variant="outline"
-          className='cursor-not-allowed'
-          onClick={() => router.push('/create-profile')}
-        >
-          Create New Profile
-        </Button> */}
-        <AnimatedButton
-          onClick={() => {
-            const selectedProfile = profiles.find(p => p.id === selectedProfileId);
-            if (selectedProfile) {
-              handleSelectProfile(selectedProfile.id, selectedProfile.accessToken);
-            } else {
-              toast.error('Please select a profile');
-            }
-          }}
-          disabled={!selectedProfileId}
-          type="button"
-          className="h-12 w-full bg-black"
-          // active={referralAnswer === 'yes'}
-          // onClick={() => setReferralAnswer('yes')}
-          style={{ backgroundColor: selectedProfileId ? 'black' : 'white', color: selectedProfileId ? 'white' : 'black', borderColor: 'black', borderWidth: '1px' }}
-        >
-          Continue
-        </AnimatedButton>
-
-        {/* </AnimatedButton> */}
-        {/* <Button
-          onClick={() => {
-            const selectedProfile = profiles.find(p => p.id === selectedProfileId);
-            if (selectedProfile) {
-              handleSelectProfile(selectedProfile.id, selectedProfile.accessToken);
-            } else {
-              toast.error('Please select a profile');
-            }
-          }}
-          disabled={!selectedProfileId}
-        >
-          Continue
-        </Button> */}
-      </CardFooter>
-    </Card>
+    </motion.div>
   );
 }

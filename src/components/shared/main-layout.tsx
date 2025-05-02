@@ -114,19 +114,24 @@ export function MainLayout({ children }: MainLayoutProps) {
                   alt="MyPts"
                   width={50}
                   height={50}
-                  className="h-14 w-14 object-contain"
+                  className="h-[2.7rem] w-[2.7rem] object-contain"
                 />
+                <div className="flex justify-center items-center">
+                  <span className="text-white text-3xl font-extrabold">My</span>
+                  <span className="text-white text-2xl font-extralight">Profile</span>
+                </div>
               </Link>
             </div>
-            <div className="py-4 px-4">
+            <div className="py-4 px-4 flex flex-col h-[calc(100%-6rem)]">
+              {/* Navigation items at the top */}
               <nav className="flex flex-col space-y-1">
                 {navItems.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={`flex items-center px-3 py-2 rounded-md ${pathname === item.href
-                        ? "bg-white text-black"
-                        : "text-white hover:bg-muted"
+                      ? "bg-white text-black"
+                      : "text-white hover:bg-muted"
                       } ${item.isAdmin ? "text-primary" : ""}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -135,38 +140,44 @@ export function MainLayout({ children }: MainLayoutProps) {
                   </Link>
                 ))}
               </nav>
-              <div className="border-t my-4"></div>
-              <div className="space-y-2">
-                <div className="flex items-center p-3">
-                  <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
-                    size={32}
-                    className="mr-3"
-                  />
-                  <div className="text-sm text-white">
-                    <p className="font-medium">
-                      {user?.fullName || user?.name || "User"}
-                    </p>
-                    <p className="text-white text-xs">{user?.email}</p>
+
+              {/* User info, settings, and logout at the bottom */}
+              <div className="mt-auto pt-4">
+                <div className="border- my-4"></div>
+                <div className="space-y-2">
+                  <Link
+                    href="/settings"
+                    className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <SettingsIcon className="mr-3 h-5 w-5" />
+                    <span>Settings</span>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full justify-start"
+                    onClick={handleLogout}
+                  >
+                    <LogOutIcon className="mr-3 h-5 w-5" />
+                    <span>Log out</span>
+                  </Button>
+
+                  {/* User profile at the very bottom */}
+                  <div className="flex items-center p-3 mt-2">
+                    <GoogleAvatar
+                      profileImageUrl={user?.profileImage || ""}
+                      fallbackText={user?.fullName || user?.name || "User"}
+                      size={32}
+                      className="mr-3"
+                    />
+                    <div className="text-sm text-white">
+                      <p className="font-medium">
+                        {user?.fullName || user?.name || "User"}
+                      </p>
+                      <p className="text-white text-xs">{user?.email}</p>
+                    </div>
                   </div>
                 </div>
-                <Link
-                  href="/settings"
-                  className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <SettingsIcon className="mr-3 h-5 w-5" />
-                  <span>Settings</span>
-                </Link>
-                <Button
-                  variant="ghost"
-                  className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full justify-start"
-                  onClick={handleLogout}
-                >
-                  <LogOutIcon className="mr-3 h-5 w-5" />
-                  <span>Log out</span>
-                </Button>
               </div>
             </div>
           </div>
@@ -180,8 +191,8 @@ export function MainLayout({ children }: MainLayoutProps) {
       >
         <div
           className={`relative ${sidebarOpen
-              ? "flex pb-5 items-center px-6 justify-between pt-7"
-              : "flex justify-center items-center pt-7"
+            ? "flex pb-5 items-center px-6 justify-between pt-7"
+            : "flex justify-center items-center pt-7"
             }`}
         >
           {sidebarOpen ? (
@@ -191,7 +202,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 alt="MyPts"
                 width={50}
                 height={50}
-                className="h-[3.7rem] w-[3.7rem] object-contain"
+                className="h-[2.7rem] w-[2.7rem] object-contain"
               />
               <div className="flex justify-center items-center">
                 <span className="text-white text-3xl font-extrabold">My</span>
@@ -211,7 +222,8 @@ export function MainLayout({ children }: MainLayoutProps) {
           )}
         </div>
 
-        <div className="py-4 px-4">
+        <div className="py-4 px-4 flex flex-col h-[calc(100%-5rem)]">
+          {/* Navigation items at the top */}
           <nav className="flex flex-col space-y-1">
             {navItems.map((item) => (
               <Link
@@ -228,55 +240,61 @@ export function MainLayout({ children }: MainLayoutProps) {
               </Link>
             ))}
           </nav>
-          <div className="border-t my-4"></div>
-          <div className="space-y-2">
-            {sidebarOpen && (
-              <div className="flex items-center p-3">
-                <GoogleAvatar
-                  profileImageUrl={user?.profileImage || ""}
-                  fallbackText={user?.fullName || user?.name || "User"}
-                  size={32}
-                  className="mr-3"
-                />
-                <div className="text-sm">
-                  <p className="font-medium text-white">
-                    {user?.fullName || user?.name || "User"}
-                  </p>
-                  <p className="text-white text-xs truncate">{user?.email}</p>
+
+          {/* User info, settings, and logout at the bottom */}
+          <div className="mt-auto pt-4">
+            <div className="border-t my-4"></div>
+            <div className="space-y-2">
+              <Link
+                href="/settings"
+                className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
+                  } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
+              >
+                <span className={sidebarOpen ? "mr-3" : ""}>
+                  <SettingsIcon className="h-5 w-5" />
+                </span>
+                {sidebarOpen && <span>Settings</span>}
+              </Link>
+              <Button
+                variant="ghost"
+                className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
+                  } py-2 rounded-md text-white hover:bg-muted w-full ${sidebarOpen ? "justify-start" : "justify-center"
+                  }`}
+                onClick={handleLogout}
+              >
+                <span className={sidebarOpen ? "mr-2" : ""}>
+                  <LogOutIcon className="h-5 w-5 -rotate-180" />
+                </span>
+                {sidebarOpen && <span>Log out</span>}
+              </Button>
+
+              {/* User profile at the very bottom */}
+              {sidebarOpen && (
+                <div className="flex items-center p-3 mt-2">
+                  <GoogleAvatar
+                    profileImageUrl={user?.profileImage || ""}
+                    fallbackText={user?.fullName || user?.name || "User"}
+                    size={32}
+                    className="mr-3"
+                  />
+                  <div className="text-sm">
+                    <p className="font-medium text-white">
+                      {user?.fullName || user?.name || "User"}
+                    </p>
+                    <p className="text-white text-xs truncate">{user?.email}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {!sidebarOpen && (
-              <div className="flex justify-center p-2">
-                <GoogleAvatar
-                  profileImageUrl={user?.profileImage || ""}
-                  fallbackText={user?.fullName || user?.name || "User"}
-                  size={32}
-                />
-              </div>
-            )}
-            <Link
-              href="/settings"
-              className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
-            >
-              <span className={sidebarOpen ? "mr-3" : ""}>
-                <SettingsIcon className="h-5 w-5" />
-              </span>
-              {sidebarOpen && <span>Settings</span>}
-            </Link>
-            <Button
-              variant="ghost"
-              className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                } py-2 rounded-md text-white hover:bg-muted w-full ${sidebarOpen ? "justify-start" : "justify-center"
-                }`}
-              onClick={handleLogout}
-            >
-              <span className={sidebarOpen ? "mr-2" : ""}>
-                <LogOutIcon className="h-5 w-5 -rotate-180" />
-              </span>
-              {sidebarOpen && <span>Log out</span>}
-            </Button>
+              )}
+              {!sidebarOpen && (
+                <div className="flex justify-center p-2 mt-2">
+                  <GoogleAvatar
+                    profileImageUrl={user?.profileImage || ""}
+                    fallbackText={user?.fullName || user?.name || "User"}
+                    size={32}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
