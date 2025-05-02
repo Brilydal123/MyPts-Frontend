@@ -37,13 +37,24 @@ import { getCurrencySymbol } from '@/lib/currency';
 import { toast } from 'sonner';
 import { MyPtsBalance } from '@/types/mypts';
 import { TransactionStatus } from '@/components/dashboard/transaction-status';
-import { AlertCircle, CreditCard, HelpCircle, Info } from 'lucide-react';
+import {
+  AlertCircle,
+  CreditCard,
+  HelpCircle,
+  Info,
+  Building2 as Bank,
+  Wallet,
+  Bitcoin,
+  DollarSign,
+  ArrowRightLeft
+} from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreditCardInput } from '@/components/payment/credit-card-input';
 import { ExpiryDateInput } from '@/components/payment/expiry-date-input';
 import { CVCInput } from '@/components/payment/cvc-input';
 import { CardPreview } from '@/components/payment/card-preview';
+import { motion } from 'framer-motion';
 
 // Define schemas for each payment method
 const bankTransferSchema = z.object({
@@ -172,8 +183,8 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
     setIsLoading(true);
     try {
       const response = await myPtsApi.sellMyPts(
-        values.amount, 
-        values.paymentMethod, 
+        values.amount,
+        values.paymentMethod,
         values.accountDetails || {}
       );
 
@@ -238,438 +249,565 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
     setCurrencyAmount(0);
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 10, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 12
+      }
+    }
+  };
+
+  // Animation for tab content
+  const tabContentVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Sell MyPts</CardTitle>
-        <CardDescription>Convert your MyPts to real currency</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {showForm ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <Alert className="bg-blue-50 border-blue-200">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertTitle className="text-blue-800">How it works</AlertTitle>
-                <AlertDescription className="text-blue-700">
-                  Your sell request will be reviewed by an admin. Once approved, you'll receive payment via your selected method within 1-3 business days.
-                </AlertDescription>
-              </Alert>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="h-full"
+    >
+      <Card className="w-full h-full border-0 shadow-md rounded-md from-card to-background">
+        <CardHeader className="bg-primary  text-primary-foreground rounded-t-xl p-6">
+          <div className="flex items-center gap-2">
+            <ArrowRightLeft className="h-5 w-5" />
+            <CardTitle>Sell MyPts</CardTitle>
+          </div>
+          <CardDescription className="text-primary-foreground/90 bg-primary">
+            Convert your MyPts to real currency with secure payment methods
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          {showForm ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <motion.div variants={itemVariants}>
+                  <Alert className="bg-blue-50 border-blue-200 shadow-sm">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800">How it works</AlertTitle>
+                    <AlertDescription className="text-blue-700">
+                      Your sell request will be reviewed by an admin. Once approved, you'll receive payment via your selected method within 1-3 business days.
+                    </AlertDescription>
+                  </Alert>
+                </motion.div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <FormLabel>Currency</FormLabel>
-                  <CurrencySelector
-                    value={currency}
-                    onChange={onCurrencyChange}
-                    className="w-[140px]"
-                  />
-                </div>
-
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <FormField
-                      control={form.control}
-                      name="amount"
-                      render={({ field: { onChange, ...fieldProps } }) => (
-                        <FormItem>
-                          <FormLabel>Amount in MyPts</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              max={balance.balance}
-                              step="1"
-                              onChange={(e) => handleMyPtsAmountChange(e.target.value)}
-                              placeholder="0"
-                              {...fieldProps}
-                              value={myPtsAmount > 0 ? myPtsAmount : ''}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Available balance: {balance.balance.toLocaleString()} MyPts
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                <motion.div variants={itemVariants} className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-base font-medium">Currency</FormLabel>
+                    <CurrencySelector
+                      value={currency}
+                      onChange={onCurrencyChange}
+                      className="w-[140px]"
                     />
                   </div>
 
-                  <div className="grid gap-2">
-                    <FormLabel>Estimated Value</FormLabel>
-                    <div className="flex items-center space-x-2">
-                      <div className="text-2xl font-bold">
-                        {getCurrencySymbol(currency)}{currencyAmount.toFixed(2)}
+                  <div className="grid gap-6 p-4 bg-muted/30 rounded-xl border border-muted">
+                    <motion.div variants={itemVariants} className="grid gap-2">
+                      <FormField
+                        control={form.control}
+                        name="amount"
+                        render={({ field: { onChange, ...fieldProps } }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-medium flex items-center gap-2">
+                              <DollarSign className="h-4 w-4 text-primary" />
+                              Amount in MyPts
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                max={balance.balance}
+                                step="1"
+                                onChange={(e) => handleMyPtsAmountChange(e.target.value)}
+                                placeholder="0"
+                                {...fieldProps}
+                                value={myPtsAmount > 0 ? myPtsAmount : ''}
+                                className="text-lg font-medium"
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Available balance: <span className="font-medium">{balance.balance.toLocaleString()}</span> MyPts
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </motion.div>
+
+                    <motion.div variants={itemVariants} className="grid gap-2">
+                      <FormLabel className="text-base font-medium flex items-center gap-2">
+                        <ArrowRightLeft className="h-4 w-4 text-primary" />
+                        Estimated Value
+                      </FormLabel>
+                      <div className="flex items-center space-x-2 p-3 bg-primary/5 rounded-lg">
+                        <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                          {getCurrencySymbol(currency)}{currencyAmount.toFixed(2)}
+                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <HelpCircle className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Conversion rate: 1 MyPt = {getCurrencySymbol(currency)}{conversionRate.toFixed(4)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <HelpCircle className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Conversion rate: 1 MyPt = {getCurrencySymbol(currency)}{conversionRate.toFixed(4)}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <FormDescription>
-                      This is an estimate. Final amount may vary slightly.
-                    </FormDescription>
+                      <FormDescription>
+                        This is an estimate. Final amount may vary slightly.
+                      </FormDescription>
+                    </motion.div>
                   </div>
-                </div>
-              </div>
+                </motion.div>
 
-              <Separator />
+                <Separator className="my-6" />
 
-              <div className="space-y-4">
-                <FormLabel>Payment Method</FormLabel>
-                <Tabs value={activeTab} onValueChange={handlePaymentMethodChange} className="w-full">
-                  <TabsList className="grid grid-cols-4 w-full">
-                    <TabsTrigger value="bank_transfer">Bank Transfer</TabsTrigger>
-                    <TabsTrigger value="paypal">PayPal</TabsTrigger>
-                    <TabsTrigger value="stripe">Card</TabsTrigger>
-                    <TabsTrigger value="crypto">Crypto</TabsTrigger>
-                  </TabsList>
+                <motion.div variants={itemVariants} className="space-y-4">
+                  <FormLabel className="text-base font-medium">Payment Method</FormLabel>
+                  <Tabs value={activeTab} onValueChange={handlePaymentMethodChange} className="w-full">
+                    <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full gap-1 p-1 rounded-xl bg-muted/50">
+                      <TabsTrigger value="bank_transfer" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
+                        <Bank className="h-4 w-4" />
+                        <span className="hidden sm:inline">Bank Transfer</span>
+                        <span className="sm:hidden">Bank</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="paypal" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
+                        <Wallet className="h-4 w-4" />
+                        <span>PayPal</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="stripe" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        <span>Card</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="crypto" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
+                        <Bitcoin className="h-4 w-4" />
+                        <span>Crypto</span>
+                      </TabsTrigger>
+                    </TabsList>
 
-                  {/* Bank Transfer Tab */}
-                  <TabsContent value="bank_transfer" className="space-y-4 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem className="hidden">
-                          <FormControl>
-                            <Input {...field} value="bank_transfer" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                    {/* Bank Transfer Tab */}
+                    <TabsContent value="bank_transfer" className="space-y-4 mt-4">
+                      <motion.div variants={tabContentVariants} className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="paymentMethod"
+                          render={({ field }) => (
+                            <FormItem className="hidden">
+                              <FormControl>
+                                <Input {...field} value="bank_transfer" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="accountDetails.accountName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Account Holder Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.accountName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Holder Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="John Doe" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="accountDetails.accountNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="123456789" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="accountDetails.routingNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Routing Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="987654321" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="accountDetails.bankName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Bank Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Bank of America" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
-
-                  {/* PayPal Tab */}
-                  <TabsContent value="paypal" className="space-y-4 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem className="hidden">
-                          <FormControl>
-                            <Input {...field} value="paypal" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="accountDetails.email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>PayPal Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="your-email@example.com"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Make sure this is the email associated with your PayPal account
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
-
-                  {/* Stripe/Card Tab */}
-                  <TabsContent value="stripe" className="space-y-4 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem className="hidden">
-                          <FormControl>
-                            <Input {...field} value="stripe" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Card Preview */}
-                    <div className="mb-6">
-                      <CardPreview
-                        cardNumber={form.watch('accountDetails.cardNumber') || ''}
-                        cardholderName={form.watch('accountDetails.cardholderName') || ''}
-                        expiryDate={form.watch('accountDetails.expiryDate') || ''}
-                        cvc={form.watch('accountDetails.cvc') || ''}
-                        flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="accountDetails.cardholderName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cardholder Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="accountDetails.cardNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Card Number</FormLabel>
-                          <CreditCardInput
-                            value={field.value || ''}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            error={!!form.formState.errors.accountDetails?.cardNumber}
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.accountNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Account Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="123456789" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
-                          <FormDescription>
-                            For testing, use 4242 4242 4242 4242
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="accountDetails.expiryDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Expiry Date</FormLabel>
-                            <ExpiryDateInput
-                              value={field.value || ''}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              error={!!form.formState.errors.accountDetails?.expiryDate}
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.routingNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Routing Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="987654321" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
 
-                      <FormField
-                        control={form.control}
-                        name="accountDetails.cvc"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>CVC</FormLabel>
-                            <CVCInput
-                              value={field.value || ''}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              error={!!form.formState.errors.accountDetails?.cvc}
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </TabsContent>
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.bankName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Bank Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Bank of America" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </motion.div>
+                    </TabsContent>
 
-                  {/* Crypto Tab */}
-                  <TabsContent value="crypto" className="space-y-4 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem className="hidden">
-                          <FormControl>
-                            <Input {...field} value="crypto" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                    {/* PayPal Tab */}
+                    <TabsContent value="paypal" className="space-y-4 mt-4">
+                      <motion.div variants={tabContentVariants} className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="paymentMethod"
+                          render={({ field }) => (
+                            <FormItem className="hidden">
+                              <FormControl>
+                                <Input {...field} value="paypal" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="accountDetails.cryptoType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cryptocurrency</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select cryptocurrency" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="btc">Bitcoin (BTC)</SelectItem>
-                              <SelectItem value="eth">Ethereum (ETH)</SelectItem>
-                              <SelectItem value="usdt">Tether (USDT)</SelectItem>
-                              <SelectItem value="usdc">USD Coin (USDC)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>PayPal Email</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="email"
+                                  placeholder="your-email@example.com"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Make sure this is the email associated with your PayPal account
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </motion.div>
+                    </TabsContent>
 
-                    <FormField
-                      control={form.control}
-                      name="accountDetails.walletAddress"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Wallet Address</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Your cryptocurrency wallet address"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Double-check your wallet address to avoid loss of funds
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
-                </Tabs>
+                    {/* Stripe/Card Tab */}
+                    <TabsContent value="stripe" className="space-y-4 mt-4">
+                      <motion.div variants={tabContentVariants} className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="paymentMethod"
+                          render={({ field }) => (
+                            <FormItem className="hidden">
+                              <FormControl>
+                                <Input {...field} value="stripe" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Card Preview */}
+                        <div className="mb-6">
+                          <CardPreview
+                            cardNumber={form.watch('accountDetails.cardNumber') || ''}
+                            cardholderName={form.watch('accountDetails.cardholderName') || ''}
+                            expiryDate={form.watch('accountDetails.expiryDate') || ''}
+                            cvc={form.watch('accountDetails.cvc') || ''}
+                            flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.cardholderName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cardholder Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="John Doe" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.cardNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Card Number</FormLabel>
+                              <CreditCardInput
+                                value={field.value || ''}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                error={!!form.formState.errors.accountDetails?.cardNumber}
+                              />
+                              <FormDescription>
+                                For testing, use 4242 4242 4242 4242
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.expiryDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Expiry Date</FormLabel>
+                                <ExpiryDateInput
+                                  value={field.value || ''}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  error={!!form.formState.errors.accountDetails?.expiryDate}
+                                />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.cvc"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>CVC</FormLabel>
+                                <CVCInput
+                                  value={field.value || ''}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  error={!!form.formState.errors.accountDetails?.cvc}
+                                />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </motion.div>
+                    </TabsContent>
+
+                    {/* Crypto Tab */}
+                    <TabsContent value="crypto" className="space-y-4 mt-4">
+                      <motion.div variants={tabContentVariants} className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="paymentMethod"
+                          render={({ field }) => (
+                            <FormItem className="hidden">
+                              <FormControl>
+                                <Input {...field} value="crypto" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.cryptoType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cryptocurrency</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select cryptocurrency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="btc">Bitcoin (BTC)</SelectItem>
+                                  <SelectItem value="eth">Ethereum (ETH)</SelectItem>
+                                  <SelectItem value="usdt">Tether (USDT)</SelectItem>
+                                  <SelectItem value="usdc">USD Coin (USDC)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.walletAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Wallet Address</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Your cryptocurrency wallet address"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Double-check your wallet address to avoid loss of funds
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </motion.div>
+                    </TabsContent>
+                  </Tabs>
+                </motion.div>
+
+                {formErrors.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Alert variant="destructive" className="shadow-sm">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Please fix the following errors:</AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-disc pl-5 mt-2">
+                          {formErrors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  </motion.div>
+                )}
+
+                <motion.div variants={itemVariants}>
+                  <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800 shadow-sm">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertTitle>Important</AlertTitle>
+                    <AlertDescription>
+                      Your MyPts will remain in your account until your sell request is approved by an admin. You'll be notified once your payment is processed.
+                    </AlertDescription>
+                  </Alert>
+                </motion.div>
+
+                <motion.div
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-lg py-6 shadow-md hover:shadow-lg transition-all duration-300"
+                    disabled={isLoading || myPtsAmount <= 0}
+                    onClick={(e) => {
+                      if (!validatePaymentMethod()) {
+                        e.preventDefault();
+                        toast.error('Incomplete payment information', {
+                          description: 'Please complete all required payment method fields before proceeding.',
+                        });
+                      }
+                    }}
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin">⏳</span> Processing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <CreditCard className="h-5 w-5" /> Sell {myPtsAmount.toLocaleString()} MyPts
+                      </span>
+                    )}
+                  </Button>
+                </motion.div>
+              </form>
+            </Form>
+          ) : (
+            <motion.div
+              className="space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 100, damping: 15 }}
+            >
+              <div className="text-center p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                  className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                  <CreditCard className="h-8 w-8 text-green-600" />
+                </motion.div>
+                <h3 className="text-xl font-bold text-green-800 mb-2">Request Submitted!</h3>
+                <p className="text-green-700 mb-4">
+                  Your sell request has been submitted successfully and is awaiting admin approval.
+                </p>
               </div>
 
-              {formErrors.length > 0 && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Please fix the following errors:</AlertTitle>
-                  <AlertDescription>
-                    <ul className="list-disc pl-5 mt-2">
-                      {formErrors.map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
+              {transactionId && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <TransactionStatus
+                    transactionId={transactionId}
+                    onRefresh={onSuccess}
+                  />
+                </motion.div>
               )}
 
-              <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertTitle>Important</AlertTitle>
-                <AlertDescription>
-                  Your MyPts will remain in your account until your sell request is approved by an admin. You'll be notified once your payment is processed.
-                </AlertDescription>
-              </Alert>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading || myPtsAmount <= 0}
-                onClick={(e) => {
-                  if (!validatePaymentMethod()) {
-                    e.preventDefault();
-                    toast.error('Incomplete payment information', {
-                      description: 'Please complete all required payment method fields before proceeding.',
-                    });
-                  }
-                }}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="animate-spin">⏳</span> Processing...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" /> Sell {myPtsAmount.toLocaleString()} MyPts
-                  </span>
-                )}
-              </Button>
-            </form>
-          </Form>
-        ) : (
-          <div className="space-y-6">
-            {transactionId && (
-              <TransactionStatus
-                transactionId={transactionId}
-                onRefresh={onSuccess}
-              />
-            )}
-            <Button
-              variant="outline"
-              className="w-full mt-4"
-              onClick={handleReset}
-            >
-              Sell More MyPts
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                <Button
+                  variant="outline"
+                  className="w-full mt-4 py-6 text-lg border-primary text-primary hover:bg-primary/5"
+                  onClick={handleReset}
+                >
+                  Sell More MyPts
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

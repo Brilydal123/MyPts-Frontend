@@ -4,10 +4,11 @@ import { MainLayout } from "@/components/shared/main-layout";
 import { BalanceCard } from "@/components/shared/balance-card";
 import { RobustSellForm } from "@/components/dashboard/robust-sell-form";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useBalance } from "@/hooks/use-mypts-data";
 import { useCurrency } from "@/hooks/use-currency";
+import { motion } from "framer-motion";
 
 export default function SellPage() {
   // Use global currency state
@@ -31,9 +32,39 @@ export default function SellPage() {
     toast.success("Refreshing balance data...");
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 12
+      }
+    }
+  };
+
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <motion.div
+        className="space-y-8 mx-auto px-4 sm:px-6 g"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        {/* Header with gradient background */}
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Sell MyPts</h1>
           <Button
@@ -47,9 +78,9 @@ export default function SellPage() {
             {isLoading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div>
+        {/* Main content */}
+        <div className="grid gap-8 lg:grid-cols-2 md:grid-cols-1">
+          <motion.div variants={itemVariants} className="h-full">
             {balance ? (
               <BalanceCard
                 balance={balance}
@@ -58,20 +89,24 @@ export default function SellPage() {
                 currency={currency}
               />
             ) : (
-              <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
+              <div className="h-64 bg-muted rounded-xl shadow-sm animate-pulse"></div>
             )}
-          </div>
+          </motion.div>
 
-          <div>
-            {balance && <RobustSellForm
-              balance={balance}
-              onSuccess={() => refetchBalance()}
-              currency={currency}
-              onCurrencyChange={handleCurrencyChange}
-            />}
-          </div>
+          <motion.div variants={itemVariants} className="h-full">
+            {balance ? (
+              <RobustSellForm
+                balance={balance}
+                onSuccess={() => refetchBalance()}
+                currency={currency}
+                onCurrencyChange={handleCurrencyChange}
+              />
+            ) : (
+              <div className="h-full bg-muted rounded-xl shadow-sm animate-pulse "></div>
+            )}
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </MainLayout>
   );
 }
