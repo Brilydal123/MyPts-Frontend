@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { CountrySelector } from "@/components/ui/country-selector";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Form,
   FormControl,
@@ -12,14 +10,15 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { BackButton } from "@/components/ui/back-button";
-import { AnimatedButton } from "@/components/ui/animated-button";
-import { CountrySelector } from "@/components/ui/country-selector";
-import { RegistrationData } from "../registration-flow";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { RegistrationData } from "../registration-flow";
+import { BackButton } from "@/components/ui/back-button";
 
 const formSchema = z.object({
   accountType: z.enum(["MYSELF", "SOMEONE_ELSE"]),
@@ -204,9 +203,7 @@ export function EligibilityStep({
           </div>
 
           <div className="flex justify-between pt-4 mb-8">
-            <Button onClick={onPrev} variant="ghost">
-              <ArrowLeft className="size-4" /> Back
-            </Button>
+            <BackButton onClick={onPrev} className="px-[2rem]" />
             <div>
               <Button
                 type="submit"

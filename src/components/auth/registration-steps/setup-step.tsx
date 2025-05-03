@@ -1,23 +1,32 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { BackButton } from '@/components/ui/back-button';
-import { AnimatedButton } from '@/components/ui/animated-button';
-import { PhoneInput } from '@/components/ui/phone-input-v2';
-import { RegistrationData } from '../registration-flow';
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { BackButton } from "@/components/ui/back-button";
+import { AnimatedButton } from "@/components/ui/animated-button";
+import { PhoneInput } from "@/components/ui/phone-input-v2";
+import { RegistrationData } from "../registration-flow";
+import { Button } from "@/components/ui/button";
 
 const formSchema = z.object({
-  phoneNumber: z.string()
-    .min(8, 'Phone number must be at least 8 characters')
-    .regex(/^\+?[0-9\s\-\(\)\.]+$/, 'Please enter a valid phone number')
+  phoneNumber: z
+    .string()
+    .min(8, "Phone number must be at least 8 characters")
+    .regex(/^\+?[0-9\s\-\(\)\.]+$/, "Please enter a valid phone number")
     .refine((val) => {
       // Basic validation - should start with + and have at least 8 digits
-      return /^\+[0-9]/.test(val) && val.replace(/[^0-9]/g, '').length >= 8;
-    }, 'Please enter a valid international phone number with country code'),
+      return /^\+[0-9]/.test(val) && val.replace(/[^0-9]/g, "").length >= 8;
+    }, "Please enter a valid international phone number with country code"),
 });
 
 interface SetupStepProps {
@@ -38,7 +47,7 @@ export function SetupStep({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      phoneNumber: registrationData.phoneNumber || '',
+      phoneNumber: registrationData.phoneNumber || "",
     },
   });
 
@@ -53,18 +62,18 @@ export function SetupStep({
       // Move to the next step
       onNext();
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col">
-      <div className="text-center mb-6">
+    <div className="flex flex-col gap-5">
+      <div>
         <h2 className="text-xl font-semibold mb-1">Setup Your Account...</h2>
         <p className="text-gray-600 text-sm">
-          {registrationData.accountType === 'MYSELF'
+          {registrationData.accountType === "MYSELF"
             ? "To setup your MyProfile account, please enter a valid phone number."
             : "To setup this secondary MyProfile account, please enter a valid phone number."}
         </p>
@@ -72,15 +81,21 @@ export function SetupStep({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="mb-4">
-            <FormLabel className="text-sm text-gray-600">Type of Account</FormLabel>
-            <div className="flex items-center h-12 px-4 rounded-md bg-gray-100 border border-gray-300">
+          <div className="flex flex-col gap-2">
+            <FormLabel className="text-sm text-gray-600">
+              Type of Account
+            </FormLabel>
+            <div className="flex items-center h-12 px-4 rounded-md bg-background border border-gray-300">
               <div className="flex items-center">
                 <span className="text-lg mr-2">
-                  {registrationData.accountCategory === 'PRIMARY_ACCOUNT' ? '👤' : '👥'}
+                  {registrationData.accountCategory === "PRIMARY_ACCOUNT"
+                    ? "👤"
+                    : "👥"}
                 </span>
                 <span className="font-medium">
-                  {registrationData.accountCategory === 'PRIMARY_ACCOUNT' ? 'Primary Account' : 'Secondary Account'}
+                  {registrationData.accountCategory === "PRIMARY_ACCOUNT"
+                    ? "Primary Account"
+                    : "Secondary Account"}
                 </span>
               </div>
             </div>
@@ -91,7 +106,9 @@ export function SetupStep({
             name="phoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm text-gray-600">Phone Number</FormLabel>
+                <FormLabel className="text-sm text-gray-600">
+                  Phone Number
+                </FormLabel>
                 <FormControl>
                   <PhoneInput
                     value={field.value}
@@ -106,19 +123,15 @@ export function SetupStep({
           />
 
           <div className="flex justify-between pt-4 mb-8">
-            <BackButton
-              onClick={onPrev}
-              className="px-[2rem]"
-            />
+            <BackButton onClick={onPrev} className="px-[2rem]" />
             <div>
-              <AnimatedButton
+              <Button
                 type="submit"
                 className="h-12 px-10 rounded-md"
-                active={form.formState.isValid}
                 disabled={isLoading || !form.formState.isValid}
               >
                 Continue
-              </AnimatedButton>
+              </Button>
             </div>
           </div>
         </form>

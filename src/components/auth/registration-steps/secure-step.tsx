@@ -1,30 +1,42 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { BackButton } from '@/components/ui/back-button';
-import { AnimatedButton } from '@/components/ui/animated-button';
-import { motion } from 'framer-motion';
-import { RegistrationData } from '../registration-flow';
-import { Check, X, Eye, EyeOff, Lock } from 'lucide-react';
-import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { authApi } from '@/lib/api/auth-api';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { BackButton } from "@/components/ui/back-button";
+import { AnimatedButton } from "@/components/ui/animated-button";
+import { motion } from "framer-motion";
+import { RegistrationData } from "../registration-flow";
+import { Check, X, Eye, EyeOff, Lock } from "lucide-react";
+import { FloatingLabelInput } from "@/components/ui/floating-label-input";
+import { authApi } from "@/lib/api/auth-api";
+import { toast } from "sonner";
 
-const formSchema = z.object({
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
-    .regex(/[0-9]/, 'Password must contain at least 1 number')
-    .regex(/[^a-zA-Z0-9]/, 'Password must contain at least 1 special character'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const formSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least 1 uppercase letter")
+      .regex(/[0-9]/, "Password must contain at least 1 number")
+      .regex(
+        /[^a-zA-Z0-9]/,
+        "Password must contain at least 1 special character"
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 interface SecureStepProps {
   registrationData: RegistrationData;
@@ -46,8 +58,8 @@ export function SecureStep({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      password: '',
-      confirmPassword: '',
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -60,12 +72,15 @@ export function SecureStep({
       });
 
       // Check if the email is already registered before attempting to register
-      const emailCheckResponse = await authApi.checkEmail(registrationData.email);
+      const emailCheckResponse = await authApi.checkEmail(
+        registrationData.email
+      );
 
       if (emailCheckResponse.data?.exists) {
         // Email already exists, show error and redirect back to email step
-        toast.error('Email already registered', {
-          description: 'Please use a different email address or login to your existing account.',
+        toast.error("Email already registered", {
+          description:
+            "Please use a different email address or login to your existing account.",
         });
         // Go back to the first step (email step)
         onPrev();
@@ -90,10 +105,11 @@ export function SecureStep({
 
       if (!response.success) {
         // Check if the error is due to email already registered
-        if (response.message?.includes('Email already registered')) {
+        if (response.message?.includes("Email already registered")) {
           // Go back to the first step (email step)
-          toast.error('Email already registered', {
-            description: 'Please use a different email address or login to your existing account.',
+          toast.error("Email already registered", {
+            description:
+              "Please use a different email address or login to your existing account.",
           });
           onPrev();
           onPrev();
@@ -102,10 +118,10 @@ export function SecureStep({
         }
 
         // Check if the error is due to username already taken
-        if (response.message?.includes('Username already taken')) {
+        if (response.message?.includes("Username already taken")) {
           // Go back to the basic info step
-          toast.error('Username already taken', {
-            description: 'Please choose a different username.',
+          toast.error("Username already taken", {
+            description: "Please choose a different username.",
           });
           onPrev();
           onPrev();
@@ -113,41 +129,42 @@ export function SecureStep({
         }
 
         // Check if the error is due to phone number already registered
-        if (response.message?.includes('Phone number already registered')) {
+        if (response.message?.includes("Phone number already registered")) {
           // Go back to the setup step
-          toast.error('Phone number already registered', {
-            description: 'Please use a different phone number.',
+          toast.error("Phone number already registered", {
+            description: "Please use a different phone number.",
           });
           onPrev();
           return;
         }
 
-        throw new Error(response.message || 'Registration failed');
+        throw new Error(response.message || "Registration failed");
       }
 
       // Store the userId in localStorage for verification step
       if (response.data?.userId) {
-        localStorage.setItem('registrationUserId', response.data.userId);
-        console.log('Stored userId in localStorage:', response.data.userId);
+        localStorage.setItem("registrationUserId", response.data.userId);
+        console.log("Stored userId in localStorage:", response.data.userId);
       } else {
-        console.error('No userId returned from registration API');
+        console.error("No userId returned from registration API");
       }
 
       // Show success message with OTP for development (remove in production)
       const otpMessage = response.data?.otpChannel
         ? `Please verify your account with the code sent to your ${response.data.otpChannel}.`
-        : 'Please verify your account with the code sent to you.';
+        : "Please verify your account with the code sent to you.";
 
-      toast.success('Registration successful!', {
+      toast.success("Registration successful!", {
         description: otpMessage,
       });
 
       // Move to the next step
       onNext();
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Registration failed', {
-        description: error instanceof Error ? error.message : 'Please try again.',
+      console.error("Error:", error);
+      toast.error("Registration failed", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -155,7 +172,7 @@ export function SecureStep({
   };
 
   // Check password strength
-  const password = form.watch('password');
+  const password = form.watch("password");
   const hasMinLength = password.length >= 8;
   const hasUppercase = /[A-Z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
@@ -178,12 +195,47 @@ export function SecureStep({
 
   // Get strength text and color
   const getStrengthInfo = () => {
-    if (!password) return { text: 'No password', color: 'gray', bgColor: 'bg-gray-400', textColor: 'text-gray-600' };
-    if (passwordStrength === 1) return { text: 'Weak', color: 'red', bgColor: 'bg-red-500', textColor: 'text-red-600' };
-    if (passwordStrength === 2) return { text: 'Fair', color: 'orange', bgColor: 'bg-orange-500', textColor: 'text-orange-600' };
-    if (passwordStrength === 3) return { text: 'Good', color: 'blue', bgColor: 'bg-blue-500', textColor: 'text-blue-600' };
-    if (passwordStrength === 4) return { text: 'Strong', color: 'green', bgColor: 'bg-green-500', textColor: 'text-green-600' };
-    return { text: 'No password', color: 'gray', bgColor: 'bg-gray-400', textColor: 'text-gray-600' };
+    if (!password)
+      return {
+        text: "No password",
+        color: "gray",
+        bgColor: "bg-gray-400",
+        textColor: "text-gray-600",
+      };
+    if (passwordStrength === 1)
+      return {
+        text: "Weak",
+        color: "red",
+        bgColor: "bg-red-500",
+        textColor: "text-red-600",
+      };
+    if (passwordStrength === 2)
+      return {
+        text: "Fair",
+        color: "orange",
+        bgColor: "bg-orange-500",
+        textColor: "text-orange-600",
+      };
+    if (passwordStrength === 3)
+      return {
+        text: "Good",
+        color: "blue",
+        bgColor: "bg-blue-500",
+        textColor: "text-blue-600",
+      };
+    if (passwordStrength === 4)
+      return {
+        text: "Strong",
+        color: "green",
+        bgColor: "bg-green-500",
+        textColor: "text-green-600",
+      };
+    return {
+      text: "No password",
+      color: "gray",
+      bgColor: "bg-gray-400",
+      textColor: "text-gray-600",
+    };
   };
 
   const strengthInfo = getStrengthInfo();
@@ -193,7 +245,8 @@ export function SecureStep({
       <div className="text-center mb-6">
         <h2 className="text-xl font-semibold mb-1">Secure Your Account</h2>
         <p className="text-gray-600 text-sm">
-          Create a strong password for your MyProfile account to keep your information safe.
+          Create a strong password for your MyProfile account to keep your
+          information safe.
         </p>
       </div>
 
@@ -219,7 +272,11 @@ export function SecureStep({
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
                       </button>
                     </div>
                   </FormControl>
@@ -238,7 +295,9 @@ export function SecureStep({
             >
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium">Password Strength:</span>
-                <span className={`text-xs font-medium ${strengthInfo.textColor}`}>
+                <span
+                  className={`text-xs font-medium ${strengthInfo.textColor}`}
+                >
                   {strengthInfo.text}
                 </span>
               </div>
@@ -264,41 +323,69 @@ export function SecureStep({
               <div className="space-y-2">
                 <div className="flex items-center">
                   {hasMinLength ? (
-                    <Check size={16} className="text-green-500 mr-2 flex-shrink-0" />
+                    <Check
+                      size={16}
+                      className="text-green-500 mr-2 flex-shrink-0"
+                    />
                   ) : (
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
-                  <span className={`text-sm ${hasMinLength ? 'text-green-700' : 'text-gray-600'}`}>
+                  <span
+                    className={`text-sm ${
+                      hasMinLength ? "text-green-700" : "text-gray-600"
+                    }`}
+                  >
                     At least 8 characters
                   </span>
                 </div>
                 <div className="flex items-center">
                   {hasUppercase ? (
-                    <Check size={16} className="text-green-500 mr-2 flex-shrink-0" />
+                    <Check
+                      size={16}
+                      className="text-green-500 mr-2 flex-shrink-0"
+                    />
                   ) : (
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
-                  <span className={`text-sm ${hasUppercase ? 'text-green-700' : 'text-gray-600'}`}>
+                  <span
+                    className={`text-sm ${
+                      hasUppercase ? "text-green-700" : "text-gray-600"
+                    }`}
+                  >
                     At least 1 uppercase letter (A-Z)
                   </span>
                 </div>
                 <div className="flex items-center">
                   {hasNumber ? (
-                    <Check size={16} className="text-green-500 mr-2 flex-shrink-0" />
+                    <Check
+                      size={16}
+                      className="text-green-500 mr-2 flex-shrink-0"
+                    />
                   ) : (
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
-                  <span className={`text-sm ${hasNumber ? 'text-green-700' : 'text-gray-600'}`}>
+                  <span
+                    className={`text-sm ${
+                      hasNumber ? "text-green-700" : "text-gray-600"
+                    }`}
+                  >
                     At least 1 number (0-9)
                   </span>
                 </div>
                 <div className="flex items-center">
                   {hasSpecial ? (
-                    <Check size={16} className="text-green-500 mr-2 flex-shrink-0" />
+                    <Check
+                      size={16}
+                      className="text-green-500 mr-2 flex-shrink-0"
+                    />
                   ) : (
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
-                  <span className={`text-sm ${hasSpecial ? 'text-green-700' : 'text-gray-600'}`}>
+                  <span
+                    className={`text-sm ${
+                      hasSpecial ? "text-green-700" : "text-gray-600"
+                    }`}
+                  >
                     At least 1 special character (!@#$%^&*)
                   </span>
                 </div>
@@ -324,9 +411,15 @@ export function SecureStep({
                       <button
                         type="button"
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                       >
-                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showConfirmPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
                       </button>
                     </div>
                   </FormControl>
@@ -337,10 +430,7 @@ export function SecureStep({
           />
 
           <div className="flex justify-between pt-6 mt-4 mb-8">
-            <BackButton
-              onClick={onPrev}
-              className="px-[2rem]"
-            />
+            <BackButton onClick={onPrev} className="px-[2rem]" />
             <AnimatedButton
               type="submit"
               className="h-12 px-10 rounded-md"
