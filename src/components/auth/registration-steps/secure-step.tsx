@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { BackButton } from "@/components/ui/back-button";
+import { Button } from "@/components/ui/button";
+import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import {
   Form,
   FormControl,
@@ -11,14 +10,15 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { BackButton } from "@/components/ui/back-button";
-import { AnimatedButton } from "@/components/ui/animated-button";
-import { motion } from "framer-motion";
-import { RegistrationData } from "../registration-flow";
-import { Check, X, Eye, EyeOff, Lock } from "lucide-react";
-import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { authApi } from "@/lib/api/auth-api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { Check, Eye, EyeOff, X } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import * as z from "zod";
+import { RegistrationData } from "../registration-flow";
 
 const formSchema = z
   .object({
@@ -241,8 +241,8 @@ export function SecureStep({
   const strengthInfo = getStrengthInfo();
 
   return (
-    <div className="flex flex-col">
-      <div className="text-center mb-6">
+    <div className="flex flex-col gap-5">
+      <div>
         <h2 className="text-xl font-semibold mb-1">Secure Your Account</h2>
         <p className="text-gray-600 text-sm">
           Create a strong password for your MyProfile account to keep your
@@ -263,13 +263,12 @@ export function SecureStep({
                       <FloatingLabelInput
                         label="Password"
                         type={showPassword ? "text" : "password"}
-                        icon={<Lock className="h-5 w-5" />}
                         {...field}
-                        className="pr-10 pl-10"
+                        className="pr-10 pl-4 "
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
@@ -404,13 +403,12 @@ export function SecureStep({
                       <FloatingLabelInput
                         label="Confirm Password"
                         type={showConfirmPassword ? "text" : "password"}
-                        icon={<Lock className="h-5 w-5" />}
                         {...field}
-                        className="pr-10 pl-10"
+                        className="pr-10 pl-4 "
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
@@ -431,14 +429,13 @@ export function SecureStep({
 
           <div className="flex justify-between pt-6 mt-4 mb-8">
             <BackButton onClick={onPrev} className="px-[2rem]" />
-            <AnimatedButton
+            <Button
               type="submit"
-              className="h-12 px-10 rounded-md"
-              active={form.formState.isValid}
+              className="px-16"
               disabled={isLoading || !form.formState.isValid}
             >
               Continue
-            </AnimatedButton>
+            </Button>
           </div>
         </form>
       </Form>

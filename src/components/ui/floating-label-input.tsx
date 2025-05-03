@@ -81,11 +81,11 @@ const FloatingLabelInput = forwardRef<
         {/* Label - single element that animates between positions */}
         <span
           className={cn(
-            "absolute px-1 pointer-events-none transition-all duration-300 ease-out",
+            "absolute px-1 pointer-events-none transition-all duration-300 ease-out text-sm",
             icon ? "left-10" : "left-3",
             isFocused || hasValue
               ? "top-0 text-xs font-medium -translate-y-1/2 bg-white z-10"
-              : "top-1/2 -translate-y-1/2 text-base bg-transparent",
+              : "top-1/2 -translate-y-1/2 text-sm bg-transparent",
             isFocused
               ? "text-black"
               : hasValue

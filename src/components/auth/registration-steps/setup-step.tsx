@@ -127,7 +127,7 @@ export function SetupStep({
             <div>
               <Button
                 type="submit"
-                className="h-12 px-10 rounded-md"
+                className="px-16"
                 disabled={isLoading || !form.formState.isValid}
               >
                 Continue
