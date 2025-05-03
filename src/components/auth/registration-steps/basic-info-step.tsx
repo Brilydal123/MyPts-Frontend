@@ -13,13 +13,18 @@ import { RegistrationData } from '../registration-flow';
 import { authApi } from '@/lib/api/auth-api';
 import { toast } from 'sonner';
 import { UsernameSuggestionsDialog } from '@/components/ui/username-suggestions-dialog';
+import ReferralService from '@/services/referralService';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   username: z.string().min(3, 'Username must be at least 3 characters')
     .regex(/^[a-zA-Z0-9_~.-]+$/, 'Username can only contain letters, numbers, and special characters like _, ~, ., -'),
   wasReferred: z.boolean().optional(),
-  referralCode: z.string().optional(),
+  referralCode: z.string()
+    .optional()
+    .refine(val => !val || val.length >= 6, {
+      message: 'Referral code must be at least 6 characters if provided'
+    }),
 });
 
 interface BasicInfoStepProps {
@@ -243,6 +248,34 @@ export function BasicInfoStep({
         return;
       }
 
+      // Validate referral code if provided
+      if (referralAnswer === 'yes' && values.referralCode) {
+        try {
+          const validationResult = await ReferralService.validateReferralCode(values.referralCode);
+
+          if (!validationResult.valid) {
+            form.setError('referralCode', {
+              type: 'manual',
+              message: 'Invalid referral code. Please check and try again.'
+            });
+            toast.error('Invalid referral code', {
+              description: 'The referral code you entered is not valid. Please check and try again.'
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('Error validating referral code:', error);
+          form.setError('referralCode', {
+            type: 'manual',
+            message: 'Error validating referral code. Please try again.'
+          });
+          toast.error('Error validating referral code', {
+            description: 'We encountered an error while validating your referral code. Please try again.'
+          });
+          return;
+        }
+      }
+
       // Update registration data
       const updateData: Partial<RegistrationData> = {
         fullName: values.fullName,
@@ -314,9 +347,8 @@ export function BasicInfoStep({
                   <FloatingLabelInput
                     label="Full Name"
                     {...field}
-                    className={`rounded-md ${
-                      fullName ? (form.formState.errors.fullName ? 'border-red-300' : 'border-green-300') : ''
-                    }`}
+                    className={`rounded-md ${fullName ? (form.formState.errors.fullName ? 'border-red-300' : 'border-green-300') : ''
+                      }`}
                   />
                 </FormControl>
                 <FormMessage />
@@ -333,9 +365,8 @@ export function BasicInfoStep({
                   <FloatingLabelInput
                     label="Username"
                     {...field}
-                    className={`rounded-md ${
-                      username ? (form.formState.errors.username ? 'border-red-300' : 'border-green-300') : ''
-                    }`}
+                    className={`rounded-md ${username ? (form.formState.errors.username ? 'border-red-300' : 'border-green-300') : ''
+                      }`}
                   />
                 </FormControl>
                 <FormMessage />

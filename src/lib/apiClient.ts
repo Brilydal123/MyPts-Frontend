@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { getAuthToken } from './auth-helper';
 
 // Create axios instance with default config
 const apiClientInstance = axios.create({
@@ -12,32 +11,25 @@ const apiClientInstance = axios.create({
 // Log the API URL for debugging
 console.log('API client using URL:', apiClientInstance.defaults.baseURL);
 
-// Request interceptor for adding auth token - safely handle browser vs server
+// Request interceptor for adding auth token
 apiClientInstance.interceptors.request.use(
   async (config) => {
     // Check if we're in a browser environment
     if (typeof window !== 'undefined') {
       try {
-        // Try to get the auth token from various sources
-        const token = await getAuthToken();
-
-        // Check for access token in localStorage (direct or from NextAuth)
-        const accessToken = localStorage.getItem('accessToken') ||
-                           localStorage.getItem('next-auth.session-token');
-
-        // Use the token from getAuthToken or fallback to localStorage
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        } else if (accessToken) {
+        // Get tokens from localStorage
+        const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('next-auth.session-token');
+        const profileToken = localStorage.getItem('selectedProfileToken');
+        
+        if (accessToken) {
           config.headers.Authorization = `Bearer ${accessToken}`;
         }
-
+        
         // Add profile token if available
-        const profileToken = localStorage.getItem('selectedProfileToken');
         if (profileToken) {
           config.headers['X-Profile-Token'] = profileToken;
         }
-
+        
         // Add profile ID as a query parameter if available
         const profileId = localStorage.getItem('selectedProfileId');
         if (profileId && config.url && !config.url.includes('profileId=')) {
@@ -71,38 +63,11 @@ apiClientInstance.interceptors.response.use(
 
       // Handle unauthorized errors (401)
       if (error.response.status === 401) {
-        // Only attempt to handle if in browser context
+        // Only attempt to redirect if in browser context
         if (typeof window !== 'undefined') {
-          console.log('Unauthorized, attempting to refresh token');
-
-          // Check if this is a retry to avoid infinite loops
-          const isRetry = error.config._isRetry;
-
-          if (!isRetry && !error.config.url.includes('/auth/')) {
-            // This is not a retry and not an auth endpoint, so try to refresh the token
-            try {
-              // Clear any expired tokens
-              localStorage.removeItem('accessToken');
-
-              // Store the current profile ID to use after login
-              const profileId = localStorage.getItem('selectedProfileId');
-              if (profileId) {
-                localStorage.setItem('lastProfileId', profileId);
-              }
-
-              // Only redirect if we're not already on the login page
-              if (!window.location.pathname.includes('/login')) {
-                // Store the current location to redirect back after login
-                localStorage.setItem('redirectAfterLogin', window.location.pathname);
-
-                // Redirect to login page
-                console.log('Token refresh failed, redirecting to login');
-                // window.location.href = '/login';
-              }
-            } catch (refreshError) {
-              console.error('Error handling 401:', refreshError);
-            }
-          }
+          console.log('Unauthorized, redirecting to login');
+          // You can add logic here to redirect to login page
+          // window.location.href = '/login';
         }
       }
     } else if (error.request) {

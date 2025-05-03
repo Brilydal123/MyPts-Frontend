@@ -225,6 +225,15 @@ export function DashboardStats({
                   </span>
                 </motion.button>
               </div>
+              <div className="mt-2">
+                <a
+                  href="/dashboard/referrals"
+                  className="text-xs text-blue-600 hover:underline flex items-center"
+                >
+                  View Referral Program
+                  <ArrowUpRight className="h-3 w-3 ml-1" />
+                </a>
+              </div>
             </>
           )}
         </CardContent>
