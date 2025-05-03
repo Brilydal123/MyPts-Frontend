@@ -1,21 +1,12 @@
-import type { Metadata } from "next";
-import { Manrope, Geist_Mono } from "next/font/google";
+import { ReactQueryProvider } from "@/components/providers/query-provider";
 import { NextAuthProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ReactQueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
-import Link from "next/link";
-import Image from "next/image";
+import type { Metadata } from "next";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -34,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable}  antialiased`}>
+      <body className={`${manrope.className}  antialiased`}>
         <NextAuthProvider>
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>

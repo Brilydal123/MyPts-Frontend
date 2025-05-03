@@ -1,5 +1,5 @@
-import { ApiResponse } from '@/types/api';
-import { API_BASE_URL } from '@/lib/config';
+import { ApiResponse } from "@/types/api";
+import { API_BASE_URL } from "@/lib/config";
 
 // Constants for API requests
 const REQUEST_TIMEOUT = 15000; // 15 seconds
@@ -11,11 +11,13 @@ export class AuthApi {
   /**
    * Generate username suggestions based on a full name
    */
-  async generateUsernames(fullName: string): Promise<ApiResponse<{
-    usernames: string[];
-  }>> {
+  async generateUsernames(fullName: string): Promise<
+    ApiResponse<{
+      usernames: string[];
+    }>
+  > {
     try {
-      console.log('Generating username suggestions for:', fullName);
+      console.log("Generating username suggestions for:", fullName);
 
       // Add a timeout to the fetch request
       const controller = new AbortController();
@@ -24,22 +26,27 @@ export class AuthApi {
       // The exact endpoint from Postman: {{myprofile_local_url}}/api/users/generate-username
       const url = `${API_BASE_URL}/users/generate-username`;
       const requestBody = { firstname: fullName };
-      console.log('Calling username suggestions API:', url, 'with body:', requestBody);
+      console.log(
+        "Calling username suggestions API:",
+        url,
+        "with body:",
+        requestBody
+      );
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       // Clear the timeout
       clearTimeout(timeoutId);
 
       const data = await response.json();
-      console.log('Username suggestions response:', data);
+      console.log("Username suggestions response:", data);
 
       if (response.ok && data.success) {
         return {
@@ -52,22 +59,25 @@ export class AuthApi {
 
       return {
         success: false,
-        message: data.message || 'Failed to generate username suggestions',
+        message: data.message || "Failed to generate username suggestions",
       };
     } catch (error) {
-      console.error('Error generating username suggestions:', error);
+      console.error("Error generating username suggestions:", error);
 
       // Check if it's an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === "AbortError") {
         return {
           success: false,
-          message: 'Request timed out. Please try again.',
+          message: "Request timed out. Please try again.",
         };
       }
 
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to generate username suggestions',
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate username suggestions",
       };
     }
   }
@@ -75,53 +85,61 @@ export class AuthApi {
   /**
    * Check if a username is already taken
    */
-  async checkUsername(username: string): Promise<ApiResponse<{
-    exists: boolean;
-    message: string;
-  }>> {
+  async checkUsername(username: string): Promise<
+    ApiResponse<{
+      exists: boolean;
+      message: string;
+    }>
+  > {
     try {
-      console.log('Checking if username exists:', username);
+      console.log("Checking if username exists:", username);
 
       // Add a timeout to the fetch request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
       // Use the correct endpoint for checking username availability
-      const response = await fetch(`${API_BASE_URL}/auth/check-username/${encodeURIComponent(username)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/auth/check-username/${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+        }
+      );
 
       // Clear the timeout
       clearTimeout(timeoutId);
 
       const data = await response.json();
-      console.log('Username check response:', data);
+      console.log("Username check response:", data);
 
       return {
         success: true,
         data: {
           exists: !data.available, // Backend returns 'available: true/false'
-          message: data.message || (!data.available ? 'Username already taken' : 'Username available'),
+          message:
+            data.message ||
+            (!data.available ? "Username already taken" : "Username available"),
         },
       };
     } catch (error) {
-      console.error('Error checking username:', error);
+      console.error("Error checking username:", error);
 
       // Check if it's an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === "AbortError") {
         return {
           success: false,
-          message: 'Request timed out. Please try again.',
+          message: "Request timed out. Please try again.",
         };
       }
 
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to check username',
+        message:
+          error instanceof Error ? error.message : "Failed to check username",
       };
     }
   }
@@ -133,25 +151,27 @@ export class AuthApi {
     password: string;
     fullName: string;
     username: string;
-    accountType: 'MYSELF' | 'SOMEONE_ELSE';
+    accountType: "MYSELF" | "SOMEONE_ELSE";
     dateOfBirth: Date;
     phoneNumber: string;
     countryOfResidence: string;
-    verificationMethod: 'EMAIL' | 'PHONE';
-    accountCategory: 'PRIMARY_ACCOUNT' | 'SECONDARY_ACCOUNT';
-  }): Promise<ApiResponse<{
-    userId: string;
-    verificationMethod: string;
-    otpRequired: boolean;
-    otpChannel: string;
-  }>> {
+    verificationMethod: "EMAIL" | "PHONE";
+    accountCategory: "PRIMARY_ACCOUNT" | "SECONDARY_ACCOUNT";
+  }): Promise<
+    ApiResponse<{
+      userId: string;
+      verificationMethod: string;
+      otpRequired: boolean;
+      otpChannel: string;
+    }>
+  > {
     try {
-      console.log('Registering user:', { ...userData, password: '******' });
+      console.log("Registering user:", { ...userData, password: "******" });
 
       // Format date of birth as ISO string (YYYY-MM-DD)
       const formattedData = {
         ...userData,
-        dateOfBirth: userData.dateOfBirth.toISOString().split('T')[0],
+        dateOfBirth: userData.dateOfBirth.toISOString().split("T")[0],
       };
 
       // Add a timeout to the fetch request
@@ -159,12 +179,12 @@ export class AuthApi {
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formattedData),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       // Clear the timeout
@@ -172,7 +192,7 @@ export class AuthApi {
 
       const data = await response.json();
 
-      console.log('Registration response:', data);
+      console.log("Registration response:", data);
 
       if (response.ok && data.success) {
         return {
@@ -189,22 +209,22 @@ export class AuthApi {
 
       return {
         success: false,
-        message: data.message || 'Registration failed',
+        message: data.message || "Registration failed",
       };
     } catch (error) {
-      console.error('Error in registration:', error);
+      console.error("Error in registration:", error);
 
       // Check if it's an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === "AbortError") {
         return {
           success: false,
-          message: 'Request timed out. Please try again.',
+          message: "Request timed out. Please try again.",
         };
       }
 
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Registration failed',
+        message: error instanceof Error ? error.message : "Registration failed",
       };
     }
   }
@@ -215,30 +235,32 @@ export class AuthApi {
   async verifyOTP(
     userId: string,
     otp: string,
-    verificationMethod: 'email' | 'phone'
-  ): Promise<ApiResponse<{
-    success: boolean;
-    message: string;
-    user?: any;
-  }>> {
+    verificationMethod: "email" | "phone"
+  ): Promise<
+    ApiResponse<{
+      success: boolean;
+      message: string;
+      user?: any;
+    }>
+  > {
     try {
-      console.log('Verifying OTP:', { userId, otp, verificationMethod });
+      console.log("Verifying OTP:", { userId, otp, verificationMethod });
 
       // Add a timeout to the fetch request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
       const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           _id: userId, // Backend expects _id, not userId
           otp,
           verificationMethod,
         }),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       // Clear the timeout
@@ -246,7 +268,7 @@ export class AuthApi {
 
       const data = await response.json();
 
-      console.log('OTP verification response:', data);
+      console.log("OTP verification response:", data);
 
       if (response.ok && data.success) {
         return {
@@ -262,22 +284,23 @@ export class AuthApi {
 
       return {
         success: false,
-        message: data.message || 'OTP verification failed',
+        message: data.message || "OTP verification failed",
       };
     } catch (error) {
-      console.error('Error in OTP verification:', error);
+      console.error("Error in OTP verification:", error);
 
       // Check if it's an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === "AbortError") {
         return {
           success: false,
-          message: 'Request timed out. Please try again.',
+          message: "Request timed out. Please try again.",
         };
       }
 
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'OTP verification failed',
+        message:
+          error instanceof Error ? error.message : "OTP verification failed",
       };
     }
   }
@@ -285,53 +308,62 @@ export class AuthApi {
   /**
    * Check if an email is already registered
    */
-  async checkEmail(email: string): Promise<ApiResponse<{
-    exists: boolean;
-    message: string;
-  }>> {
+  async checkEmail(email: string): Promise<
+    ApiResponse<{
+      exists: boolean;
+      message: string;
+    }>
+  > {
     try {
-      console.log('Checking if email exists:', email);
-
-      // Add a timeout to the fetch request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-      const response = await fetch(`${API_BASE_URL}/auth/check-email/${encodeURIComponent(email)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal
-      });
+      console.log(API_BASE_URL);
+
+      const response = await fetch(
+        `${API_BASE_URL}/auth/check-email/${encodeURIComponent(email)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+        }
+      );
+
+      console.log("Email check response:", response);
 
       // Clear the timeout
       clearTimeout(timeoutId);
 
       const data = await response.json();
 
-      console.log('Email check response:', data);
+      console.log("Email check response:", data);
 
       return {
         success: true,
         data: {
           exists: !data.available, // Backend returns 'available: true/false'
-          message: data.message || (!data.available ? 'Email already registered' : 'Email available'),
+          message:
+            data.message ||
+            (!data.available ? "Email already registered" : "Email available"),
         },
       };
     } catch (error) {
-      console.error('Error checking email:', error);
+      console.error("Error checking email:", error);
 
       // Check if it's an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === "AbortError") {
         return {
           success: false,
-          message: 'Request timed out. Please try again.',
+          message: "Request timed out. Please try again.",
         };
       }
 
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to check email',
+        message:
+          error instanceof Error ? error.message : "Failed to check email",
       };
     }
   }
@@ -341,29 +373,31 @@ export class AuthApi {
    */
   async resendOTP(
     userId: string,
-    verificationMethod: 'EMAIL' | 'PHONE'
-  ): Promise<ApiResponse<{
-    success: boolean;
-    message: string;
-    otp?: string; // For development only
-  }>> {
+    verificationMethod: "EMAIL" | "PHONE"
+  ): Promise<
+    ApiResponse<{
+      success: boolean;
+      message: string;
+      otp?: string; // For development only
+    }>
+  > {
     try {
-      console.log('Resending OTP:', { userId, verificationMethod });
+      console.log("Resending OTP:", { userId, verificationMethod });
 
       // Add a timeout to the fetch request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
       const response = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           _id: userId, // Backend expects _id, not userId
           verificationMethod,
         }),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       // Clear the timeout
@@ -371,7 +405,7 @@ export class AuthApi {
 
       const data = await response.json();
 
-      console.log('Resend OTP response:', data);
+      console.log("Resend OTP response:", data);
 
       if (response.ok && data.success) {
         return {
@@ -387,22 +421,23 @@ export class AuthApi {
 
       return {
         success: false,
-        message: data.message || 'Failed to resend OTP',
+        message: data.message || "Failed to resend OTP",
       };
     } catch (error) {
-      console.error('Error in resending OTP:', error);
+      console.error("Error in resending OTP:", error);
 
       // Check if it's an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === "AbortError") {
         return {
           success: false,
-          message: 'Request timed out. Please try again.',
+          message: "Request timed out. Please try again.",
         };
       }
 
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to resend OTP',
+        message:
+          error instanceof Error ? error.message : "Failed to resend OTP",
       };
     }
   }

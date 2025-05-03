@@ -149,7 +149,7 @@
   font-weight: bold;
   color: #333;
   cursor: pointer;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   transition: all 0.2s ease;
 }
 
@@ -171,14 +171,21 @@
 
 /* Apply Manrope font to all text in the auth pages */
 .auth-container * {
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
 }
 
 /* Beautiful background pattern */
 .auth-bg-pattern {
-  background-image:
-    radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.2) 2%, transparent 0%),
-    radial-gradient(circle at 75px 75px, rgba(255, 255, 255, 0.2) 2%, transparent 0%);
+  background-image: radial-gradient(
+      circle at 25px 25px,
+      rgba(255, 255, 255, 0.2) 2%,
+      transparent 0%
+    ),
+    radial-gradient(
+      circle at 75px 75px,
+      rgba(255, 255, 255, 0.2) 2%,
+      transparent 0%
+    );
   background-size: 100px 100px;
 }
 
@@ -210,7 +217,7 @@
 }
 
 .figma-label::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -4px;
   left: 50%;
@@ -235,9 +242,15 @@
 
 /* Particle animation */
 @keyframes float {
-  0% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
-  100% { transform: translateY(0px) rotate(0deg); }
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
 }
 
 .floating-particle {
@@ -255,14 +268,28 @@
 
 /* Draggable hint animation */
 @keyframes dragHint {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-3px, -3px); }
-  50% { transform: translate(3px, 3px); }
-  75% { transform: translate(-3px, 3px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-3px, -3px);
+  }
+  50% {
+    transform: translate(3px, 3px);
+  }
+  75% {
+    transform: translate(-3px, 3px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .drag-hint {
   animation: dragHint 2s ease-in-out;
   animation-delay: 3s;
+}
+
+.gradient {
+  @apply !bg-gradient-to-b !from-white/30 !to-transparent bg-black;
 }

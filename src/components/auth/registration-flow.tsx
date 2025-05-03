@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { EmailRegistrationStep } from './registration-steps/email-step';
-import { BasicInfoStep } from './registration-steps/basic-info-step';
-import { EligibilityStep } from './registration-steps/eligibility-step';
-import { SetupStep } from './registration-steps/setup-step';
-import { SecureStep } from './registration-steps/secure-step';
-import { VerificationStep } from './registration-steps/verification-step';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { EmailRegistrationStep } from "./registration-steps/email-step";
+import { BasicInfoStep } from "./registration-steps/basic-info-step";
+import { EligibilityStep } from "./registration-steps/eligibility-step";
+import { SetupStep } from "./registration-steps/setup-step";
+import { SecureStep } from "./registration-steps/secure-step";
+import { VerificationStep } from "./registration-steps/verification-step";
 
 export type RegistrationData = {
   email: string;
@@ -15,29 +15,29 @@ export type RegistrationData = {
   username: string;
   wasReferred: boolean;
   referralCode?: string;
-  accountType: 'MYSELF' | 'SOMEONE_ELSE';
+  accountType: "MYSELF" | "SOMEONE_ELSE";
   dateOfBirth: Date | null;
   countryOfResidence: string;
-  accountCategory: 'PRIMARY_ACCOUNT' | 'SECONDARY_ACCOUNT';
+  accountCategory: "PRIMARY_ACCOUNT" | "SECONDARY_ACCOUNT";
   phoneNumber: string;
   password: string;
-  verificationMethod: 'EMAIL' | 'PHONE';
+  verificationMethod: "EMAIL" | "PHONE";
 };
 
 export const RegistrationFlow = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [registrationData, setRegistrationData] = useState<RegistrationData>({
-    email: '',
-    fullName: '',
-    username: '',
+    email: "",
+    fullName: "",
+    username: "",
     wasReferred: false,
-    accountType: 'MYSELF',
+    accountType: "MYSELF",
     dateOfBirth: null,
-    countryOfResidence: '',
-    accountCategory: 'PRIMARY_ACCOUNT',
-    phoneNumber: '',
-    password: '',
-    verificationMethod: 'EMAIL',
+    countryOfResidence: "",
+    accountCategory: "PRIMARY_ACCOUNT",
+    phoneNumber: "",
+    password: "",
+    verificationMethod: "EMAIL",
   });
 
   const updateRegistrationData = (data: Partial<RegistrationData>) => {
@@ -53,15 +53,34 @@ export const RegistrationFlow = () => {
   };
 
   const steps = [
-    { title: 'Email', component: EmailRegistrationStep, showInProgress: false },
-    { title: 'Get Started', component: BasicInfoStep, showInProgress: true, stepNumber: 1 },
-    { title: 'Eligibility', component: EligibilityStep, showInProgress: true, stepNumber: 2 },
-    { title: 'Set Up', component: SetupStep, showInProgress: true, stepNumber: 3 },
-    { title: 'Secure', component: SecureStep, showInProgress: true, stepNumber: 4 },
-    { title: 'Verify', component: VerificationStep, showInProgress: false },
+    { title: "Email", component: EmailRegistrationStep, showInProgress: false },
+    {
+      title: "Get Started",
+      component: BasicInfoStep,
+      showInProgress: true,
+      stepNumber: 1,
+    },
+    {
+      title: "Eligibility",
+      component: EligibilityStep,
+      showInProgress: true,
+      stepNumber: 2,
+    },
+    {
+      title: "Set Up",
+      component: SetupStep,
+      showInProgress: true,
+      stepNumber: 3,
+    },
+    {
+      title: "Secure",
+      component: SecureStep,
+      showInProgress: true,
+      stepNumber: 4,
+    },
+    { title: "Verify", component: VerificationStep, showInProgress: false },
   ];
 
-  // Animation variants with enhanced transitions
   const variants = {
     enter: (direction: number) => ({
       x: direction > 0 ? 100 : -100,
@@ -79,8 +98,6 @@ export const RegistrationFlow = () => {
       scale: 0.95,
     }),
   };
-
-  // Track the direction of navigation
   const [direction, setDirection] = useState(0);
 
   const handleNext = () => {
@@ -96,7 +113,7 @@ export const RegistrationFlow = () => {
   // Render the progress indicator with animations
   const renderProgressIndicator = () => {
     // Filter steps that should be shown in the progress bar
-    const progressSteps = steps.filter(step => step.showInProgress);
+    const progressSteps = steps.filter((step) => step.showInProgress);
 
     // Animation variants for step circles
     const circleVariants = {
@@ -104,7 +121,7 @@ export const RegistrationFlow = () => {
         scale: 1,
         backgroundColor: "#e5e7eb", // gray-200
         color: "#6b7280", // gray-500
-        transition: { duration: 0.3 }
+        transition: { duration: 0.3 },
       },
       active: {
         scale: [1, 1.1, 1],
@@ -115,27 +132,27 @@ export const RegistrationFlow = () => {
           scale: {
             duration: 0.5,
             times: [0, 0.5, 1],
-            ease: "easeInOut"
-          }
-        }
+            ease: "easeInOut",
+          },
+        },
       },
       completed: {
         backgroundColor: "#000000", // black
         color: "#ffffff", // white
-        transition: { duration: 0.3 }
-      }
+        transition: { duration: 0.3 },
+      },
     };
 
     // Animation variants for connecting lines
     const lineVariants = {
       inactive: {
         backgroundColor: "#e5e7eb", // gray-200
-        transition: { duration: 0.3 }
+        transition: { duration: 0.3 },
       },
       active: {
         backgroundColor: "#000000", // black
-        transition: { duration: 0.5, delay: 0.2 }
-      }
+        transition: { duration: 0.5, delay: 0.2 },
+      },
     };
 
     // Animation variants for step titles
@@ -143,13 +160,13 @@ export const RegistrationFlow = () => {
       inactive: {
         color: "#6b7280", // gray-500
         fontWeight: 400,
-        transition: { duration: 0.3 }
+        transition: { duration: 0.3 },
       },
       active: {
         color: "#000000", // black
         fontWeight: 500,
-        transition: { duration: 0.3 }
-      }
+        transition: { duration: 0.3 },
+      },
     };
 
     return (
@@ -171,7 +188,9 @@ export const RegistrationFlow = () => {
                   className="flex items-center justify-center w-10 h-10 rounded-full"
                   variants={circleVariants}
                   initial="inactive"
-                  animate={isActive ? "active" : isCompleted ? "completed" : "inactive"}
+                  animate={
+                    isActive ? "active" : isCompleted ? "completed" : "inactive"
+                  }
                 >
                   {step.stepNumber}
                 </motion.div>
@@ -189,7 +208,6 @@ export const RegistrationFlow = () => {
           })}
         </div>
 
-        {/* Step titles with animations */}
         <div className="flex items-center mt-2">
           {progressSteps.map((step, index) => {
             const stepIndex = steps.indexOf(step);
@@ -217,38 +235,39 @@ export const RegistrationFlow = () => {
     );
   };
 
-  // Get the current component to render
-  const CurrentStepComponent = steps[currentStep]?.component || EmailRegistrationStep;
+  const CurrentStepComponent =
+    steps[currentStep]?.component || EmailRegistrationStep;
 
   return (
-    <div className="p-6 flex flex-col" style={{ minHeight: 'calc(100vh - 300px)' }}>
-      {steps[currentStep]?.showInProgress && renderProgressIndicator()}
-
-      <AnimatePresence mode="wait" custom={direction}>
-        <motion.div
-          key={currentStep}
-          custom={direction}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.3 },
-            scale: { duration: 0.4 }
-          }}
-          className="flex-1 flex flex-col"
-        >
-          <div className="flex flex-col justify-center flex-1">
-            <CurrentStepComponent
-              registrationData={registrationData}
-              updateRegistrationData={updateRegistrationData}
-              onNext={handleNext}
-              onPrev={handlePrev}
-            />
-          </div>
-        </motion.div>
-      </AnimatePresence>
+    <div className="flex items-center justify-center min-h-screen ">
+      <div className="flex flex-col gap-5 w-full max-w-lg border rounded-xl overflow-hidden p-10">
+        {steps[currentStep]?.showInProgress && renderProgressIndicator()}
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={currentStep}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.3 },
+              scale: { duration: 0.4 },
+            }}
+            className="flex-1 flex flex-col"
+          >
+            <div className="">
+              <CurrentStepComponent
+                registrationData={registrationData}
+                updateRegistrationData={updateRegistrationData}
+                onNext={handleNext}
+                onPrev={handlePrev}
+              />
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

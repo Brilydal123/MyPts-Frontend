@@ -1,23 +1,37 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { BackButton } from '@/components/ui/back-button';
-import { AnimatedButton } from '@/components/ui/animated-button';
-import { motion } from 'framer-motion';
-import { RegistrationData } from '../registration-flow';
-import { authApi } from '@/lib/api/auth-api';
-import { toast } from 'sonner';
-import { UsernameSuggestionsDialog } from '@/components/ui/username-suggestions-dialog';
+import { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { FloatingLabelInput } from "@/components/ui/floating-label-input";
+import { BackButton } from "@/components/ui/back-button";
+import { AnimatedButton } from "@/components/ui/animated-button";
+import { motion } from "framer-motion";
+import { RegistrationData } from "../registration-flow";
+import { authApi } from "@/lib/api/auth-api";
+import { toast } from "sonner";
+import { UsernameSuggestionsDialog } from "@/components/ui/username-suggestions-dialog";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  username: z.string().min(3, 'Username must be at least 3 characters')
-    .regex(/^[a-zA-Z0-9_~.-]+$/, 'Username can only contain letters, numbers, and special characters like _, ~, ., -'),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .regex(
+      /^[a-zA-Z0-9_~.-]+$/,
+      "Username can only contain letters, numbers, and special characters like _, ~, ., -"
+    ),
   wasReferred: z.boolean().optional(),
   referralCode: z.string().optional(),
 });
@@ -36,8 +50,12 @@ export function BasicInfoStep({
   onPrev,
 }: BasicInfoStepProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [referralAnswer, setReferralAnswer] = useState<'yes' | 'no' | null>(
-    registrationData.wasReferred ? 'yes' : registrationData.wasReferred === false ? 'no' : null
+  const [referralAnswer, setReferralAnswer] = useState<"yes" | "no">(
+    registrationData.wasReferred
+      ? "yes"
+      : registrationData.wasReferred === false
+      ? "no"
+      : "no"
   );
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
@@ -45,29 +63,29 @@ export function BasicInfoStep({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: registrationData.fullName || '',
-      username: registrationData.username || '',
+      fullName: registrationData.fullName || "",
+      username: registrationData.username || "",
       wasReferred: registrationData.wasReferred || false,
-      referralCode: registrationData.referralCode || '',
+      referralCode: registrationData.referralCode || "",
     },
-    mode: 'onChange', // Validate on change for real-time feedback
+    mode: "onChange", // Validate on change for real-time feedback
   });
 
-  // Watch form values to determine if all required fields are filled
-  const fullName = form.watch('fullName');
-  const username = form.watch('username');
-  const referralCode = form.watch('referralCode');
+  const fullName = form.watch("fullName");
+  const username = form.watch("username");
+  const referralCode = form.watch("referralCode");
 
   const isFormValid = form.formState.isValid;
-  const isFormComplete = !!fullName && !!username && referralAnswer !== null &&
-    (referralAnswer === 'no' || (
-      referralAnswer === 'yes' && !!referralCode
-    ));
+  const isFormComplete =
+    !!fullName &&
+    !!username &&
+    referralAnswer !== null &&
+    (referralAnswer === "no" || (referralAnswer === "yes" && !!referralCode));
 
   // Handle selecting a suggested username
   const handleSelectUsername = (selectedUsername: string) => {
-    form.setValue('username', selectedUsername);
-    form.clearErrors('username');
+    form.setValue("username", selectedUsername);
+    form.clearErrors("username");
     setUsernameSuggestions([]); // Clear suggestions after selection
     setHasGeneratedSuggestions(false); // Reset the flag
   };
@@ -84,7 +102,9 @@ export function BasicInfoStep({
 
     // Don't clear suggestions if there's an error (username taken)
     if (usernameSuggestions.length > 0 && !form.formState.errors.username) {
-      console.log('Clearing username suggestions because username changed and no errors');
+      console.log(
+        "Clearing username suggestions because username changed and no errors"
+      );
       setUsernameSuggestions([]);
     }
 
@@ -92,14 +112,16 @@ export function BasicInfoStep({
 
     // Skip the check if we've already generated suggestions for this username
     if (hasGeneratedSuggestions && form.formState.errors.username) {
-      console.log('Skipping username check because suggestions were already generated');
+      console.log(
+        "Skipping username check because suggestions were already generated"
+      );
       return;
     }
 
     // Set a loading state for the username field
     const usernameField = document.querySelector('input[name="username"]');
     if (usernameField) {
-      usernameField.classList.add('checking');
+      usernameField.classList.add("checking");
     }
 
     const timer = setTimeout(async () => {
@@ -108,16 +130,17 @@ export function BasicInfoStep({
 
         // If the check was not successful, show a warning but don't block the field
         if (!response.success) {
-          console.warn('Username check failed:', response.message);
+          console.warn("Username check failed:", response.message);
           // We don't set an error here to allow the user to continue typing
         }
         // If the username exists, show an error and generate suggestions
         else if (response.data?.exists) {
-          console.log('Username already taken, generating suggestions');
+          console.log("Username already taken, generating suggestions");
 
-          form.setError('username', {
-            type: 'manual',
-            message: 'This username is already taken. Please choose a different one.'
+          form.setError("username", {
+            type: "manual",
+            message:
+              "This username is already taken. Please choose a different one.",
           });
 
           // Only generate suggestions if we haven't already done so for this username
@@ -132,47 +155,67 @@ export function BasicInfoStep({
             try {
               // Only generate suggestions if we have a full name
               if (!fullName) {
-                console.warn('Cannot generate username suggestions: fullName is empty');
+                console.warn(
+                  "Cannot generate username suggestions: fullName is empty"
+                );
                 setIsGeneratingSuggestions(false);
                 return;
               }
 
-              console.log('Automatically generating username suggestions for:', fullName);
-              const suggestionsResponse = await authApi.generateUsernames(fullName);
-              console.log('Username suggestions response:', suggestionsResponse);
+              console.log(
+                "Automatically generating username suggestions for:",
+                fullName
+              );
+              const suggestionsResponse = await authApi.generateUsernames(
+                fullName
+              );
+              console.log(
+                "Username suggestions response:",
+                suggestionsResponse
+              );
 
-              if (suggestionsResponse.success && suggestionsResponse.data?.usernames.length) {
-                console.log('Setting username suggestions:', suggestionsResponse.data.usernames);
+              if (
+                suggestionsResponse.success &&
+                suggestionsResponse.data?.usernames.length
+              ) {
+                console.log(
+                  "Setting username suggestions:",
+                  suggestionsResponse.data.usernames
+                );
 
                 // Set the suggestions
                 setUsernameSuggestions(suggestionsResponse.data.usernames);
 
                 // Show a toast with the suggestions
-                toast.info('Username suggestions available', {
-                  description: 'We\'ve generated some username suggestions for you below.',
+                toast.info("Username suggestions available", {
+                  description:
+                    "We've generated some username suggestions for you below.",
                 });
               }
             } catch (suggestionError) {
-              console.error('Error generating username suggestions:', suggestionError);
+              console.error(
+                "Error generating username suggestions:",
+                suggestionError
+              );
             } finally {
               setIsGeneratingSuggestions(false);
             }
           }
         } else {
           // Clear any existing errors if the username is available
-          form.clearErrors('username');
+          form.clearErrors("username");
           // Clear any suggestions
           setUsernameSuggestions([]);
           // Reset the flag
           setHasGeneratedSuggestions(false);
         }
       } catch (error) {
-        console.error('Error checking username:', error);
+        console.error("Error checking username:", error);
         // We don't set an error here to allow the user to continue typing
       } finally {
         // Remove loading state
         if (usernameField) {
-          usernameField.classList.remove('checking');
+          usernameField.classList.remove("checking");
         }
       }
     }, 800); // 800ms debounce
@@ -181,7 +224,7 @@ export function BasicInfoStep({
       clearTimeout(timer);
       // Remove loading state on cleanup
       if (usernameField) {
-        usernameField.classList.remove('checking');
+        usernameField.classList.remove("checking");
       }
     };
   }, [username, form, fullName, hasGeneratedSuggestions]);
@@ -190,28 +233,35 @@ export function BasicInfoStep({
     setIsLoading(true);
     try {
       // Check if the username is already taken
-      const usernameCheckResponse = await authApi.checkUsername(values.username);
+      const usernameCheckResponse = await authApi.checkUsername(
+        values.username
+      );
 
       // If the check was not successful (network error, server down, etc.), prevent proceeding
       if (!usernameCheckResponse.success) {
-        toast.error('Unable to verify username availability', {
-          description: usernameCheckResponse.message || 'Please check your connection and try again.',
+        toast.error("Unable to verify username availability", {
+          description:
+            usernameCheckResponse.message ||
+            "Please check your connection and try again.",
         });
-        form.setError('username', {
-          type: 'manual',
-          message: 'Unable to verify if this username is available. Please try again.'
+        form.setError("username", {
+          type: "manual",
+          message:
+            "Unable to verify if this username is available. Please try again.",
         });
         return;
       }
 
       // If the username exists, show error (suggestions will be generated automatically)
       if (usernameCheckResponse.data?.exists) {
-        toast.error('Username already taken', {
-          description: 'Please choose a different username or select one of our suggestions.',
+        toast.error("Username already taken", {
+          description:
+            "Please choose a different username or select one of our suggestions.",
         });
-        form.setError('username', {
-          type: 'manual',
-          message: 'This username is already taken. Please choose a different one.'
+        form.setError("username", {
+          type: "manual",
+          message:
+            "This username is already taken. Please choose a different one.",
         });
 
         // Only generate suggestions if we haven't already done so
@@ -223,18 +273,27 @@ export function BasicInfoStep({
           setIsGeneratingSuggestions(true);
 
           try {
-            console.log('Generating username suggestions on submit for:', values.fullName);
-            const suggestionsResponse = await authApi.generateUsernames(values.fullName);
+            console.log(
+              "Generating username suggestions on submit for:",
+              values.fullName
+            );
+            const suggestionsResponse = await authApi.generateUsernames(
+              values.fullName
+            );
 
-            if (suggestionsResponse.success && suggestionsResponse.data?.usernames.length) {
+            if (
+              suggestionsResponse.success &&
+              suggestionsResponse.data?.usernames.length
+            ) {
               setUsernameSuggestions(suggestionsResponse.data.usernames);
 
-              toast.info('Username suggestions available', {
-                description: 'We\'ve generated some username suggestions for you below.',
+              toast.info("Username suggestions available", {
+                description:
+                  "We've generated some username suggestions for you below.",
               });
             }
           } catch (error) {
-            console.error('Error generating username suggestions:', error);
+            console.error("Error generating username suggestions:", error);
           } finally {
             setIsGeneratingSuggestions(false);
           }
@@ -247,11 +306,11 @@ export function BasicInfoStep({
       const updateData: Partial<RegistrationData> = {
         fullName: values.fullName,
         username: values.username,
-        wasReferred: referralAnswer === 'yes',
+        wasReferred: referralAnswer === "yes",
       };
 
       // Add referral information if user was referred
-      if (referralAnswer === 'yes') {
+      if (referralAnswer === "yes") {
         updateData.referralCode = values.referralCode;
       }
 
@@ -260,46 +319,56 @@ export function BasicInfoStep({
       // Move to the next step
       onNext();
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error checking username', {
-        description: 'Unable to verify username availability. Please check your connection and try again.',
+      console.error("Error:", error);
+      toast.error("Error checking username", {
+        description:
+          "Unable to verify username availability. Please check your connection and try again.",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const acceptanceButtons = [
+    {
+      label: "YES",
+      onClick: () => setReferralAnswer("yes"),
+    },
+    {
+      label: "NO",
+      onClick: () => setReferralAnswer("no"),
+    },
+  ];
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="text-center mb-6">
+    <div className="flex flex-col gap-2">
+      <div>
         <h2 className="text-xl font-semibold mb-1">Let's Get Started...</h2>
-        <p className="text-gray-600 text-sm">
-          Did someone refer you?
-        </p>
+        <p className="text-gray-600 text-sm">Did someone refer you?</p>
       </div>
 
-      <div className="flex justify-center space-x-4 mb-6">
-        <AnimatedButton
-          type="button"
-          className="h-12 w-full"
-          active={referralAnswer === 'yes'}
-          onClick={() => setReferralAnswer('yes')}
-          style={{ backgroundColor: referralAnswer === 'yes' ? 'black' : 'white', color: referralAnswer === 'yes' ? 'white' : 'black', borderColor: 'black', borderWidth: '1px' }}
-        >
-          YES
-        </AnimatedButton>
-        <AnimatedButton
-          type="button"
-          className="h-12 w-full"
-          active={referralAnswer === 'no'}
-          onClick={() => setReferralAnswer('no')}
-          style={{ backgroundColor: referralAnswer === 'no' ? 'black' : 'white', color: referralAnswer === 'no' ? 'white' : 'black', borderColor: 'black', borderWidth: '1px' }}
-        >
-          NO
-        </AnimatedButton>
+      <div className="flex justify-center space-x-4">
+        {acceptanceButtons.map((button) => (
+          <Button
+            key={button.label}
+            variant={
+              referralAnswer === button.label.toLowerCase()
+                ? "default"
+                : "ghost"
+            }
+            onClick={button.onClick}
+            className={cn(
+              "w-full rounded-full border",
+              referralAnswer === button.label.toLowerCase() &&
+                "border-transparent"
+            )}
+          >
+            {button.label}
+          </Button>
+        ))}
       </div>
 
-      <div className="text-sm  mb-4 text-center text-muted-foreground">
+      <div className="text-sm  mb-4 text-muted-foreground">
         Provide some basic information to start your journey.
       </div>
 
@@ -315,7 +384,11 @@ export function BasicInfoStep({
                     label="Full Name"
                     {...field}
                     className={`rounded-md ${
-                      fullName ? (form.formState.errors.fullName ? 'border-red-300' : 'border-green-300') : ''
+                      fullName
+                        ? form.formState.errors.fullName
+                          ? "border-red-300"
+                          : "border-green-300"
+                        : ""
                     }`}
                   />
                 </FormControl>
@@ -334,7 +407,11 @@ export function BasicInfoStep({
                     label="Username"
                     {...field}
                     className={`rounded-md ${
-                      username ? (form.formState.errors.username ? 'border-red-300' : 'border-green-300') : ''
+                      username
+                        ? form.formState.errors.username
+                          ? "border-red-300"
+                          : "border-green-300"
+                        : ""
                     }`}
                   />
                 </FormControl>
@@ -343,10 +420,11 @@ export function BasicInfoStep({
                 {/* Username suggestions */}
                 {/* Debug info */}
                 {(() => {
-                  console.log('Rendering username suggestions section:', {
+                  console.log("Rendering username suggestions section:", {
                     usernameSuggestionsLength: usernameSuggestions.length,
                     isGeneratingSuggestions,
-                    shouldShow: usernameSuggestions.length > 0 || isGeneratingSuggestions
+                    shouldShow:
+                      usernameSuggestions.length > 0 || isGeneratingSuggestions,
                   });
                   return null;
                 })()}
@@ -356,17 +434,19 @@ export function BasicInfoStep({
                   onSelect={handleSelectUsername}
                   onClose={() => setUsernameSuggestions([])}
                   isLoading={isGeneratingSuggestions}
-                  open={usernameSuggestions.length > 0 || isGeneratingSuggestions}
+                  open={
+                    usernameSuggestions.length > 0 || isGeneratingSuggestions
+                  }
                 />
               </FormItem>
             )}
           />
 
           {/* Referral field - only shown when "Yes" is selected */}
-          {referralAnswer === 'yes' && (
+          {referralAnswer === "yes" && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
               className="space-y-4 pt-2"
@@ -391,19 +471,17 @@ export function BasicInfoStep({
           )}
 
           <div className="flex justify-between pt-4">
-            <BackButton
-              onClick={onPrev}
-              className="px-[2rem]"
-            />
+            <Button onClick={onPrev} variant="ghost">
+              <ArrowLeft className="size-4" /> Back
+            </Button>
             <div>
-              <AnimatedButton
+              <Button
                 type="submit"
-                className="h-12 px-10"
-                active={isFormValid && isFormComplete}
+                className="px-16"
                 disabled={isLoading || !isFormValid || !isFormComplete}
               >
-                {isFormComplete ? 'Continue' : 'Complete Form'}
-              </AnimatedButton>
+                {isFormComplete ? "Continue" : "Complete Form"}
+              </Button>
             </div>
           </div>
         </form>
