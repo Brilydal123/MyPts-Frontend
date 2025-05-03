@@ -1,12 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { getStripe } from '@/lib/stripe';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { AnimatedButton } from '../ui/animated-button';
+import { useState, useEffect } from "react";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { getStripe } from "@/lib/stripe";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { toast } from "sonner";
+import { AnimatedButton } from "../ui/animated-button";
 
 interface CheckoutFormProps {
   clientSecret: string;
@@ -17,7 +28,13 @@ interface CheckoutFormProps {
 }
 
 // The form that collects payment details
-function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: CheckoutFormProps) {
+function CheckoutForm({
+  clientSecret,
+  amount,
+  currency,
+  onSuccess,
+  onCancel,
+}: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +46,7 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
   // Check when Stripe is ready
   useEffect(() => {
     if (stripe && elements) {
-      console.log('Stripe and elements are ready');
+      console.log("Stripe and elements are ready");
       setIsStripeReady(true);
       // Give a small delay to ensure the UI is fully rendered
       const timer = setTimeout(() => {
@@ -37,7 +54,7 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
       }, 1000);
       return () => clearTimeout(timer);
     } else {
-      console.log('Waiting for Stripe to initialize...');
+      console.log("Waiting for Stripe to initialize...");
       setIsStripeLoading(true);
     }
   }, [stripe, elements]);
@@ -46,7 +63,7 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
   useEffect(() => {
     if (!stripe || !elements) return;
 
-    const paymentElement = elements.getElement('payment');
+    const paymentElement = elements.getElement("payment");
     if (!paymentElement) return;
 
     // Listen for changes in the payment element
@@ -59,11 +76,11 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
       }
     };
 
-    paymentElement.on('change', onChange);
+    paymentElement.on("change", onChange);
 
     // Cleanup
     return () => {
-      paymentElement.off('change', onChange);
+      paymentElement.off("change", onChange);
     };
   }, [stripe, elements]);
 
@@ -72,16 +89,18 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
 
     if (!stripe || !elements || isStripeLoading) {
       // Stripe.js hasn't loaded yet or is still loading
-      toast.error('Payment system is not ready yet', {
-        description: 'Please wait for the payment form to fully load before proceeding.',
+      toast.error("Payment system is not ready yet", {
+        description:
+          "Please wait for the payment form to fully load before proceeding.",
       });
       return;
     }
 
     // Check if the form is complete
     if (!isFormComplete) {
-      toast.error('Payment information incomplete', {
-        description: 'Please fill in all required payment information before proceeding.',
+      toast.error("Payment information incomplete", {
+        description:
+          "Please fill in all required payment information before proceeding.",
       });
       return;
     }
@@ -90,8 +109,9 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
     setErrorMessage(undefined);
 
     try {
-      toast.info('Processing payment', {
-        description: 'Please do not close this window while your payment is being processed.',
+      toast.info("Processing payment", {
+        description:
+          "Please do not close this window while your payment is being processed.",
       });
 
       const { error, paymentIntent } = await stripe.confirmPayment({
@@ -99,39 +119,47 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
         confirmParams: {
           return_url: `${window.location.origin}/buy/success`,
         },
-        redirect: 'if_required',
+        redirect: "if_required",
       });
 
       if (error) {
-        console.error('Payment error:', error);
+        console.error("Payment error:", error);
         setErrorMessage(error.message);
-        toast.error('Payment failed', {
-          description: error.message || 'There was an issue processing your payment. Please try again.',
+        toast.error("Payment failed", {
+          description:
+            error.message ||
+            "There was an issue processing your payment. Please try again.",
         });
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
         // Call onSuccess first to refresh the balance before showing the toast
         onSuccess();
 
-        toast.success('Payment successful', {
-          description: `Your payment of ${(amount / 100).toFixed(2)} ${currency.toUpperCase()} was successful.`,
+        toast.success("Payment successful", {
+          description: `Your payment of ${(amount / 100).toFixed(
+            2
+          )} ${currency.toUpperCase()} was successful.`,
         });
       } else {
         // Payment requires additional action or is processing
-        toast.info('Payment is processing', {
-          description: 'Your payment is being processed. Please wait...',
+        toast.info("Payment is processing", {
+          description: "Your payment is being processed. Please wait...",
         });
 
         // Check if we need to redirect to success page
-        if (paymentIntent && (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture')) {
+        if (
+          paymentIntent &&
+          (paymentIntent.status === "processing" ||
+            paymentIntent.status === "requires_capture")
+        ) {
           // Redirect to success page to handle the processing status
           window.location.href = `${window.location.origin}/buy/success?payment_intent=${paymentIntent.id}&redirect_status=${paymentIntent.status}`;
         }
       }
     } catch (error) {
-      console.error('Payment error:', error);
-      setErrorMessage('An unexpected error occurred. Please try again.');
-      toast.error('Payment error', {
-        description: 'An unexpected error occurred. Please try again.',
+      console.error("Payment error:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+      toast.error("Payment error", {
+        description: "An unexpected error occurred. Please try again.",
       });
     } finally {
       // Small delay before removing loading state to prevent UI flicker
@@ -149,7 +177,9 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
           <div className="mt-3 w-full flex justify-center">
             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">Please wait while we prepare your payment form</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Please wait while we prepare your payment form
+          </p>
         </div>
       )}
       <div className={isStripeLoading ? "opacity-50 pointer-events-none" : ""}>
@@ -178,13 +208,17 @@ function CheckoutForm({ clientSecret, amount, currency, onSuccess, onCancel }: C
         <div className="max-w-[14rem] w-full">
           <AnimatedButton
             type="submit"
-            className={`auth-button ${!isStripeLoading && !isLoading && isFormComplete ? 'active' : ''} px-[4rem] h-12 relative`}
-            disabled={!isStripeReady || isLoading || isStripeLoading || !isFormComplete}
+            className={`auth-button ${
+              !isStripeLoading && !isLoading && isFormComplete ? "active" : ""
+            } px-[4rem] h-12 relative`}
+            disabled={
+              !isStripeReady || isLoading || isStripeLoading || !isFormComplete
+            }
           >
             {isLoading || isStripeLoading ? (
               <span className="flex items-center justify-center">
                 <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
-                {isLoading ? 'Processing...' : 'Preparing...'}
+                {isLoading ? "Processing..." : "Preparing..."}
               </span>
             ) : (
               `Pay ${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`
@@ -212,12 +246,19 @@ interface StripePaymentProps {
   myPtsAmount?: number; // Add myPtsAmount to show how many MyPts are being purchased
 }
 
-export function StripePayment({ clientSecret, amount, currency, onSuccess, onCancel, myPtsAmount }: StripePaymentProps) {
+export function StripePayment({
+  clientSecret,
+  amount,
+  currency,
+  onSuccess,
+  onCancel,
+  myPtsAmount,
+}: StripePaymentProps) {
   const [stripePromise, setStripePromise] = useState(() => getStripe());
 
   // Log when component mounts
   useEffect(() => {
-    console.log('Stripe payment component mounted, initializing...');
+    console.log("Stripe payment component mounted, initializing...");
   }, []);
 
   if (!clientSecret) {
@@ -249,14 +290,14 @@ export function StripePayment({ clientSecret, amount, currency, onSuccess, onCan
                 {myPtsAmount} MyPts
               </span>
               <span className="text-sm text-muted-foreground">
-                Total charge: {(amount / 100).toFixed(2)} {currency.toUpperCase()}
+                Total charge: {(amount / 100).toFixed(2)}{" "}
+                {currency.toUpperCase()}
               </span>
             </div>
           </div>
         )}
       </CardHeader>
-      <CardContent className='p-1 border-0'>
-
+      <CardContent className="p-1 border-0">
         <Elements stripe={stripePromise} options={{ clientSecret }}>
           <CheckoutForm
             clientSecret={clientSecret}

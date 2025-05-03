@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StripePayment } from "@/components/payment/stripe-payment";
+import { StripePayment } from "../payment/stripe-payment";
 import { AnimatedButton } from "../ui/animated-button";
 // No longer need dialog for invoice
 import { InvoicePreview } from "./invoice-preview";
@@ -299,7 +299,11 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                   <AnimatedButton
                     type="submit"
                     className="auth-button active px-[4rem] h-12"
-                    disabled={isSubmitting || !form.formState.isValid || form.watch("amount") <= 0}
+                    disabled={
+                      isSubmitting ||
+                      !form.formState.isValid ||
+                      form.watch("amount") <= 0
+                    }
                   >
                     {isSubmitting ? "Processing..." : "Continue to Payment"}
                   </AnimatedButton>
