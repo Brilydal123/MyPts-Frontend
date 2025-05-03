@@ -9,7 +9,8 @@ import { ProfileInfo } from '@/components/profile/profile-info';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { useBalance, useMyPtsValue, useTransactions, useReferralData } from '@/hooks/use-mypts-data';
+import { useBalance, useMyPtsValue, useTransactions } from '@/hooks/use-mypts-data';
+import { useReferralData } from '@/hooks/use-referral-data';
 import { useCurrency } from '@/hooks/use-currency';
 
 export default function DashboardPage() {
@@ -43,7 +44,8 @@ export default function DashboardPage() {
   } = useTransactions(pagination.limit, pagination.offset);
 
   const {
-    data: referralData,
+    referralCode,
+    referralCount,
     isLoading: isReferralLoading,
     refetch: refetchReferral
   } = useReferralData();
@@ -64,8 +66,6 @@ export default function DashboardPage() {
 
   // Extract data from query results
   const transactions = transactionsData?.transactions || [];
-  const referralCount = referralData?.referralCount || 0;
-  const referralCode = referralData?.referralCode || '';
 
   // Combined loading state
   const isLoading = isBalanceLoading || isValueLoading || isTransactionsLoading || isReferralLoading;

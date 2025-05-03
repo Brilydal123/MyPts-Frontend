@@ -19,6 +19,7 @@ import { RegistrationData } from "../registration-flow";
 import { authApi } from "@/lib/api/auth-api";
 import { toast } from "sonner";
 import { UsernameSuggestionsDialog } from "@/components/ui/username-suggestions-dialog";
+import ReferralService from "@/services/referralService";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,12 @@ const formSchema = z.object({
       "Username can only contain letters, numbers, and special characters like _, ~, ., -"
     ),
   wasReferred: z.boolean().optional(),
-  referralCode: z.string().optional(),
+  referralCode: z
+    .string()
+    .optional()
+    .refine((val) => !val || val.length >= 6, {
+      message: "Referral code must be at least 6 characters if provided",
+    }),
 });
 
 interface BasicInfoStepProps {
@@ -300,6 +306,38 @@ export function BasicInfoStep({
         }
 
         return;
+      }
+
+      // Validate referral code if provided
+      if (referralAnswer === "yes" && values.referralCode) {
+        try {
+          const validationResult = await ReferralService.validateReferralCode(
+            values.referralCode
+          );
+
+          if (!validationResult.valid) {
+            form.setError("referralCode", {
+              type: "manual",
+              message: "Invalid referral code. Please check and try again.",
+            });
+            toast.error("Invalid referral code", {
+              description:
+                "The referral code you entered is not valid. Please check and try again.",
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Error validating referral code:", error);
+          form.setError("referralCode", {
+            type: "manual",
+            message: "Error validating referral code. Please try again.",
+          });
+          toast.error("Error validating referral code", {
+            description:
+              "We encountered an error while validating your referral code. Please try again.",
+          });
+          return;
+        }
       }
 
       // Update registration data

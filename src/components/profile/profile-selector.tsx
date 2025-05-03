@@ -344,9 +344,9 @@ export function ProfileSelector() {
   // No need to fetch balances separately as they're included in the profile data
   // This comment is kept to explain why we removed the balance fetching code
 
-  const handleSelectProfile = async (profileId: string, profileToken: string) => {
+  const handleSelectProfile = async (profileId: string) => {
     try {
-      console.log('Selecting profile:', { profileId, profileToken });
+      console.log('Selecting profile:', { profileId });
 
       // Find the selected profile to get its name and type
       const selectedProfile = profiles.find(p => p.id === profileId);
@@ -354,10 +354,8 @@ export function ProfileSelector() {
       // Reset redirect attempts counter
       localStorage.setItem('redirectAttempts', '0');
 
-      // Store the profile information in localStorage
-      console.log('Storing profile information in localStorage:', { profileId, profileToken: profileToken ? '[TOKEN]' : 'none' });
+      // Store the profile ID in localStorage
       localStorage.setItem('selectedProfileId', profileId);
-      localStorage.setItem('selectedProfileToken', profileToken || '');
 
       // Also store the profile name and type for display purposes
       if (selectedProfile) {
@@ -365,8 +363,67 @@ export function ProfileSelector() {
         localStorage.setItem('selectedProfileType', selectedProfile.profileType || '');
       }
 
+      // Get the access token from localStorage or session
+      let accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        try {
+          const response = await fetch('/api/auth/session');
+          const session = await response.json();
+          console.log('Session during profile selection:', session);
+
+          // Store the access token in localStorage
+          if (session?.accessToken) {
+            accessToken = session.accessToken;
+            // Ensure accessToken is a string before setting it in localStorage
+            localStorage.setItem('accessToken', session.accessToken);
+            console.log('Access token stored in localStorage');
+          }
+        } catch (sessionError) {
+          console.error('Error getting session:', sessionError);
+        }
+      }
+
+      // Request a profile-specific token from the backend
+      try {
+        console.log('Requesting profile token for profile:', profileId);
+        const profileTokenResponse = await fetch(`/api/profiles/${profileId}/token`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (profileTokenResponse.ok) {
+          const tokenData = await profileTokenResponse.json();
+          if (tokenData.success && tokenData.profileToken) {
+            console.log('Received profile token from backend');
+            localStorage.setItem('selectedProfileToken', tokenData.profileToken);
+          } else {
+            console.warn('Profile token response did not contain a valid token:', tokenData);
+            // Fallback: Use the profile's accessToken if available
+            if (selectedProfile?.accessToken) {
+              localStorage.setItem('selectedProfileToken', selectedProfile.accessToken);
+            }
+          }
+        } else {
+          console.warn('Failed to get profile token from backend, status:', profileTokenResponse.status);
+          // Fallback: Use the profile's accessToken if available
+          if (selectedProfile?.accessToken) {
+            localStorage.setItem('selectedProfileToken', selectedProfile.accessToken);
+          }
+        }
+      } catch (tokenError) {
+        console.error('Error requesting profile token:', tokenError);
+        // Fallback: Use the profile's accessToken if available
+        if (selectedProfile?.accessToken) {
+          localStorage.setItem('selectedProfileToken', selectedProfile.accessToken);
+        }
+      }
+
       // Set cookies for the backend
       try {
+        const profileToken = localStorage.getItem('selectedProfileToken') || '';
         // Call our API endpoint to set cookies
         const cookieResponse = await fetch('/api/profile/set-cookies', {
           method: 'POST',
@@ -387,31 +444,6 @@ export function ProfileSelector() {
         // Continue anyway, as localStorage might be enough
       }
 
-      // Get the session to extract the access token if not already stored
-      if (!localStorage.getItem('accessToken')) {
-        try {
-          const response = await fetch('/api/auth/session');
-          const session = await response.json();
-          console.log('Session during profile selection:', session);
-
-          // Store the access token in localStorage
-          if (session?.accessToken) {
-            localStorage.setItem('accessToken', session.accessToken);
-            console.log('Access token stored in localStorage');
-          }
-        } catch (sessionError) {
-          console.error('Error getting session:', sessionError);
-        }
-      }
-
-      // For social auth users, make sure we're using the correct access token for the profile token
-      // This ensures that the profile token is set correctly for API calls
-      const accessToken = localStorage.getItem('accessToken');
-      if (accessToken && (!profileToken || profileToken === '')) {
-        console.log('Using access token as profile token for social auth user');
-        profileToken = accessToken;
-      }
-
       toast.success('Profile selected');
 
       // Add a small delay before redirecting to ensure localStorage is updated
@@ -428,7 +460,6 @@ export function ProfileSelector() {
           console.warn('Profile ID not properly stored, trying again...');
           // Try storing it again
           localStorage.setItem('selectedProfileId', profileId);
-          localStorage.setItem('selectedProfileToken', profileToken || '');
 
           // Wait a bit longer before redirecting
           setTimeout(() => {
@@ -646,7 +677,7 @@ export function ProfileSelector() {
               onClick={() => {
                 const selectedProfile = profiles.find(p => p.id === selectedProfileId);
                 if (selectedProfile) {
-                  handleSelectProfile(selectedProfile.id, selectedProfile.accessToken);
+                  handleSelectProfile(selectedProfile.id);
                 } else {
                   toast.error('Please select a profile');
                 }

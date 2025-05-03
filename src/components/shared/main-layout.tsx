@@ -16,6 +16,7 @@ import {
   ShoppingBag as BuyIcon,
   DollarSign as SellIcon,
   History as TransactionsIcon,
+  Users as ReferralsIcon,
 } from "lucide-react";
 
 interface MainLayoutProps {
@@ -66,6 +67,11 @@ export function MainLayout({ children }: MainLayoutProps) {
       name: "Transactions",
       href: "/transactions",
       icon: <TransactionsIcon className="h-5 w-5" />,
+    },
+    {
+      name: "Referrals",
+      href: "/dashboard/referrals",
+      icon: <ReferralsIcon className="h-5 w-5" />,
     },
     ...(isAdmin
       ? [

@@ -73,13 +73,40 @@ export default function SelectProfilePage() {
       console.log('Select profile page - hasMultipleProfiles check:', hasMultipleProfiles);
 
       // If the user has a profile ID in the session and doesn't have multiple profiles, redirect to dashboard
-      if (session?.profileId && session?.profileToken && !hasMultipleProfiles) {
+      if (session?.profileId && !hasMultipleProfiles) {
         console.log('Profile found in session and user has only one profile, redirecting to dashboard');
         // Store the profile ID from session in localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem('selectedProfileId', session.profileId);
-          localStorage.setItem('selectedProfileToken', session.profileToken);
           localStorage.setItem('redirectAttempts', '0');
+
+          // Request a profile-specific token from the backend
+          fetch(`/api/profiles/${session.profileId}/token`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.accessToken || localStorage.getItem('accessToken')}`,
+              'Content-Type': 'application/json'
+            }
+          })
+            .then(response => {
+              if (response.ok) {
+                return response.json();
+              }
+              throw new Error('Failed to get profile token');
+            })
+            .then(data => {
+              if (data.success && data.profileToken) {
+                localStorage.setItem('selectedProfileToken', data.profileToken);
+                console.log('Profile token stored successfully');
+              }
+            })
+            .catch(error => {
+              console.error('Error getting profile token:', error);
+              // If we have a profile token in the session, use it as a fallback
+              if (session?.profileToken) {
+                localStorage.setItem('selectedProfileToken', session.profileToken);
+              }
+            });
         }
         router.push('/dashboard');
       } else if (hasMultipleProfiles) {
