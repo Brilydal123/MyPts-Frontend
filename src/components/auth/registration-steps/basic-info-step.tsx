@@ -480,7 +480,6 @@ export function BasicInfoStep({
             )}
           />
 
-          {/* Referral field - only shown when "Yes" is selected */}
           {referralAnswer === "yes" && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
