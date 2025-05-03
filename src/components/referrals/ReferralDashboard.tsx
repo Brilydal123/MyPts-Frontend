@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Clipboard, Share2, Award, Users, RefreshCw } from 'lucide-react';
 import ReferralTree from './ReferralTree';
 import ReferralLeaderboard from './ReferralLeaderboard';
-import ShareReferralModal from './ShareReferralModal';
+import ShareReferralDrawer from './ShareReferralDrawer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -498,8 +498,8 @@ const ReferralDashboard: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Share Referral Modal */}
-      <ShareReferralModal
+      {/* Share Referral Drawer */}
+      <ShareReferralDrawer
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         referralCode={referralStats?.referralCode || ''}

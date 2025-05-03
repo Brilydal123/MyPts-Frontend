@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Clipboard, Mail, Download, Twitter, Facebook, Linkedin } from 'lucide-react';
+import { Clipboard, Mail, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCodeStyling from '@solana/qr-code-styling';
 
@@ -88,14 +88,34 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
   const shareableLink = shareData?.shareableLink || '';
 
 
+  // Function to get QR code size based on screen width
+  const getQRCodeSize = () => {
+    if (typeof window !== 'undefined') {
+      // Get the screen width
+      const screenWidth = window.innerWidth;
+
+      // Adjust size based on screen width
+      if (screenWidth <= 375) {
+        return 200; // Small mobile devices
+      } else if (screenWidth <= 640) {
+        return 250; // Mobile devices
+      } else {
+        return 300; // Tablets and larger
+      }
+    }
+    return 300; // Default size
+  };
+
   // Effect to create and update QR code when data changes
   useEffect(() => {
     if (typeof window !== 'undefined' && qrCodeRef.current && (shareableLink || referralCode)) {
+      const qrSize = getQRCodeSize();
+
       if (!qrCode.current) {
         // Create new QR code instance
         qrCode.current = new QRCodeStyling({
-          width: 300,
-          height: 300,
+          width: qrSize,
+          height: qrSize,
           type: 'svg',
           data: shareableLink || referralCode,
           dotsOptions: {
@@ -119,9 +139,11 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
           }
         });
       } else {
-        // Update existing QR code data
+        // Update existing QR code data and size
         qrCode.current.update({
           data: shareableLink || referralCode,
+          width: qrSize,
+          height: qrSize,
         });
       }
 
@@ -168,16 +190,22 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
       // Small delay to ensure the DOM is ready
       const timer = setTimeout(() => {
         if (qrCodeRef.current) {
+          const qrSize = getQRCodeSize();
+
           // If QR code already exists, just re-append it
           if (qrCode.current) {
             qrCodeRef.current.innerHTML = '';
+            qrCode.current.update({
+              width: qrSize,
+              height: qrSize
+            });
             qrCode.current.append(qrCodeRef.current);
           }
           // Otherwise create a new QR code
           else {
             qrCode.current = new QRCodeStyling({
-              width: 300,
-              height: 300,
+              width: qrSize,
+              height: qrSize,
               type: 'svg',
               data: shareableLink || referralCode,
               dotsOptions: {
@@ -274,8 +302,8 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-0 shadow-2xl max-h-[95vh] overflow-y-auto">
-        {/* Add CSS to make QR code logo rounded */}
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-0 shadow-2xl max-h-[90vh] overflow-y-auto">
+        {/* Add CSS to make QR code logo rounded and improve responsiveness */}
         <style jsx global>{`
           /* Make QR code logo rounded */
           svg image {
@@ -293,24 +321,6 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
             -webkit-mask-size: contain;
             -webkit-mask-repeat: no-repeat;
             -webkit-mask-position: center;
-          }
-
-          /* Responsive QR code container */
-          @media (max-width: 640px) {
-            #qr-code-container {
-              padding: 12px;
-            }
-            #qr-code-container > div {
-              width: 250px !important;
-              height: 250px !important;
-            }
-          }
-
-          @media (max-width: 480px) {
-            #qr-code-container > div {
-              width: 200px !important;
-              height: 200px !important;
-            }
           }
 
           .share-modal-tabs [data-state="active"] {
@@ -335,13 +345,58 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
             transition: all 0.2s ease;
           }
 
+          /* Responsive tab content height */
           .share-modal-tabs-content {
-            min-height: 300px;
+            min-height: auto;
+            max-height: calc(80vh - 150px);
+            overflow-y: auto;
           }
 
+          /* QR code container responsiveness */
+          #qr-code-container {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          #qr-code-container > div {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 300px;
+            max-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          #qr-code-container svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 300px;
+            max-height: 300px;
+          }
+
+          /* Responsive adjustments for mobile */
           @media (max-width: 640px) {
             .share-modal-tabs-content {
-              min-height: 350px;
+              padding-top: 1rem;
+              padding-bottom: 1rem;
+              max-height: calc(80vh - 120px);
+            }
+
+            #qr-code-container {
+              max-width: 250px;
+            }
+          }
+
+          /* Small mobile devices */
+          @media (max-width: 375px) {
+            #qr-code-container {
+              max-width: 200px;
             }
           }
         `}</style>
@@ -474,7 +529,9 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
                         onClick={shareViaTwitter}
                       >
                         <div className="mr-3 p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
-                          <Twitter className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500 dark:text-blue-400">
+                            <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                          </svg>
                         </div>
                         Twitter
                       </Button>
@@ -485,7 +542,9 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
                         onClick={shareViaFacebook}
                       >
                         <div className="mr-3 p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
-                          <Facebook className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-600 dark:text-blue-400">
+                            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                          </svg>
                         </div>
                         Facebook
                       </Button>
@@ -496,7 +555,11 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
                         onClick={shareViaLinkedin}
                       >
                         <div className="mr-3 p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
-                          <Linkedin className="h-4 w-4 text-blue-700 dark:text-blue-400" />
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-700 dark:text-blue-400">
+                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                            <rect x="2" y="9" width="4" height="12"></rect>
+                            <circle cx="4" cy="4" r="2"></circle>
+                          </svg>
                         </div>
                         LinkedIn
                       </Button>
@@ -562,21 +625,14 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
                 <>
                   <div className="flex flex-col items-center">
                     {/* Main content container with subtle gradient background */}
-                    <div className="w-full max-w-xl mx-auto bg-gradient-to-b from-background to-muted/20 rounded-xl overflow-hidden">
+                    <div className="w-full max-w-md mx-auto bg-gradient-to-b from-background to-muted/20 rounded-xl overflow-hidden max-h-[70vh] overflow-y-auto">
                       {/* QR Code Section */}
-                      <div className="flex flex-col items-center pt-8 pb-6">
+                      <div className="flex flex-col items-center pt-4 sm:pt-8 pb-4 sm:pb-6">
                         <div
-                          className="relative bg-white rounded-xl shadow-sm border border-border/40 p-5 flex items-center justify-center"
+                          className="relative bg-white rounded-xl shadow-sm border border-border/40 p-3 sm:p-5"
                           id="qr-code-container"
                         >
-                          <div className="relative w-[300px] h-[300px] max-w-full flex items-center justify-center" ref={qrCodeRef}>
-                            {/* Loading indicator */}
-                            {isShareLinkLoading && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl z-10">
-                                <div className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
-                              </div>
-                            )}
-                          </div>
+                          <div className="relative w-full h-full" ref={qrCodeRef}></div>
 
                           {/* Subtle reflection effect */}
                           <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-xl"></div>
@@ -588,14 +644,14 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
                       </div>
 
                       {/* Logo Options Section */}
-                      <div className="px-6 pb-6">
-                        <div className="bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg p-4">
-                          <h3 className="text-sm font-medium mb-3 flex items-center">
+                      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+                        <div className="bg-background/80 backdrop-blur-sm border border-border/40 rounded-lg p-3 sm:p-4">
+                          <h3 className="text-sm font-medium mb-2 sm:mb-3 flex items-center">
                             <span className="h-1 w-1 rounded-full bg-primary mr-2"></span>
                             Choose Logo Style
                           </h3>
 
-                          <div className="grid grid-cols-4 gap-3">
+                          <div className="grid grid-cols-4 gap-2 sm:gap-3">
                             <div
                               className={`group flex flex-col items-center justify-center cursor-pointer transition-all`}
                               onClick={() => setLogoType('logo1')}
@@ -652,11 +708,11 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center justify-center space-x-3 mt-6">
+                    <div className="flex flex-col sm:flex-row items-center justify-center sm:space-x-3 space-y-2 sm:space-y-0 mt-4 sm:mt-6 px-4">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="rounded-full px-4 border-border/60 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all"
+                        className="rounded-full px-4 border-border/60 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all w-full sm:w-auto"
                         onClick={() => {
                           if (qrCode.current) {
                             try {
@@ -680,7 +736,7 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
                       <Button
                         variant="default"
                         size="sm"
-                        className="rounded-full px-4 transition-all"
+                        className="rounded-full px-4 transition-all w-full sm:w-auto"
                         onClick={() => {
                           try {
                             if (navigator.share) {

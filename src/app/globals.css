@@ -3,6 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -112,17 +122,23 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@utility scrollbar-hidden {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
-    -ms-overflow-style: none;   /* IE and Edge */
-    scrollbar-width: none;      /* Firefox */
-  }
-  body::-webkit-scrollbar {
-    display: none;             /* Chrome, Safari, Opera */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    ::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 
@@ -154,7 +170,7 @@
   font-weight: bold;
   color: #333;
   cursor: pointer;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   transition: all 0.2s ease;
 }
 
@@ -176,14 +192,21 @@
 
 /* Apply Manrope font to all text in the auth pages */
 .auth-container * {
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
 }
 
 /* Beautiful background pattern */
 .auth-bg-pattern {
-  background-image:
-    radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.2) 2%, transparent 0%),
-    radial-gradient(circle at 75px 75px, rgba(255, 255, 255, 0.2) 2%, transparent 0%);
+  background-image: radial-gradient(
+      circle at 25px 25px,
+      rgba(255, 255, 255, 0.2) 2%,
+      transparent 0%
+    ),
+    radial-gradient(
+      circle at 75px 75px,
+      rgba(255, 255, 255, 0.2) 2%,
+      transparent 0%
+    );
   background-size: 100px 100px;
 }
 
@@ -215,7 +238,7 @@
 }
 
 .figma-label::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -4px;
   left: 50%;
@@ -240,9 +263,15 @@
 
 /* Particle animation */
 @keyframes float {
-  0% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
-  100% { transform: translateY(0px) rotate(0deg); }
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
 }
 
 .floating-particle {
@@ -260,11 +289,21 @@
 
 /* Draggable hint animation */
 @keyframes dragHint {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-3px, -3px); }
-  50% { transform: translate(3px, 3px); }
-  75% { transform: translate(-3px, 3px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-3px, -3px);
+  }
+  50% {
+    transform: translate(3px, 3px);
+  }
+  75% {
+    transform: translate(-3px, 3px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .drag-hint {

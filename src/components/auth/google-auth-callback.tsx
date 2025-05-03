@@ -30,10 +30,11 @@ export function GoogleAuthCallback() {
           // Store user data in localStorage
           localStorage.setItem("user", JSON.stringify(response.user));
 
-          // If user has a default profile, store it
+          // If user has a default profile, store the ID but don't set the token yet
+          // The profile token will be generated when the user selects a profile
           if (response.user.profileId) {
             localStorage.setItem("selectedProfileId", response.user.profileId);
-            localStorage.setItem("selectedProfileToken", token);
+            // We don't set selectedProfileToken here anymore
           }
 
           // Redirect to select profile page
