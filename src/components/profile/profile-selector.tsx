@@ -374,7 +374,8 @@ export function ProfileSelector() {
           // Store the access token in localStorage
           if (session?.accessToken) {
             accessToken = session.accessToken;
-            localStorage.setItem('accessToken', accessToken);
+            // Ensure accessToken is a string before setting it in localStorage
+            localStorage.setItem('accessToken', session.accessToken);
             console.log('Access token stored in localStorage');
           }
         } catch (sessionError) {
