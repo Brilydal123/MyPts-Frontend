@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 import { EmailRegistrationStep } from "./registration-steps/email-step";
 import { BasicInfoStep } from "./registration-steps/basic-info-step";
 import { EligibilityStep } from "./registration-steps/eligibility-step";
 import { SetupStep } from "./registration-steps/setup-step";
 import { SecureStep } from "./registration-steps/secure-step";
 import { VerificationStep } from "./registration-steps/verification-step";
+import ReferralService from "@/services/referralService";
 
 export type RegistrationData = {
   email: string;
@@ -25,7 +27,9 @@ export type RegistrationData = {
 };
 
 export const RegistrationFlow = () => {
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isValidatingReferral, setIsValidatingReferral] = useState(false);
   const [registrationData, setRegistrationData] = useState<RegistrationData>({
     email: "",
     fullName: "",
@@ -39,6 +43,41 @@ export const RegistrationFlow = () => {
     password: "",
     verificationMethod: "EMAIL",
   });
+
+  // Extract and validate referral code from URL if present
+  useEffect(() => {
+    const refCode = searchParams?.get('ref');
+    if (refCode) {
+      console.log('Referral code found in URL:', refCode);
+      setIsValidatingReferral(true);
+
+      // Immediately set the referral code in the state to ensure it's available
+      // This ensures the UI shows the referral field right away
+      setRegistrationData(prev => ({
+        ...prev,
+        wasReferred: true,
+        referralCode: refCode
+      }));
+
+      // Then validate the referral code
+      ReferralService.validateReferralCode(refCode)
+        .then(result => {
+          if (result.valid) {
+            console.log('Referral code is valid:', refCode);
+            // Code is already set, no need to update again
+          } else {
+            console.warn('Invalid referral code in URL:', refCode);
+            // We still keep the invalid code in the form for the user to see and potentially fix
+          }
+        })
+        .catch(error => {
+          console.error('Error validating referral code:', error);
+        })
+        .finally(() => {
+          setIsValidatingReferral(false);
+        });
+    }
+  }, []);
 
   const updateRegistrationData = (data: Partial<RegistrationData>) => {
     setRegistrationData((prev) => ({ ...prev, ...data }));

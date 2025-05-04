@@ -101,7 +101,16 @@ export function SecureStep({
         countryOfResidence: registrationData.countryOfResidence,
         verificationMethod: registrationData.verificationMethod,
         accountCategory: registrationData.accountCategory,
+        // Include referral code if the user was referred
+        ...(registrationData.wasReferred && registrationData.referralCode
+          ? { referralCode: registrationData.referralCode }
+          : {}),
       });
+
+      // Log whether referral code was included
+      if (registrationData.wasReferred && registrationData.referralCode) {
+        console.log("Including referral code in registration:", registrationData.referralCode);
+      }
 
       if (!response.success) {
         // Check if the error is due to email already registered
@@ -330,9 +339,8 @@ export function SecureStep({
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
                   <span
-                    className={`text-sm ${
-                      hasMinLength ? "text-green-700" : "text-gray-600"
-                    }`}
+                    className={`text-sm ${hasMinLength ? "text-green-700" : "text-gray-600"
+                      }`}
                   >
                     At least 8 characters
                   </span>
@@ -347,9 +355,8 @@ export function SecureStep({
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
                   <span
-                    className={`text-sm ${
-                      hasUppercase ? "text-green-700" : "text-gray-600"
-                    }`}
+                    className={`text-sm ${hasUppercase ? "text-green-700" : "text-gray-600"
+                      }`}
                   >
                     At least 1 uppercase letter (A-Z)
                   </span>
@@ -364,9 +371,8 @@ export function SecureStep({
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
                   <span
-                    className={`text-sm ${
-                      hasNumber ? "text-green-700" : "text-gray-600"
-                    }`}
+                    className={`text-sm ${hasNumber ? "text-green-700" : "text-gray-600"
+                      }`}
                   >
                     At least 1 number (0-9)
                   </span>
@@ -381,9 +387,8 @@ export function SecureStep({
                     <X size={16} className="text-red-500 mr-2 flex-shrink-0" />
                   )}
                   <span
-                    className={`text-sm ${
-                      hasSpecial ? "text-green-700" : "text-gray-600"
-                    }`}
+                    className={`text-sm ${hasSpecial ? "text-green-700" : "text-gray-600"
+                      }`}
                   >
                     At least 1 special character (!@#$%^&*)
                   </span>

@@ -14,7 +14,7 @@ export const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof wind
 /**
  * Default profile image URL
  */
-export const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+export const DEFAULT_PROFILE_IMAGE = '/images/profileblack.png';
 
 /**
  * JWT token storage key

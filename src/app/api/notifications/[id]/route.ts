@@ -4,8 +4,8 @@ import { authOptions } from '@/lib/auth';
 
 // PUT /api/notifications/:id/read
 export async function PUT(
-  req,
-  params
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the user session
@@ -18,7 +18,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // In a real implementation, you would mark the notification as read in your database
     // For now, we'll just return success
@@ -42,8 +42,8 @@ export async function PUT(
 
 // DELETE /api/notifications/:id
 export async function DELETE(
-  req,
-  params
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the user session
@@ -56,7 +56,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // In a real implementation, you would delete the notification from your database
     // For now, we'll just return success

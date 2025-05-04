@@ -157,6 +157,7 @@ export class AuthApi {
     countryOfResidence: string;
     verificationMethod: "EMAIL" | "PHONE";
     accountCategory: "PRIMARY_ACCOUNT" | "SECONDARY_ACCOUNT";
+    referralCode?: string; // Add referral code parameter
   }): Promise<
     ApiResponse<{
       userId: string;

@@ -1,9 +1,26 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MyPtsBalance } from '@/types/mypts';
-import { ArrowUpRight, ArrowDownRight, Coins, BarChart4 as CurrencyExchange } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useState } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MyPtsBalance } from "@/types/mypts";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Coins,
+  BarChart4 as CurrencyExchange,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { useState } from "react";
 
 interface BalanceCardProps {
   balance: MyPtsBalance;
@@ -14,15 +31,20 @@ interface BalanceCardProps {
 }
 
 const currencies = [
-  { value: 'USD', label: 'USD ($)', symbol: '$' },
-  { value: 'EUR', label: 'EUR (€)', symbol: '€' },
-  { value: 'GBP', label: 'GBP (£)', symbol: '£' },
-  { value: 'XAF', label: 'XAF (FCFA)', symbol: 'FCFA' },
-  { value: 'NGN', label: 'NGN (₦)', symbol: '₦' },
-  { value: 'PKR', label: 'PKR (₨)', symbol: '₨' },
+  { value: "USD", label: "USD ($)", symbol: "$" },
+  { value: "EUR", label: "EUR (€)", symbol: "€" },
+  { value: "GBP", label: "GBP (£)", symbol: "£" },
+  { value: "XAF", label: "XAF (FCFA)", symbol: "FCFA" },
+  { value: "NGN", label: "NGN (₦)", symbol: "₦" },
+  { value: "PKR", label: "PKR (₨)", symbol: "₨" },
 ];
 
-export function BalanceCard({ balance, isLoading = false, onCurrencyChange, currency }: BalanceCardProps) {
+export function BalanceCard({
+  balance,
+  isLoading = false,
+  onCurrencyChange,
+  currency,
+}: BalanceCardProps) {
   const handleCurrencyChange = (value: string) => {
     if (onCurrencyChange) {
       onCurrencyChange(value);
@@ -31,11 +53,11 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
 
   const getDirectConversionValue = (): number => {
     const directConversions: Record<string, number> = {
-      'XAF': 13.61,
-      'EUR': 0.0208,
-      'GBP': 0.0179,
-      'NGN': 38.26,
-      'PKR': 6.74
+      XAF: 13.61,
+      EUR: 0.0208,
+      GBP: 0.0179,
+      NGN: 38.26,
+      PKR: 6.74,
     };
 
     return directConversions[currency] || 0;
@@ -50,11 +72,13 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
   };
 
   const getFormattedTotalValue = (): string => {
-    const currencyInfo = currencies.find(c => c.value === currency);
+    const currencyInfo = currencies.find((c) => c.value === currency);
     const valuePerMyPt = getValuePerMyPt();
     const totalValue = balance.balance * valuePerMyPt;
 
-    return `${currencyInfo?.symbol || balance.value.symbol} ${totalValue.toFixed(2)}`;
+    return `${
+      currencyInfo?.symbol || balance.value.symbol
+    } ${totalValue.toFixed(2)}`;
   };
 
   // Animation variants
@@ -66,8 +90,8 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
       transition: {
         type: "spring",
         stiffness: 100,
-        damping: 15
-      }
+        damping: 15,
+      },
     },
     hover: {
       scale: 1.02,
@@ -75,9 +99,9 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
       transition: {
         type: "spring",
         stiffness: 400,
-        damping: 20
-      }
-    }
+        damping: 20,
+      },
+    },
   };
 
   const itemVariants = {
@@ -88,9 +112,9 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
       transition: {
         type: "spring",
         stiffness: 100,
-        damping: 10
-      }
-    }
+        damping: 10,
+      },
+    },
   };
 
   return (
@@ -99,7 +123,7 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
       initial="hidden"
       animate="visible"
       // whileHover="hover"
-      className="h-full"
+      className=""
     >
       <Card className="overflow-hidden shadow-md h-full border-0 rounded-xl bg-gradient-to-br from-card to-background">
         <CardHeader className="bg-primary rounded-t-md text-primary-foreground p-6">
@@ -122,12 +146,12 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
             </Select>
           </div>
           <CardDescription className="text-primary-foreground/90 mt-2">
-            {currencies.find(c => c.value === currency)?.label || currency}
+            {currencies.find((c) => c.value === currency)?.label || currency}
             <br />
             Your current MyPts balance and equivalent value
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-2 md:p-5">
           {isLoading ? (
             <div className="flex flex-col space-y-4 animate-pulse">
               <div className="h-8 w-3/4 bg-muted rounded-full"></div>
@@ -144,17 +168,25 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
                 className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-primary/5 rounded-xl mb-6"
               >
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Current Balance</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Current Balance
+                  </p>
                   <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                     {balance.balance.toLocaleString()}
                   </p>
                   <p className="text-sm text-muted-foreground">MyPts</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-muted-foreground">Equivalent Value</p>
-                  <p className="text-3xl font-semibold">{getFormattedTotalValue()}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Equivalent Value
+                  </p>
+                  <p className="text-3xl font-semibold">
+                    {getFormattedTotalValue()}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    {currencies.find(c => c.value === currency)?.symbol || balance.value.symbol} {getValuePerMyPt().toFixed(4)} per MyPt
+                    {currencies.find((c) => c.value === currency)?.symbol ||
+                      balance.value.symbol}{" "}
+                    {getValuePerMyPt().toFixed(4)} per MyPt
                   </p>
                 </div>
               </motion.div>
@@ -167,8 +199,12 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
                     <ArrowUpRight className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-green-700">Total Earned</p>
-                    <p className="text-2xl font-bold text-green-800">{balance.lifetimeEarned.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-green-700">
+                      Total Earned
+                    </p>
+                    <p className="text-2xl font-bold text-green-800">
+                      {balance.lifetimeEarned.toLocaleString()}
+                    </p>
                   </div>
                 </motion.div>
                 <motion.div
@@ -179,8 +215,12 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
                     <ArrowDownRight className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-red-700">Total Spent</p>
-                    <p className="text-2xl font-bold text-red-800">{balance.lifetimeSpent.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-red-700">
+                      Total Spent
+                    </p>
+                    <p className="text-2xl font-bold text-red-800">
+                      {balance.lifetimeSpent.toLocaleString()}
+                    </p>
                   </div>
                 </motion.div>
               </div>
@@ -190,7 +230,8 @@ export function BalanceCard({ balance, isLoading = false, onCurrencyChange, curr
                   className="mt-6 text-sm bg-muted/50 p-3 rounded-lg text-muted-foreground flex items-center"
                 >
                   <Coins className="h-4 w-4 mr-2" />
-                  Last transaction: {new Date(balance.lastTransaction).toLocaleString()}
+                  Last transaction:{" "}
+                  {new Date(balance.lastTransaction).toLocaleString()}
                 </motion.div>
               )}
             </>

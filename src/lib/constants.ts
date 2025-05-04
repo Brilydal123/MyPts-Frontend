@@ -3,7 +3,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://my-profile-se
 // Make sure the URL includes the /api path
 
 // API timeout in milliseconds
-export const REQUEST_TIMEOUT = 30000; // 10 seconds
+export const REQUEST_TIMEOUT = 60000; // 10 seconds
 
 // Enable mock mode when server is not available
 export const ENABLE_MOCK_MODE = true; // Set to false in production

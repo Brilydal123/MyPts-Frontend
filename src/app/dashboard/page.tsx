@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/shared/main-layout';
 import { BalanceCard } from '@/components/shared/balance-card';
 import { TransactionList } from '@/components/shared/transaction-list';
-import { DashboardStats } from '@/components/dashboard/dashboard-stats';
+import { DashboardStats } from '@/components/dashboard/dashboard-stats-new';
 import { ProfileInfo } from '@/components/profile/profile-info';
+import { ReferralCard } from '@/components/referrals/ReferralCard';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -126,8 +127,8 @@ export default function DashboardPage() {
           <ProfileInfo />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="md:col-span-1 lg:col-span-1">
             {balance ? (
               <BalanceCard
                 balance={balance}
@@ -138,9 +139,14 @@ export default function DashboardPage() {
             ) : (
               <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
             )}
+
+            {/* Add the new Referral Card */}
+            <div className="mt-6">
+              <ReferralCard />
+            </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 md:col-span-1 lg:col-span-2">
             <h2 className="text-xl font-bold">Recent Transactions</h2>
             <TransactionList
               transactions={transactions}

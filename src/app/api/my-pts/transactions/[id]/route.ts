@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
 export async function GET(
-  request,
-  params
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the session
@@ -18,7 +18,7 @@ export async function GET(
     }
 
     // Get the transaction ID from the URL
-    const id = params.id;
+    const { id } = await params;
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;

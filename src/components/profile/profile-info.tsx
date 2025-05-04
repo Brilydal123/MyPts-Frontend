@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useProfileInfo } from '@/hooks/use-mypts-data';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useProfileInfo } from "@/hooks/use-mypts-data";
 
 interface ProfileInfoProps {
   profileId?: string;
@@ -13,7 +13,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
   const {
     data: profile,
     isLoading: loading,
-    error: queryError
+    error: queryError,
   } = useProfileInfo(profileId);
 
   // Convert query error to string for display
@@ -76,17 +76,21 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
       <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-colors">
         <Avatar className="h-10 w-10 ring-2 ring-primary/10">
           <AvatarImage src={profile.profileImage} alt={profile.name} />
-          <AvatarFallback>{profile.name?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
+          <AvatarFallback>
+            {profile.name?.charAt(0).toUpperCase() || "P"}
+          </AvatarFallback>
         </Avatar>
         <div>
           <h3 className="text-sm font-medium">{profile.name}</h3>
           <p className="text-xs text-muted-foreground">
-            {profile.profileType && (
-              profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)
-            )}
+            {profile.profileType &&
+              profile.profileType.charAt(0).toUpperCase() +
+                profile.profileType.slice(1)}
           </p>
           {profile.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{profile.description}</p>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+              {profile.description}
+            </p>
           )}
         </div>
       </div>
@@ -102,18 +106,20 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
         <div className="flex items-center space-x-4">
           <Avatar className="h-12 w-12 ring-2 ring-primary/10">
             <AvatarImage src={profile.profileImage} alt={profile.name} />
-            <AvatarFallback>{profile.name?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
+            <AvatarFallback>
+              {profile.name?.charAt(0).toUpperCase() || "P"}
+            </AvatarFallback>
           </Avatar>
           <div>
             <h3 className="text-lg font-medium">{profile.name}</h3>
             <p className="text-sm text-muted-foreground">
-              {profile.profileType && (
-                profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)
-              )}
+              {profile.profileType &&
+                profile.profileType.charAt(0).toUpperCase() +
+                  profile.profileType.slice(1)}
             </p>
-            {profile.description && (
+            {/* {profile.description && (
               <p className="text-sm mt-2 text-muted-foreground/90">{profile.description}</p>
-            )}
+            )} */}
           </div>
         </div>
       </CardContent>

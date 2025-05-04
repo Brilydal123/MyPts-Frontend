@@ -9,11 +9,11 @@ import jwt from 'jsonwebtoken';
  * for profile-level operations, separate from the user authentication token
  */
 export async function GET(
-  request,
-   params
+  request: NextRequest,
+  { params }: { params: Promise<{ profileId: string }> }
 ) {
   try {
-    const profileId = params.profileId;
+    const { profileId } = await params;
 
     if (!profileId) {
       return NextResponse.json(

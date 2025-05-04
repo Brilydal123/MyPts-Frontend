@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 export async function GET(
-  request,
-   params
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     // Get the token from the request
     const token = await getToken({
@@ -23,7 +23,7 @@ export async function GET(
     }
 
     // Get the access token from the token
-    const accessToken = token.accessToken ;
+    const accessToken = token.accessToken;
 
     if (!accessToken) {
       return NextResponse.json(
