@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+const publicRoutes = ["/login", "/register"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -29,8 +31,12 @@ export async function middleware(request: NextRequest) {
     hasCustomToken: !!customToken,
     isAuthenticated,
   });
+  // Redirect authenticated users away from auth pages
+  if (isAuthenticated && publicRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
-  // Let the client handle auth redirects
+  // Let the client handle other auth redirects
   return NextResponse.next();
 }
 
