@@ -1,23 +1,15 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
 import { Navbar } from "@/components/shared/navbar";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { LogOut as LogOutIcon, Settings as SettingsIcon } from "lucide-react";
 import Image from "next/image";
-import {
-  Settings as SettingsIcon,
-  LogOut as LogOutIcon,
-  LayoutDashboard as LayoutDashboardIcon,
-  PanelTop as DashboardIcon,
-  ShoppingBag as BuyIcon,
-  DollarSign as SellIcon,
-  History as TransactionsIcon,
-  Users as ReferralsIcon,
-} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ReactNode, useEffect, useState } from "react";
+import { Icons } from "../ui/icons";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -29,28 +21,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Auth check on mount
-  useEffect(() => {
-    const checkAuth = () => {
-      const accessToken = localStorage.getItem('accessToken');
-      const nextAuthToken = localStorage.getItem('next-auth.session-token');
-      const profileToken = localStorage.getItem('selectedProfileToken');
-
-      if (!accessToken && !nextAuthToken && !profileToken) {
-        // Force hard navigation to login
-        window.location.href = '/login';
-        return false;
-      }
-      return true;
-    };
-
-    const isAuth = checkAuth();
-    if (!isAuth) {
-      return; // Return early if not authenticated
-    }
-  }, []);
-
-  // If not authenticated, render nothing
   if (!isAuthenticated) {
     return null;
   }
@@ -59,35 +29,35 @@ export function MainLayout({ children }: MainLayoutProps) {
     {
       name: "Dashboard",
       href: "/dashboard",
-      icon: <LayoutDashboardIcon className="h-5 w-5" />,
+      icon: Icons.dashboard,
     },
-    { name: "Buy", href: "/buy", icon: <BuyIcon className="h-5 w-5" /> },
-    { name: "Sell", href: "/sell", icon: <SellIcon className="h-5 w-5" /> },
+    { name: "Buy", href: "/buy", icon: Icons.buy },
+    { name: "Sell", href: "/sell", icon: Icons.sell },
     {
       name: "Transactions",
       href: "/transactions",
-      icon: <TransactionsIcon className="h-5 w-5" />,
+      icon: Icons.transactions,
     },
     {
       name: "Referrals",
       href: "/dashboard/referrals",
-      icon: <ReferralsIcon className="h-5 w-5" />,
+      icon: Icons.refers,
     },
     ...(isAdmin
       ? [
-        {
-          name: "Admin",
-          href: "/admin",
-          icon: <DashboardIcon className="h-5 w-5" />,
-          isAdmin: true,
-        },
-      ]
+          {
+            name: "Admin",
+            href: "/admin",
+            icon: Icons.dashboard,
+            isAdmin: true,
+          },
+        ]
       : []),
   ];
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   return (
@@ -124,7 +94,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                 />
                 <div className="flex justify-center items-center">
                   <span className="text-white text-3xl font-extrabold">My</span>
-                  <span className="text-white text-2xl font-extralight">Profile</span>
+                  <span className="text-white text-2xl font-extralight">
+                    Profile
+                  </span>
                 </div>
               </Link>
             </div>
@@ -135,13 +107,16 @@ export function MainLayout({ children }: MainLayoutProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center px-3 py-2 rounded-md ${pathname === item.href
-                      ? "bg-white text-black"
-                      : "text-white hover:bg-muted"
-                      } ${item.isAdmin ? "text-primary" : ""}`}
+                    className={`flex items-center px-3 py-2 rounded-md ${
+                      pathname === item.href
+                        ? "bg-white text-black"
+                        : "text-white hover:bg-muted"
+                    } ${item.isAdmin ? "text-primary" : ""}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span className="mr-3">{item.icon}</span>
+                    <span className="mr-3">
+                      {<item.icon className="size-5" />}
+                    </span>
                     <span>{item.name}</span>
                   </Link>
                 ))}
@@ -192,14 +167,16 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Desktop sidebar */}
       <div
-        className={`hidden lg:block fixed left-0 top-0 h-full ${sidebarOpen ? "w-64" : "w-20"
-          } dark:bg-white bg-black transition-all duration-300 z-30`}
+        className={`hidden lg:block fixed left-0 top-0 h-full ${
+          sidebarOpen ? "w-64" : "w-20"
+        } dark:bg-white bg-black transition-all duration-300 z-30`}
       >
         <div
-          className={`relative ${sidebarOpen
-            ? "flex pb-5 items-center px-6 justify-between pt-7"
-            : "flex justify-center items-center pt-7"
-            }`}
+          className={`relative ${
+            sidebarOpen
+              ? "flex pb-5 items-center px-6 justify-between pt-7"
+              : "flex justify-center items-center pt-7"
+          }`}
         >
           {sidebarOpen ? (
             <Link href="/" className="flex items-center space-x-2">
@@ -212,7 +189,9 @@ export function MainLayout({ children }: MainLayoutProps) {
               />
               <div className="flex justify-center items-center">
                 <span className="text-white text-3xl font-extrabold">My</span>
-                <span className="text-white text-2xl font-extralight">Profile</span>
+                <span className="text-white text-2xl font-extralight">
+                  Profile
+                </span>
               </div>
             </Link>
           ) : (
@@ -235,13 +214,17 @@ export function MainLayout({ children }: MainLayoutProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                  } py-2 rounded-md ${pathname === item.href
+                className={`flex items-center ${
+                  sidebarOpen ? "px-3" : "justify-center"
+                } py-2 rounded-md ${
+                  pathname === item.href
                     ? "bg-white text-black"
                     : "text-white hover:bg-muted hover:text-black"
-                  } ${item.isAdmin ? "text-primary" : ""}`}
+                } ${item.isAdmin ? "text-primary" : ""}`}
               >
-                <span className={sidebarOpen ? "mr-3" : ""}>{item.icon}</span>
+                <span className={sidebarOpen ? "mr-3" : ""}>
+                  {<item.icon className="size-5" />}
+                </span>
                 {sidebarOpen && <span>{item.name}</span>}
               </Link>
             ))}
@@ -253,8 +236,9 @@ export function MainLayout({ children }: MainLayoutProps) {
             <div className="space-y-2">
               <Link
                 href="/settings"
-                className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                  } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
+                className={`flex items-center ${
+                  sidebarOpen ? "px-3" : "justify-center"
+                } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
               >
                 <span className={sidebarOpen ? "mr-3" : ""}>
                   <SettingsIcon className="h-5 w-5" />
@@ -263,9 +247,11 @@ export function MainLayout({ children }: MainLayoutProps) {
               </Link>
               <Button
                 variant="ghost"
-                className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                  } py-2 rounded-md text-white hover:bg-muted w-full ${sidebarOpen ? "justify-start" : "justify-center"
-                  }`}
+                className={`flex items-center ${
+                  sidebarOpen ? "px-3" : "justify-center"
+                } py-2 rounded-md text-white hover:bg-muted w-full ${
+                  sidebarOpen ? "justify-start" : "justify-center"
+                }`}
                 onClick={handleLogout}
               >
                 <span className={sidebarOpen ? "mr-2" : ""}>
@@ -307,16 +293,18 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Main Content with padding for sidebar */}
       <main
-        className={`flex-1 ${sidebarOpen ? "lg:ml-64" : "lg:ml-20"
-          } transition-all duration-300 p-4 lg:p-6`}
+        className={`flex-1 ${
+          sidebarOpen ? "lg:ml-64" : "lg:ml-20"
+        } transition-all duration-300 p-4 lg:p-6`}
       >
         {children}
       </main>
 
       {/* Footer */}
       <footer
-        className={`border-t py-6 md:py-0 ${sidebarOpen ? "lg:ml-64" : "lg:ml-20"
-          } transition-all duration-300`}
+        className={`border-t py-6 md:py-0 ${
+          sidebarOpen ? "lg:ml-64" : "lg:ml-20"
+        } transition-all duration-300`}
       >
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
           <p className="text-sm text-white">
@@ -326,7 +314,10 @@ export function MainLayout({ children }: MainLayoutProps) {
             <Link href="/terms" className="text-sm text-white hover:underline">
               Terms
             </Link>
-            <Link href="/privacy" className="text-sm text-white hover:underline">
+            <Link
+              href="/privacy"
+              className="text-sm text-white hover:underline"
+            >
               Privacy
             </Link>
           </div>
