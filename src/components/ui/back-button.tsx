@@ -20,6 +20,7 @@ export function BackButton({
     <Button
       onClick={onClick}
       variant="ghost"
+      type="button"
       className={cn(className, "rounded-full")}
     >
       <ArrowLeft className="size-4" /> {children}

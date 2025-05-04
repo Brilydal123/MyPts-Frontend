@@ -100,7 +100,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-lg border rounded-xl overflow-hidden p-10 gap-5 flex flex-col">
+    <div className="w-full max-w-lg border rounded-xl overflow-hidden p-10 gap-5 flex flex-col bg-white shadow">
       <div>
         <h1 className="text-2xl font-bold">Welcome Back!</h1>
         <p className="text-muted-foreground">

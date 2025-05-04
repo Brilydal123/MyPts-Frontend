@@ -171,7 +171,7 @@ export const RegistrationFlow = () => {
 
     return (
       <motion.div
-        className="flex flex-col items-center justify-center mb-6 mt-8"
+        className="flex flex-col items-center justify-center mb-6"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -239,8 +239,8 @@ export const RegistrationFlow = () => {
     steps[currentStep]?.component || EmailRegistrationStep;
 
   return (
-    <div className="flex items-center justify-center min-h-screen ">
-      <div className="flex flex-col gap-5 w-full max-w-lg border rounded-xl overflow-hidden p-10">
+    <div className="flex items-center justify-center min-h-screen w-full">
+      <div className="flex flex-col gap-5 w-full max-w-lg border rounded-xl overflow-hidden p-10 bg-white shadow">
         {steps[currentStep]?.showInProgress && renderProgressIndicator()}
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
