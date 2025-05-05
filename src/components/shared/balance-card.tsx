@@ -76,9 +76,8 @@ export function BalanceCard({
     const valuePerMyPt = getValuePerMyPt();
     const totalValue = balance.balance * valuePerMyPt;
 
-    return `${
-      currencyInfo?.symbol || balance.value.symbol
-    } ${totalValue.toFixed(2)}`;
+    return `${currencyInfo?.symbol || balance.value.symbol
+      } ${totalValue.toFixed(2)}`;
   };
 
   // Animation variants
@@ -165,25 +164,25 @@ export function BalanceCard({
             <>
               <motion.div
                 variants={itemVariants}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-primary/5 rounded-xl mb-6"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-primary/5 rounded-xl mb-6 balance-equivalent-value"
               >
-                <div>
+                <div className="w-full sm:w-auto">
                   <p className="text-sm font-medium text-muted-foreground">
                     Current Balance
                   </p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                     {balance.balance.toLocaleString()}
                   </p>
                   <p className="text-sm text-muted-foreground">MyPts</p>
                 </div>
-                <div className="text-right">
+                <div className="w-full sm:w-auto text-left sm:text-right mt-2 sm:mt-0">
                   <p className="text-sm font-medium text-muted-foreground">
                     Equivalent Value
                   </p>
-                  <p className="text-3xl font-semibold">
+                  <p className="text-2xl sm:text-3xl font-semibold">
                     {getFormattedTotalValue()}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     {currencies.find((c) => c.value === currency)?.symbol ||
                       balance.value.symbol}{" "}
                     {getValuePerMyPt().toFixed(4)} per MyPt
