@@ -604,11 +604,11 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
       {/* Header is now handled in the main component */}
 
       <Tabs defaultValue="link" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="px-6 sm:px-8 pt-6">
-          <TabsList className="grid w-full grid-cols-3 share-modal-tabs bg-transparent p-0 h-auto">
-            <TabsTrigger value="link" className="data-[state=active]:shadow-none bg-transparent py-2">Link</TabsTrigger>
-            <TabsTrigger value="social" className="data-[state=active]:shadow-none bg-transparent py-2">Social</TabsTrigger>
-            <TabsTrigger value="qr" className="data-[state=active]:shadow-none bg-transparent py-2">QR Code</TabsTrigger>
+        <div className="px-6 sm:px-8 pt-6 overflow-x-auto pb-2">
+          <TabsList className="grid w-full grid-cols-3 share-modal-tabs bg-transparent p-0 h-auto whitespace-nowrap">
+            <TabsTrigger value="link" className="data-[state=active]:shadow-none bg-transparent py-2 flex-1">Link</TabsTrigger>
+            <TabsTrigger value="social" className="data-[state=active]:shadow-none bg-transparent py-2 flex-1">Social</TabsTrigger>
+            <TabsTrigger value="qr" className="data-[state=active]:shadow-none bg-transparent py-2 flex-1">QR Code</TabsTrigger>
           </TabsList>
         </div>
 
@@ -797,7 +797,7 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
           </div>
         </TabsContent>
 
-        <TabsContent value="qr" className="px-6 sm:px-8 py-6 share-modal-tabs-conten">
+        <TabsContent value="qr" className="px-6 sm:px-8 py-6 share-modal-tabs-content">
           <div className="space-y-6">
             {isShareLinkLoading ? (
               <div className="h-full flex flex-col items-center justify-center py-10">

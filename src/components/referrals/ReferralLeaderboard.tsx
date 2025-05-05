@@ -163,25 +163,25 @@ const ReferralLeaderboard: React.FC = () => {
 
       {/* User's position if not in top 10 */}
       {userPosition && (
-        <div className="mb-6 p-4 rounded-lg bg-primary/5 border border-primary/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="flex items-center justify-center h-8 w-8 mr-4">
+        <div className="mb-6 p-3 sm:p-4 rounded-lg bg-primary/5 border border-primary/20">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 sm:gap-0">
+            <div className="flex items-center flex-1 min-w-0">
+              <div className="flex items-center justify-center h-8 w-8 mr-2 sm:mr-4 flex-shrink-0">
                 <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
                   <span className="text-sm font-medium text-primary">#{userPosition.rank}</span>
                 </div>
               </div>
 
-              <Avatar className="h-12 w-12 mr-4 ring-2 ring-offset-2 ring-offset-background ring-primary/30">
+              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mr-2 sm:mr-4 ring-2 ring-offset-2 ring-offset-background ring-primary/30 flex-shrink-0">
                 <AvatarImage src={userPosition.profile?.profileImage} />
                 <AvatarFallback>{userPosition.profile?.name.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
 
-              <div>
-                <p className="font-semibold">
+              <div className="min-w-0">
+                <p className="font-semibold truncate">
                   {userPosition.profile?.name} <span className="text-sm font-normal text-muted-foreground">(You)</span>
                 </p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center flex-wrap gap-2 mt-1">
                   <Badge
                     variant={userPosition.successfulReferrals > 0 ? "default" : "outline"}
                     className={`text-xs transition-colors duration-200
@@ -202,7 +202,7 @@ const ReferralLeaderboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-right pl-4 border-l border-border">
+            <div className="text-right pl-4 border-l border-border w-full sm:w-auto flex-shrink-0">
               <p className="font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                 {userPosition.earnedPoints}
               </p>
@@ -217,22 +217,22 @@ const ReferralLeaderboard: React.FC = () => {
           <div
             key={entry.profile?._id}
             className={`
-              flex items-center p-4 rounded-lg transition-all duration-200
+              flex flex-wrap sm:flex-nowrap items-center p-3 sm:p-4 rounded-lg transition-all duration-200
               ${index === 0 ? 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 shadow-sm' :
                 index === 1 ? 'bg-gray-50 dark:bg-gray-800/20 border border-gray-200 dark:border-gray-800' :
                   index === 2 ? 'bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50' :
                     'bg-muted hover:bg-muted/80'}
-              hover:shadow-md
+              hover:shadow-md gap-2 sm:gap-0
             `}
           >
-            <div className="flex items-center justify-center h-8 w-8 mr-4">
+            <div className="flex items-center justify-center h-8 w-8 mr-2 sm:mr-4 flex-shrink-0">
               {getRankIcon(index + 1)}
             </div>
 
-            <Avatar className="h-12 w-12 mr-4 ring-2 ring-offset-2 ring-offset-background transition-all duration-200
+            <Avatar className={`h-10 w-10 sm:h-12 sm:w-12 mr-2 sm:mr-4 ring-2 ring-offset-2 ring-offset-background transition-all duration-200 flex-shrink-0
               ${index === 0 ? 'ring-yellow-500/50' :
                 index === 1 ? 'ring-gray-400/50' :
-                index === 2 ? 'ring-amber-700/50' : 'ring-primary/20'}"
+                  index === 2 ? 'ring-amber-700/50' : 'ring-primary/20'}`}
             >
               <AvatarImage src={entry.profile?.profileImage} />
               <AvatarFallback>{entry.profile?.name.substring(0, 2).toUpperCase()}</AvatarFallback>
@@ -240,7 +240,7 @@ const ReferralLeaderboard: React.FC = () => {
 
             <div className="flex-1 min-w-0">
               <p className="font-semibold truncate">{entry.profile?.name}</p>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center flex-wrap gap-2 mt-1">
                 <Badge
                   variant={entry.successfulReferrals > 0 ? "default" : "outline"}
                   className={`text-xs transition-colors duration-200
@@ -260,7 +260,7 @@ const ReferralLeaderboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-right pl-4 border-l border-border">
+            <div className="text-right pl-4 border-l border-border w-full sm:w-auto mt-2 sm:mt-0 flex-shrink-0">
               <p className="font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                 {entry.earnedPoints}
               </p>

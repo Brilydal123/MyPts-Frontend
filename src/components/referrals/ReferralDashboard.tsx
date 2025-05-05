@@ -190,26 +190,28 @@ const ReferralDashboard: React.FC = () => {
         onValueChange={setActiveTab}
         className="space-y-8"
       >
-        <TabsList className="inline-flex p-1 bg-muted/50 backdrop-blur-sm rounded-lg border border-border/50">
-          <TabsTrigger
-            value="overview"
-            className="px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-          >
-            Overview
-          </TabsTrigger>
-          <TabsTrigger
-            value="tree"
-            className="px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-          >
-            Referral Tree
-          </TabsTrigger>
-          <TabsTrigger
-            value="leaderboard"
-            className="px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-          >
-            Leaderboard
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2 mb-2">
+          <TabsList className="w-full sm:w-auto flex sm:inline-flex whitespace-nowrap p-1 bg-muted/50 backdrop-blur-sm rounded-lg border border-border/50">
+            <TabsTrigger
+              value="overview"
+              className="flex-1 sm:flex-none px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="tree"
+              className="flex-1 sm:flex-none px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Referral Tree
+            </TabsTrigger>
+            <TabsTrigger
+              value="leaderboard"
+              className="flex-1 sm:flex-none px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Leaderboard
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent
           value="overview"
@@ -468,11 +470,10 @@ const ReferralDashboard: React.FC = () => {
                                 ? "default"
                                 : "outline"
                             }
-                            className={`transition-all duration-200 ${
-                              referral.hasReachedThreshold
+                            className={`transition-all duration-200 ${referral.hasReachedThreshold
                                 ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 ring-1 ring-green-500/20"
                                 : "hover:bg-primary/10"
-                            }`}
+                              }`}
                           >
                             {referral.hasReachedThreshold
                               ? "Qualified"

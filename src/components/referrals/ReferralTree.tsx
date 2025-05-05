@@ -22,10 +22,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
   const hasChildren = node.children && node.children.length > 0;
 
   return (
-    <div className={`ml-6 transition-all duration-200 ease-in-out ${level === 0 ? 'ml-0' : ''}`}>
+    <div className={`ml-2 sm:ml-6 transition-all duration-200 ease-in-out ${level === 0 ? 'ml-0' : ''}`}>
       <div
         className={`
-          flex items-center p-4 rounded-lg
+          flex flex-wrap sm:flex-nowrap items-center p-3 sm:p-4 rounded-lg
           hover:bg-muted/80 active:bg-muted/90 cursor-pointer
           transition-all duration-300 ease-out
           ${level === 0 ? 'bg-gradient-to-r from-primary/5 via-background to-background shadow-sm' : 'hover:shadow-sm'}
@@ -39,7 +39,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
             variant="ghost"
             size="sm"
             className={`
-              p-0 h-6 w-6 mr-3
+              p-0 h-6 w-6 mr-2 sm:mr-3
               transition-transform duration-200
               group-hover:bg-primary/10
               ${isExpanded ? 'rotate-90' : ''}
@@ -48,16 +48,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <div className="w-6 mr-3" />
+          <div className="w-6 mr-2 sm:mr-3" />
         )}
 
-        <Avatar className="h-10 w-10 mr-3 transition-transform duration-200 group-hover:scale-105">
+        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 transition-transform duration-200 group-hover:scale-105">
           <AvatarImage src={node.profileImage} />
           <AvatarFallback>{node.name.substring(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
 
-        <div className="flex-1">
-          <p className="font-medium text-sm">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate">
             {node.name}
             {level === 0 && <span className="ml-2 text-xs text-muted-foreground">(You)</span>}
           </p>
@@ -66,7 +66,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mt-2 sm:mt-0 w-full sm:w-auto justify-end">
           <Badge
             variant={node.successfulReferrals > 0 ? "default" : "outline"}
             className={`text-xs transition-colors duration-200
@@ -90,7 +90,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
         <div
           className={`
             overflow-hidden transition-all duration-300 ease-in-out
-            border-l-2 border-primary/10 pl-4 mt-2 space-y-2
+            border-l-2 border-primary/10 pl-2 sm:pl-4 mt-2 space-y-2
             animate-in slide-in-from-top-2
           `}
           style={{
@@ -157,15 +157,17 @@ const ReferralTree: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-gradient-to-br from-card via-card to-primary/5 border rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-200">
-        <TreeNode node={treeData} level={0} />
+      <div className="bg-gradient-to-br from-card via-card to-primary/5 border rounded-lg p-3 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 overflow-x-auto">
+        <div className="min-w-[300px]">
+          <TreeNode node={treeData} level={0} />
+        </div>
       </div>
 
-      <div className="mt-6 text-sm text-muted-foreground bg-primary/5 p-4 rounded-lg border border-primary/10">
-        <p className="flex items-center">
+      <div className="mt-4 sm:mt-6 text-sm text-muted-foreground bg-primary/5 p-3 sm:p-4 rounded-lg border border-primary/10">
+        <p className="flex flex-wrap items-center">
           <span className="font-medium mr-2">Note:</span>
-          Only profiles that have reached the 1000+ MyPts threshold are shown in the tree.
-          Expand nodes to view more referrals in your network.
+          <span>Only profiles that have reached the 1000+ MyPts threshold are shown in the tree.
+            Expand nodes to view more referrals in your network.</span>
         </p>
       </div>
     </div>
