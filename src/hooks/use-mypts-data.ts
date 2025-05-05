@@ -244,7 +244,7 @@ export function useUnreadNotificationCount() {
         throw new Error('Failed to fetch unread notification count');
       }
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 1 * 60 * 10000, // 10 minute
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
   });
 }

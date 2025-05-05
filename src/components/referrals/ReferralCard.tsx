@@ -9,17 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { 
-  Share2, 
-  RefreshCw, 
-  Users, 
-  Award, 
-  ChevronRight, 
-  Copy, 
+import {
+  Share2,
+  RefreshCw,
+  Users,
+  Award,
+  ChevronRight,
+  Copy,
   Check,
   TrendingUp
 } from "lucide-react";
 import ShareReferralModal from "./ShareReferralModal";
+import { ReferralErrorHandler } from "./referral-error-handler";
 import { cn } from "@/lib/utils";
 
 export function ReferralCard() {
@@ -52,28 +53,7 @@ export function ReferralCard() {
   }
 
   if (error) {
-    return (
-      <Card className="overflow-hidden border border-red-200 bg-red-50/50 dark:bg-red-950/10 dark:border-red-900/50">
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center text-center p-4">
-            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-              <RefreshCw className="h-6 w-6 text-red-500 dark:text-red-400" />
-            </div>
-            <h3 className="text-base font-medium mb-2">Unable to load referral data</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              We couldn't load your referral information. Please try again.
-            </p>
-            <Button 
-              variant="outline" 
-              onClick={() => refetch()}
-              className="bg-background hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" /> Try Again
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <ReferralErrorHandler error={error} onRetry={() => refetch()} />;
   }
 
   const totalReferrals = referralStats?.totalReferrals || 0;
@@ -125,12 +105,12 @@ export function ReferralCard() {
               </Button>
             </div>
 
-            <motion.div 
+            <motion.div
               className="relative group"
               whileHover={{ scale: 1.01 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
             >
-              <div 
+              <div
                 className="flex items-center justify-between bg-muted/30 hover:bg-muted/50 p-4 rounded-xl border border-border/40 cursor-pointer transition-all duration-200"
                 onClick={handleCopyCode}
               >
@@ -173,7 +153,7 @@ export function ReferralCard() {
                   </AnimatePresence>
                 </div>
               </div>
-              
+
               {/* Subtle reflection effect */}
               <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-xl"></div>
             </motion.div>
@@ -181,7 +161,7 @@ export function ReferralCard() {
 
           {/* Stats section */}
           <div className="grid grid-cols-2 gap-3">
-            <motion.div 
+            <motion.div
               className="bg-muted/30 hover:bg-muted/50 p-4 rounded-xl border border-border/40 transition-all duration-200"
               whileHover={{ scale: 1.01, y: -2 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
@@ -207,7 +187,7 @@ export function ReferralCard() {
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="bg-muted/30 hover:bg-muted/50 p-4 rounded-xl border border-border/40 transition-all duration-200"
               whileHover={{ scale: 1.01, y: -2 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
@@ -254,8 +234,8 @@ export function ReferralCard() {
           )}
 
           {/* Call to action */}
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             className="w-full rounded-xl h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
             onClick={() => setIsShareModalOpen(true)}
           >

@@ -115,7 +115,7 @@ export function ReferralStatsCard({
         whileTap={{ scale: 0.99 }}
         onClick={handleCopy}
       >
-        <div className="flex items-center justify-between bg-[#f5f5f7] dark:bg-[#2c2c2e] px-4 py-3 rounded-full">
+        <div className="flex items-center justify-between bg-[#fff8f0] dark:bg-[#2e2922] px-4 py-3 rounded-full">
           <div className="flex items-center overflow-hidden">
             <p className="font-mono text-sm font-medium tracking-wide truncate text-[#1d1d1f] dark:text-[#f5f5f7]">
               {referralCode}
@@ -141,7 +141,7 @@ export function ReferralStatsCard({
                   animate={{ scale: 1 }}
                   exit={{ scale: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="text-[#86868b] dark:text-[#86868b] group-hover:text-[#007AFF] dark:group-hover:text-[#0A84FF] transition-colors duration-200"
+                  className="text-[#86868b] dark:text-[#86868b] group-hover:text-[#FF9500] dark:group-hover:text-[#FF9F0A] transition-colors duration-200"
                 >
                   <Copy className="h-4 w-4" />
                 </motion.div>

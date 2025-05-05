@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getAuthToken } from './auth-helper';
+import { handleNetworkError } from '@/components/shared/error-handlers';
 
 // Create axios instance with default config
 const apiClientInstance = axios.create({
@@ -112,6 +113,13 @@ apiClientInstance.interceptors.response.use(
         url: error.config?.url,
         method: error.config?.method
       });
+
+      // Handle network errors with our custom handler
+      if (error.message === 'Network Error') {
+        // Don't show toast here as it would appear for every failed request
+        // Let the components handle the UI feedback
+        handleNetworkError(error, { showToast: false });
+      }
     } else {
       // Something happened in setting up the request that triggered an Error
       console.error('API Error Setup:', {
