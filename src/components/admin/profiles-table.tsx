@@ -44,11 +44,15 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const handleViewProfile = (profile: any) => {
-    window.open(`/profiles/${profile._id}`, '_blank');
+    // Navigate to a profile detail view in the admin section
+    router.push(`/admin/profiles/${profile._id}`);
+    toast.info(`Viewing profile: ${profile.name}`);
   };
 
   const handleEditProfile = (profile: any) => {
-    window.open(`/profiles/${profile._id}/edit`, '_blank');
+    // Navigate to the profile edit page in the admin section
+    router.push(`/admin/profiles/edit/${profile._id}`);
+    toast.info(`Editing profile: ${profile.name}`);
   };
 
   const handleRewardProfile = (profile: any) => {

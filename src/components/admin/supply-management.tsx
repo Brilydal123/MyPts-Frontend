@@ -302,7 +302,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                         />
                       </FormControl>
                       <FormDescription>
-                        Number of new MyPts to create and add to reserve
+                        Number of new MyPts to create and add to holding
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -353,8 +353,8 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     <span>{hubState.totalSupply.toLocaleString()} MyPts</span>
                   </div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Current reserve supply:</span>
-                    <span>{hubState.reserveSupply.toLocaleString()} MyPts</span>
+                    <span className="text-muted-foreground">Current holding :</span>
+                    <span>{hubState.holdingSupply.toLocaleString()} MyPts</span>
                   </div>
                   <div className="flex justify-between font-medium border-t pt-2 mt-2">
                     <span>New total supply after issuance:</span>
@@ -384,14 +384,14 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                         <Input
                           type="number"
                           min="1"
-                          max={hubState.reserveSupply}
+                          max={hubState.holdingSupply}
                           placeholder="0"
                           {...field}
                           onChange={(e) => field.onChange(Number(e.target.value))}
                         />
                       </FormControl>
                       <FormDescription>
-                        Number of MyPts to move from reserve to circulation
+                        Number of MyPts to move from holding to circulation
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -405,7 +405,7 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     <FormItem>
                       <FormLabel>Reason</FormLabel>
                       <FormControl>
-                        <Input placeholder="Reason for moving MyPts to circulation" {...field} />
+                        <Input placeholder="Reason for moving MyPts from holding to circulation" {...field} />
                       </FormControl>
                       <FormDescription>
                         Provide a clear reason for this operation
@@ -438,15 +438,15 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
 
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Current reserve supply:</span>
+                    <span className="text-muted-foreground">Current reserve :</span>
                     <span>{hubState.reserveSupply.toLocaleString()} MyPts</span>
                   </div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Current circulating supply:</span>
+                    <span className="text-muted-foreground">Current circulating:</span>
                     <span>{hubState.circulatingSupply.toLocaleString()} MyPts</span>
                   </div>
                   <div className="flex justify-between font-medium border-t pt-2 mt-2">
-                    <span>New circulating supply:</span>
+                    <span>New circulating :</span>
                     <span>
                       {(hubState.circulatingSupply + (moveToCirculationForm.watch('amount') || 0)).toLocaleString()} MyPts
                     </span>
@@ -539,11 +539,11 @@ export function SupplyManagement({ hubState, onSuccess }: SupplyManagementProps)
                     <span>{hubState.circulatingSupply.toLocaleString()} MyPts</span>
                   </div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Current reserve supply:</span>
+                    <span className="text-muted-foreground">Current reserve :</span>
                     <span>{hubState.reserveSupply.toLocaleString()} MyPts</span>
                   </div>
                   <div className="flex justify-between font-medium border-t pt-2 mt-2">
-                    <span>New reserve supply:</span>
+                    <span>New reserve :</span>
                     <span>
                       {(hubState.reserveSupply + (moveToReserveForm.watch('amount') || 0)).toLocaleString()} MyPts
                     </span>

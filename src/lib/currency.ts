@@ -113,22 +113,15 @@ export function convertCurrency(
 
 /**
  * Get the direct conversion value for MyPts to a specific currency
- * These are the preferred conversion rates specifically calibrated for MyPts
- * Each value represents how many units of the currency one MyPt is worth
- * For example: 1 MyPt = 13.61 XAF, 1 MyPt = 0.0208 EUR, etc.
+ *
+ * NOTE: This function is now deprecated and should not be used directly.
+ * It's kept for backward compatibility but will always return 0 to force
+ * the use of actual exchange rates from the API.
  *
  * @param currency The target currency code
- * @returns The conversion rate or 0 if not available
+ * @returns Always returns 0 to force the use of actual exchange rates
  */
 export function getDirectConversionValue(currency: string): number {
-  const directConversions: Record<string, number> = {
-    XAF: 13.61,    // 1 MyPt = 13.61 XAF
-    EUR: 0.0208,   // 1 MyPt = 0.0208 EUR
-    GBP: 0.0179,   // 1 MyPt = 0.0179 GBP
-    NGN: 38.26,    // 1 MyPt = 38.26 NGN
-    PKR: 6.74,     // 1 MyPt = 6.74 PKR
-    USD: 0.024,    // 1 MyPt = 0.024 USD (Base value)
-  };
-
-  return directConversions[currency] || 0;
+  // Return 0 to force the use of actual exchange rates from the API
+  return 0;
 }

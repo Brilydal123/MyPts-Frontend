@@ -54,26 +54,65 @@ export async function GET(
 
       // Check if we should use cache or make a fresh request
       const useCache = _req.nextUrl.searchParams.get('force') !== 'true';
-      const cacheDuration = 3600; // Cache for 1 hour by default
+      const cacheDuration = 86400; // Cache for 24 hours by default to conserve API quota
 
       console.log(`[BACKEND] Cache settings: useCache=${useCache}, cacheDuration=${cacheDuration} seconds`);
 
-      response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Request-ID': requestId, // Add a custom header for tracking
-        },
-        signal: controller.signal,
-        // Use caching based on the request parameter
-        cache: useCache ? 'force-cache' : 'no-store',
-        next: {
-          revalidate: useCache ? cacheDuration : 0 // Cache for the specified duration or disable caching
-        }
-      });
+      try {
+        // Set a shorter timeout for the fetch request
+        const fetchTimeout = 5000; // 5 seconds timeout
 
-      // Clear the timeout
-      clearTimeout(timeoutId);
+        // Create a promise that rejects after the timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            controller.abort(); // Abort the fetch request
+            reject(new Error(`Fetch timeout after ${fetchTimeout}ms`));
+          }, fetchTimeout);
+        });
+
+        // Race the fetch request against the timeout
+        const raceResult = await Promise.race([
+          fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Request-ID': requestId, // Add a custom header for tracking
+            },
+            signal: controller.signal,
+            // Use caching based on the request parameter
+            cache: useCache ? 'force-cache' : 'no-store',
+            next: {
+              revalidate: useCache ? cacheDuration : 0 // Cache for the specified duration or disable caching
+            }
+          }),
+          timeoutPromise
+        ]) as Response;
+
+        response = raceResult;
+      } catch (error) {
+        console.error(`Fetch timeout for ${baseCurrency}, using fallback`);
+
+        // Return a fallback response with default rates
+        return NextResponse.json({
+          success: true,
+          data: {
+            base: baseCurrency,
+            rates: {
+              USD: 1.0,
+              EUR: 0.92,
+              GBP: 0.79,
+              XAF: 603.45,
+              NGN: 1550.75,
+              PKR: 278.65
+            },
+            lastUpdated: new Date().toISOString(),
+            nextUpdate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+            _isFallback: true
+          }
+        });
+      }
+
+      // No timeout to clear here
 
       console.log(`[BACKEND] ExchangeRate API response received at: ${new Date().toISOString()}`);
       console.log(`[BACKEND] ExchangeRate API response status: ${response.status} ${response.statusText}`);

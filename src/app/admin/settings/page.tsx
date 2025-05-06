@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { myPtsHubApi, myPtsValueApi } from '@/lib/api/mypts-api';
+import { adminApi } from '@/lib/api/admin-api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,16 @@ function AdminSettings() {
   const [isUnlimited, setIsUnlimited] = useState(true);
   const [adjustReason, setAdjustReason] = useState('Adjustment from admin panel');
 
+  // State for admin details
+  const [adminName, setAdminName] = useState<string>('');
+  const [adminEmail, setAdminEmail] = useState<string>('');
+  const [adminDepartment, setAdminDepartment] = useState<string>('');
+  const [adminRole, setAdminRole] = useState<string>('');
+  const [systemName, setSystemName] = useState<string>('');
+  const [lastLogin, setLastLogin] = useState<string>('');
+  const [securityLevel, setSecurityLevel] = useState<string>('');
+  const [accountStatus, setAccountStatus] = useState<string>('');
+
   // State for mutations
   const [isUpdatingValue, setIsUpdatingValue] = useState(false);
   const [isAdjustingMaxSupply, setIsAdjustingMaxSupply] = useState(false);
@@ -67,6 +78,37 @@ function AdminSettings() {
         setValuePerMyPt(response.data.valuePerMyPt.toString());
         setIsUnlimited(response.data.maxSupply === null);
         setMaxSupply(response.data.maxSupply?.toString() || '');
+      }
+
+      return response.data;
+    },
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch admin details
+  const {
+    data: adminDetails,
+    isLoading: isAdminDetailsLoading,
+    isError: isAdminDetailsError,
+    refetch: refetchAdminDetails
+  } = useQuery({
+    queryKey: ['adminDetails'],
+    queryFn: async () => {
+      const response = await adminApi.getAdminDetails();
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch admin details');
+      }
+
+      // Set initial values
+      if (response.data) {
+        setAdminName(response.data.name || '');
+        setAdminEmail(response.data.email || '');
+        setAdminDepartment(response.data.department || '');
+        setAdminRole(response.data.role || '');
+        setSystemName(response.data.systemName || '');
+        setLastLogin(response.data.lastLogin || '');
+        setSecurityLevel(response.data.securityLevel || '');
+        setAccountStatus(response.data.accountStatus || '');
       }
 
       return response.data;
@@ -366,35 +408,70 @@ function AdminSettings() {
                   <h3 className="text-lg font-medium">General Settings</h3>
                   <Separator />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="systemName">System Name</Label>
-                      <Input
-                        id="systemName"
-                        placeholder="MyPts System"
-                        defaultValue="MyPts System"
-                        disabled
-                      />
+                  {isAdminDetailsLoading ? (
+                    <div className="space-y-4">
+                      <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
+                      <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse"></div>
                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="systemName" className="text-gray-700 dark:text-gray-300">System Name</Label>
+                        <Input
+                          id="systemName"
+                          placeholder="MyPts System"
+                          value={systemName}
+                          onChange={(e) => setSystemName(e.target.value)}
+                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="adminEmail">Admin Email</Label>
-                      <Input
-                        id="adminEmail"
-                        type="email"
-                        placeholder="admin@example.com"
-                        defaultValue="admin@example.com"
-                        disabled
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="adminEmail" className="text-gray-700 dark:text-gray-300">Admin Email</Label>
+                        <Input
+                          id="adminEmail"
+                          type="email"
+                          placeholder="admin@example.com"
+                          value={adminEmail}
+                          onChange={(e) => setAdminEmail(e.target.value)}
+                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="space-y-2 pt-2">
+                  {!isAdminDetailsLoading && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="adminName" className="text-gray-700 dark:text-gray-300">Admin Name</Label>
+                        <Input
+                          id="adminName"
+                          placeholder="Admin Name"
+                          value={adminName}
+                          onChange={(e) => setAdminName(e.target.value)}
+                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="adminDepartment" className="text-gray-700 dark:text-gray-300">Department</Label>
+                        <Input
+                          id="adminDepartment"
+                          placeholder="Department"
+                          value={adminDepartment}
+                          onChange={(e) => setAdminDepartment(e.target.value)}
+                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 pt-4">
                     <div className="flex items-center space-x-2">
-                      <Switch id="maintenanceMode" disabled />
-                      <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
+                      <Switch id="maintenanceMode" />
+                      <Label htmlFor="maintenanceMode" className="text-gray-700 dark:text-gray-300">Maintenance Mode</Label>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       When enabled, the system will be in maintenance mode and users will not be able to perform transactions.
                     </p>
                   </div>

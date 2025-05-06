@@ -39,11 +39,15 @@ apiClientInstance.interceptors.request.use(
           config.headers['X-Profile-Token'] = profileToken;
         }
 
-        // Add profile ID as a query parameter if available
+        // Add profile ID as a query parameter if available and not an admin route
         const profileId = localStorage.getItem('selectedProfileId');
-        if (profileId && config.url && !config.url.includes('profileId=')) {
+        const isAdminRoute = config.url && (config.url.includes('/admin/') || config.url.startsWith('/admin'));
+        
+        // Skip adding profileId for admin routes since admins don't have profiles
+        if (profileId && config.url && !config.url.includes('profileId=') && !isAdminRoute) {
           const separator = config.url.includes('?') ? '&' : '?';
           config.url = `${config.url}${separator}profileId=${profileId}`;
+          console.log(`Added profileId to request URL: ${config.url}`);
         }
       } catch (error) {
         console.error('Error setting auth headers:', error);

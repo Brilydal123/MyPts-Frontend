@@ -16,7 +16,7 @@ import { useCurrency } from '@/hooks/use-currency';
 
 export default function DashboardPage() {
   // Use global currency state
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, isSwitchingCurrency } = useCurrency();
 
   const [pagination, setPagination] = useState({
     total: 0,
@@ -69,7 +69,7 @@ export default function DashboardPage() {
   const transactions = transactionsData?.transactions || [];
 
   // Combined loading state
-  const isLoading = isBalanceLoading || isValueLoading || isTransactionsLoading || isReferralLoading;
+  const isLoading = isBalanceLoading || isValueLoading || isTransactionsLoading || isReferralLoading || isSwitchingCurrency;
 
   // Refresh all data
   const refreshAllData = () => {
@@ -81,6 +81,12 @@ export default function DashboardPage() {
   };
 
   const handleCurrencyChange = (newCurrency: string) => {
+    // Don't do anything if the currency is the same
+    if (newCurrency === currency) return;
+
+    // Show a toast message
+    toast.info(`Switching to ${newCurrency}...`);
+
     // Update the global currency state
     setCurrency(newCurrency);
   };

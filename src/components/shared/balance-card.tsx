@@ -23,6 +23,7 @@ import {
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
+import { useCachedExchangeRates } from "@/hooks/use-cached-exchange-rates";
 import { formatCurrency, getDirectConversionValue } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 
@@ -56,24 +57,21 @@ export function BalanceCard({
     }
   };
 
-  // Fetch exchange rates using our custom hook
+  // Use our cached exchange rates hook to prevent excessive API calls
   const {
-    data: exchangeRates,
+    exchangeRates,
     isLoading: isLoadingRates,
-    refetch: refetchRates
-  } = useExchangeRates('USD');
+    forceRefresh: refetchRates,
+    lastFetchTime
+  } = useCachedExchangeRates();
 
   // State to track if we're using API rates or fallback rates
   const [usingFallbackRates, setUsingFallbackRates] = useState(false);
 
   // State to store the calculated value per MyPt
   const [valuePerMyPt, setValuePerMyPt] = useState<number>(() => {
-    // Initialize with direct conversion or value from balance
-    const directValue = getDirectConversionValue(currency);
-    if (directValue > 0) {
-      return directValue;
-    }
-    return balance.value.valuePerMyPt;
+    // Initialize with value from balance
+    return balance.value.valuePerMyPt || 0.024;
   });
 
   // State to store the formatted total value
@@ -94,47 +92,31 @@ export function BalanceCard({
 
     // If we have exchange rates from the API
     if (exchangeRates) {
-      // Base value of MyPts in USD
-      const baseValueInUsd = 0.024;
+      // Base value of MyPts in USD (use the actual value from the balance object)
+      const baseValueInUsd = balance.value.valuePerMyPt || 0.024;
 
       // If the selected currency is USD, use the base value
       if (currency === 'USD') {
         newValue = baseValueInUsd;
       } else {
-        // Check if we have a direct conversion value first (preferred method)
-        const directValue = getDirectConversionValue(currency);
-        if (directValue > 0) {
-          // Use the direct conversion value as it's specifically calibrated for MyPts
-          newValue = directValue;
-          // We're using hardcoded values, but they're the preferred ones for MyPts
+        // Get the exchange rate for the selected currency from the API
+        const rate = exchangeRates.rates[currency];
+
+        // If we have a rate, calculate the value
+        if (rate) {
+          // Convert USD value to target currency
+          newValue = baseValueInUsd * rate;
           useFallback = false;
         } else {
-          // Get the exchange rate for the selected currency from the API
-          const rate = exchangeRates.rates[currency];
-
-          // If we have a rate, calculate the value
-          if (rate) {
-            // Convert USD value to target currency
-            newValue = baseValueInUsd * rate;
-            useFallback = false;
-          } else {
-            // Last resort: use the value from the balance object
-            newValue = balance.value.valuePerMyPt;
-            useFallback = true;
-          }
+          // Last resort: use the value from the balance object
+          newValue = balance.value.valuePerMyPt;
+          useFallback = true;
         }
       }
     } else {
-      // No exchange rates, use fallback
-      const directValue = getDirectConversionValue(currency);
-      if (directValue > 0) {
-        newValue = directValue;
-        useFallback = true;
-      } else {
-        // Last resort: use the value from the balance object
-        newValue = balance.value.valuePerMyPt;
-        useFallback = true;
-      }
+      // No exchange rates, use fallback from the balance object
+      newValue = balance.value.valuePerMyPt || 0.024;
+      useFallback = true;
     }
 
     // Update state

@@ -25,7 +25,7 @@ export function TokenomicsChart({ hubState, isLoading = false }: TokenomicsChart
 
   // Calculate percentages
   const circulatingPercentage = (hubState.circulatingSupply / hubState.totalSupply) * 100;
-  const holdingPercentage = (hubState.reserveSupply / hubState.totalSupply) * 100;
+  const holdingPercentage = (hubState.holdingSupply / hubState.totalSupply) * 100;
 
   return (
     <Card className="overflow-hidden backdrop-blur-sm bg-white/90 dark:bg-black/80 border border-gray-100 dark:border-gray-800 shadow-sm">
@@ -92,7 +92,7 @@ export function TokenomicsChart({ hubState, isLoading = false }: TokenomicsChart
               <div className="bg-gray-50 dark:bg-gray-900 p-5 rounded-lg border border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600"></div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">Circulating Supply</h3>
+                  <h3 className="font-medium text-gray-900 dark:text-white">Circulating </h3>
                 </div>
                 <p className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{formatNumber(hubState.circulatingSupply)}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{circulatingPercentage.toFixed(2)}% of total</p>
@@ -106,10 +106,10 @@ export function TokenomicsChart({ hubState, isLoading = false }: TokenomicsChart
                   <div className="w-4 h-4 rounded-full bg-gray-700 dark:bg-gray-300"></div>
                   <h3 className="font-medium text-gray-900 dark:text-white">Holding (Reserve)</h3>
                 </div>
-                <p className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{formatNumber(hubState.reserveSupply)}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{formatNumber(hubState.holdingSupply)}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{holdingPercentage.toFixed(2)}% of total</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Value: {formatCurrency(hubState.reserveSupply * hubState.valuePerMyPt)}
+                  Value: {formatCurrency(hubState.holdingSupply * hubState.valuePerMyPt)}
                 </p>
               </div>
             </div>

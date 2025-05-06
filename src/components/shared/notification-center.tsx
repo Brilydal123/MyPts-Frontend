@@ -144,9 +144,12 @@ export function NotificationCenter() {
             >
               <Bell className="h-[18px] w-[18px]" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white shadow-sm ring-2 ring-background">
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 h-4 w-4 min-w-[1rem] p-0.5 text-[10px] flex items-center justify-center rounded-full bg-red-500 text-white shadow-md"
+                >
                   {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
+                </Badge>
               )}
             </Button>
           </TooltipTrigger>
@@ -164,12 +167,9 @@ export function NotificationCenter() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-16 right-0 left-0 mx-auto md:mx-0 md:left-auto md:absolute md:right-0 md:top-auto md:mt-2 w-[95%] max-w-[30rem] sm:w-[30rem] bg-card rounded-lg shadow-lg border z-50 max-h-[80vh] overflow-hidden notification-panel"
-            style={{
-              maxHeight: 'calc(100vh - 5rem)'
-            }}
+            className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right backdrop-blur-md bg-white/75 dark:bg-neutral-900/75 border border-neutral-200/70 dark:border-neutral-800/70 rounded-2xl shadow-lg dark:shadow-2xl shadow-neutral-400/20 dark:shadow-black/30 z-50 overflow-hidden"
           >
-            <div className="p-3 sm:p-4 border-b flex items-center justify-between">
+            <div className="p-3 sm:p-4 border-b border-neutral-200/70 dark:border-neutral-800/70">
               <h3 className="font-semibold text-sm sm:text-base">Notifications</h3>
               <div className="flex items-center gap-1 sm:gap-2">
                 <Button

@@ -28,6 +28,20 @@ class AdminApi {
   }
 
   /**
+   * Get admin details
+   */
+  async getAdminDetails() {
+    try {
+      // Use the correct API endpoint that matches the backend route
+      const response = await apiClient.get('/admin/details');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting admin details:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Mark notification as read
    */
   async markNotificationAsRead(notificationId: string) {

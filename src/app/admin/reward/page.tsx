@@ -366,13 +366,13 @@ export default function RewardMyPtsPage() {
     <div className="space-y-10 p-6 md:p-12 bg-gray-50 min-h-screen font-sans">
       <div className="flex justify-between items-center">
         {/* Keep heading prominent but clean */}
-        <h1 className="text-3xl font-semibold text-gray-900">Reward MyPts</h1>
+        <h1 className="text-3xl font-semibold text-gray-900">Award MyPts</h1>
       </div>
 
       {/* Increase gap between columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 ">
         {/* Profile Search Card - Softer corners, more padding */}
-        <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
+        <Card className="border-none shadow-sm  rounded-xl overflow-hidden">
           {/* Increase header padding, make refresh button ghost */}
           <CardHeader className="flex flex-row items-start justify-between space-y-0 px-8 pt-8 pb-4">
             <div>
@@ -380,7 +380,7 @@ export default function RewardMyPtsPage() {
               <CardDescription className="text-gray-500 pt-1">
                 {allProfilesData?.success && allProfilesData.data?.pagination
                   ? `${allProfilesData.data.pagination.total} profiles available`
-                  : "Search by name, email, or ID to reward MyPts"}
+                  : "Search by name, email, or ID to award MyPts"}
               </CardDescription>
             </div>
             <Button
@@ -462,7 +462,7 @@ export default function RewardMyPtsPage() {
               ) : filteredProfiles.length > 0 ? (
                 <>
                   {/* Adjust margin/padding if needed */}
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto pt-4 pr-3 -mr-1">
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pt-4 pr-3 -mr-1  pb-5 pl-3">
                     {filteredProfiles.map((profile: any) => (
                       <motion.div // Wrap item in motion.div like ProfileSelector
                         key={profile._id || profile.id}
@@ -554,7 +554,7 @@ export default function RewardMyPtsPage() {
           {/* Increase header padding */}
           <CardHeader className="px-8 pt-8 pb-4">
             <CardTitle className="text-xl font-medium text-gray-900">Award MyPts</CardTitle>
-            <CardDescription className="text-gray-500 pt-1">Reward the selected profile with MyPts.</CardDescription>
+            <CardDescription className="text-gray-500 pt-1">Award the selected profile with MyPts.</CardDescription>
           </CardHeader>
           {/* Increase content padding */}
           <CardContent className="px-8">

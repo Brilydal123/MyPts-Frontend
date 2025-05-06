@@ -21,13 +21,14 @@ export function SystemVerification() {
   } | null>(null);
   const [reconcileReason, setReconcileReason] = useState('');
 
-  // Periodic check settings - initialize from localStorage if available
+  // Periodic check settings - initialize from localStorage if available, default to true
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedValue = localStorage.getItem('mypts-auto-check-enabled');
-      return savedValue === 'true';
+      // If there's no saved value, default to true
+      return savedValue === null ? true : savedValue === 'true';
     }
-    return false;
+    return true; // Default to true for SSR
   });
 
   const [checkInterval, setCheckInterval] = useState(() => {
@@ -168,7 +169,6 @@ export function SystemVerification() {
 
   // Set up the automatic check interval
   useEffect(() => {
-    autoCheckEnabled
     if (autoCheckEnabled) {
       // Clear any existing interval
       if (checkIntervalRef.current) {
@@ -242,8 +242,18 @@ export function SystemVerification() {
     }
   }, [autoCheckEnabled, nextCheckTime]);
 
-  // Clean up intervals on component unmount
+  // Initialize localStorage on first mount and clean up intervals on component unmount
   useEffect(() => {
+    // Save initial state to localStorage if it doesn't exist
+    if (typeof window !== 'undefined') {
+      if (localStorage.getItem('mypts-auto-check-enabled') === null) {
+        localStorage.setItem('mypts-auto-check-enabled', 'true');
+      }
+      if (localStorage.getItem('mypts-check-interval') === null) {
+        localStorage.setItem('mypts-check-interval', checkInterval);
+      }
+    }
+
     return () => {
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
@@ -376,8 +386,8 @@ export function SystemVerification() {
                     {verificationResult.message}
                   </p>
                   <div className="mt-2 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                    <p>Hub circulating supply: <span className="font-medium">{verificationResult.hubCirculatingSupply.toLocaleString()} MyPts</span></p>
-                    <p>Actual circulating supply: <span className="font-medium">{verificationResult.actualCirculatingSupply.toLocaleString()} MyPts</span></p>
+                    <p>Hub circulating: <span className="font-medium">{verificationResult.hubCirculatingSupply.toLocaleString()} MyPts</span></p>
+                    <p>Actual circulating: <span className="font-medium">{verificationResult.actualCirculatingSupply.toLocaleString()} MyPts</span></p>
                     {!verificationResult.isConsistent && (
                       <p>
                         Difference: <span className="font-medium">{Math.abs(verificationResult.difference).toLocaleString()} MyPts</span>

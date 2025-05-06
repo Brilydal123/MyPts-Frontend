@@ -10,8 +10,29 @@ export default function HomePage() {
   const { status, data: session } = useSession();
 
   useEffect(() => {
+    // Check if user is admin (from session or localStorage)
+    const isAdmin = 
+      session?.user?.role === 'admin' || 
+      session?.user?.isAdmin === true || 
+      (typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true');
+    
+    console.log('Home page - Auth check:', { 
+      status, 
+      isAdmin, 
+      hasProfileId: !!session?.profileId 
+    });
+    
+    // If user is admin, redirect directly to admin dashboard
+    if (status === 'authenticated' && isAdmin) {
+      console.log('Admin user detected - redirecting to admin dashboard');
+      // Store admin status in localStorage for persistence
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('isAdmin', 'true');
+      }
+      router.push('/admin');
+    }
     // If user is authenticated and has a profile, redirect to dashboard
-    if (status === 'authenticated' && session?.profileId) {
+    else if (status === 'authenticated' && session?.profileId) {
       router.push('/dashboard');
     }
     // If user is authenticated but doesn't have a profile, redirect to profile selection

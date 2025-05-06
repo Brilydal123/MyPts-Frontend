@@ -87,7 +87,7 @@ export default function SupplyManagementPage() {
 
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-700 dark:text-gray-300">Circulating Supply</span>
+                    <span className="text-gray-700 dark:text-gray-300">Circulating</span>
                     <div className="flex items-center">
                       <span className="font-medium text-gray-900 dark:text-white">{((hubState.circulatingSupply / hubState.totalSupply) * 100).toFixed(2)}%</span>
                       <span className="ml-2 text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full">85%</span>
