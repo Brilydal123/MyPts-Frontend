@@ -47,6 +47,7 @@ export function BalanceCard({
   balance,
   isLoading = false,
   onCurrencyChange,
+  onRefresh,
   currency,
 }: BalanceCardProps) {
   const handleCurrencyChange = (value: string) => {
