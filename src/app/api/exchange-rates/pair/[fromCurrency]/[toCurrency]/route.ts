@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { fromCurrency: string; toCurrency: string } }
+  { params }: { params: Promise<{ fromCurrency: string; toCurrency: string }> }
 ) {
   try {
     // In Next.js 14, params need to be awaited
