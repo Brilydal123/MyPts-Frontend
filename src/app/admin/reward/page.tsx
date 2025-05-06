@@ -326,35 +326,36 @@ export default function RewardMyPtsPage() {
     try {
       // Ensure profileId is a string for the API call
       const profileIdStr = selectedProfileId.toString();
+      const reasonText = reason.trim() || "Admin reward";
 
       console.log(`Attempting to award ${amount} MyPts to profile ${profileIdStr}`);
 
       const response = await myPtsApi.awardMyPts(
         profileIdStr,
         Number(amount),
-        reason || "Admin reward"
+        reasonText
       );
+
       setAwardedAmount(amount);
+
       if (response.success) {
         toast.success(`Successfully awarded ${amount} MyPts to the profile`);
         setAwardSuccess(true);
-        // Optionally reset form fields
-        // setAmount(0);
-        // setReason("");
-        // refetch profile data if needed (e.g., to update balance display)
-        // refetchProfile();
+
+        // Refresh profile data to show updated balance
+        refetchAllProfiles();
       } else {
         const errorMessage = response.message || "Failed to award MyPts due to an API error.";
         toast.error(errorMessage);
         setAwardSuccess(false);
-        setAwardApiError(errorMessage); // Set error message from response
+        setAwardApiError(errorMessage);
       }
     } catch (error: any) {
       console.error("Award MyPts failed:", error);
       const errorMessage = error?.data?.message || error?.message || "An unexpected error occurred.";
       toast.error(errorMessage);
       setAwardSuccess(false);
-      setAwardApiError(errorMessage); // Set error message from catch block
+      setAwardApiError(errorMessage);
     } finally {
       setIsAwarding(false);
     }
@@ -392,7 +393,7 @@ export default function RewardMyPtsPage() {
               <RefreshCw
                 className={`h-5 w-5 ${ // Slightly larger icon
                   isLoadingAllProfiles ? "animate-spin" : ""
-                }`}
+                  }`}
               />
               <span className="sr-only">Refresh profiles</span>
             </Button>
@@ -470,7 +471,7 @@ export default function RewardMyPtsPage() {
                           ${selectedProfileId === (profile._id || profile.id)
                             ? 'border-transparent ring-2 ring-primary' // Use ring for selection
                             : 'border-gray-200 hover:bg-gray-100' // Standard hover
-                        }`}
+                          }`}
                         onClick={() =>
                           handleSelectProfile(profile._id || profile.id)
                         }
@@ -577,9 +578,9 @@ export default function RewardMyPtsPage() {
                       </p>
                       {/* Assuming email is available in selectedProfileData */}
                       {selectedProfileData.email && (
-                         <p className="text-xs text-gray-500 mt-1">
-                           Email: {selectedProfileData.email}
-                         </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Email: {selectedProfileData.email}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -669,8 +670,8 @@ export default function RewardMyPtsPage() {
               ) : (
                 // Show loading or error if selectedProfileData is somehow null despite selectedProfileId being set
                 <div className="text-center py-10 px-4 text-gray-500">
-                    Loading profile data...
-                    {/* Or display an error if profile wasn't found in handleSelectProfile */}
+                  Loading profile data...
+                  {/* Or display an error if profile wasn't found in handleSelectProfile */}
                 </div>
               )
             ) : (

@@ -250,16 +250,29 @@ export class ProfileApi {
   }
 
   /**
-   * Get all profiles with pagination
+   * Get all profiles with pagination and sorting
    */
-  async getAllProfiles(page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
+  async getAllProfiles(options: {
+    page?: string | number;
+    limit?: string | number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}): Promise<ApiResponse<any>> {
     try {
       const headers = await this.getHeaders();
 
       // Use the admin profiles endpoint
       const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('limit', limit.toString());
+      params.append('page', options.page?.toString() || '1');
+      params.append('limit', options.limit?.toString() || '10');
+
+      // Add sorting parameters if provided
+      if (options.sortBy) {
+        params.append('sortBy', options.sortBy);
+      }
+      if (options.sortOrder) {
+        params.append('sortOrder', options.sortOrder);
+      }
 
       console.log(`Making GET request to /api/admin/profiles?${params.toString()}`);
 
