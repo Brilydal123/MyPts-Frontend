@@ -442,6 +442,78 @@ export class AuthApi {
       };
     }
   }
+
+  /**
+   * Handle trouble logging in requests
+   */
+  async troubleLogin(data: {
+    identifier: string;
+    issue: string;
+    verificationMethod?: "EMAIL" | "PHONE";
+  }): Promise<
+    ApiResponse<{
+      success: boolean;
+      message: string;
+      nextSteps?: string[];
+      otpSent?: boolean;
+    }>
+  > {
+    try {
+      console.log("Submitting trouble login request:", data);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+      const response = await fetch(`${API_BASE_URL}/auth/trouble-login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const responseData = await response.json();
+      console.log("Trouble login response:", responseData);
+
+      if (response.ok && responseData.success) {
+        return {
+          success: true,
+          data: {
+            success: true,
+            message: responseData.message,
+            nextSteps: responseData.nextSteps || [],
+            otpSent: responseData.otpSent || false,
+          },
+          message: responseData.message,
+        };
+      }
+
+      return {
+        success: false,
+        message: responseData.message || "Failed to process trouble login request",
+      };
+    } catch (error) {
+      console.error("Error submitting trouble login request:", error);
+
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return {
+          success: false,
+          message: "Request timed out. Please try again.",
+        };
+      }
+
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to process trouble login request",
+      };
+    }
+  }
 }
 
 // Export instance

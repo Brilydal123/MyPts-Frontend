@@ -66,7 +66,6 @@ const ShareReferralModal: React.FC<ShareReferralModalProps> = ({ isOpen, onClose
           const userData = JSON.parse(userDataStr);
           if (userData.profileImage) {
             setProfileImage(userData.profileImage);
-            console.log('Using profile image from localStorage:', userData.profileImage);
           }
           if (userData.fullName || userData.name) {
             setProfileName(userData.fullName || userData.name);

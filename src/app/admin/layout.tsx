@@ -18,7 +18,8 @@ import {
   UserCircle,
   CreditCard,
   Globe,
-  PieChart
+  PieChart,
+  LogOut
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -140,6 +141,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return pathname ? pathname.startsWith(href) : false;
   };
 
+  // Logout handler
+  const handleLogout = async () => {
+    console.log("Logging out...");
+    // Clear all local storage (includes auth tokens, isAdmin flag, etc.)
+    localStorage.clear();
+    // Optionally clear session storage too if used
+    // sessionStorage.clear();
+    
+    // Redirect to login page
+    router.push('/login'); // Assuming login page is at /login
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Admin header */}
@@ -156,6 +169,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <AdminNotificationCenter />
             <Button variant="secondary" size="sm" onClick={() => router.push('/')}>
               Exit Admin
+            </Button>
+            {/* Logout Button */}
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
             </Button>
           </div>
         </div>

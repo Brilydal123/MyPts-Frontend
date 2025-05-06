@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 // Admin layout is now provided by /admin/layout.tsx
 import { HubStats } from '@/components/admin/hub-stats';
+import { TokenomicsChart } from '@/components/admin/tokenomics-chart';
 import { SystemVerification } from '@/components/admin/system-verification';
 import { RecentTransactions } from '@/components/admin/recent-transactions';
 import { PendingSellTransactions } from '@/components/admin/pending-sell-transactions';
 import { AdminNotificationCenter } from '@/components/admin/notification-center';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { myPtsHubApi, myPtsValueApi } from '@/lib/api/mypts-api';
 import { MyPtsHubState, MyPtsValue } from '@/types/mypts';
 import { toast } from 'sonner';
@@ -104,98 +105,50 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
+      <div className="border-b border-gray-100 dark:border-gray-800 pb-4 mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Admin Dashboard</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Manage MyPts system and monitor performance</p>
+          </div>
           {manualCheckPassed && (
-            <Alert className="w-auto p-2 text-amber-600 bg-amber-50">
+            <Alert className="w-auto p-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <AlertTitle className="text-sm">Admin access granted via manual ID check</AlertTitle>
             </Alert>
           )}
         </div>
+      </div>
 
-        {hubState && value ? (
-          <HubStats hubState={hubState} value={value} isLoading={isLoading} />
+      {hubState && value ? (
+        <HubStats hubState={hubState} value={value} isLoading={isLoading} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-32 bg-muted rounded-lg animate-pulse"></div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {hubState ? (
+          <TokenomicsChart hubState={hubState} isLoading={isLoading} />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-muted rounded-lg animate-pulse"></div>
-            ))}
-          </div>
+          <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Supply Distribution</CardTitle>
-              <CardDescription>Current distribution of MyPts supply</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading || !hubState ? (
-                <div className="h-64 bg-muted rounded animate-pulse"></div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Circulating Supply</span>
-                      <span>{((hubState.circulatingSupply / hubState.totalSupply) * 100).toFixed(2)}%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary"
-                        style={{ width: `${(hubState.circulatingSupply / hubState.totalSupply) * 100}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {hubState.circulatingSupply.toLocaleString()} MyPts
-                    </div>
-                  </div>
+        <SystemVerification />
+      </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Reserve Supply</span>
-                      <span>{((hubState.reserveSupply / hubState.totalSupply) * 100).toFixed(2)}%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500"
-                        style={{ width: `${(hubState.reserveSupply / hubState.totalSupply) * 100}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {hubState.reserveSupply.toLocaleString()} MyPts
-                    </div>
-                  </div>
+      {/* Notifications Section */}
+      <div className="mt-6">
+        <AdminNotificationCenter />
+      </div>
 
-                  <div className="pt-4 border-t">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Total Supply</span>
-                      <span className="text-sm font-medium">{hubState.totalSupply.toLocaleString()} MyPts</span>
-                    </div>
-                    {hubState.maxSupply !== null && (
-                      <div className="flex justify-between mt-1">
-                        <span className="text-xs text-muted-foreground">Maximum Supply</span>
-                        <span className="text-xs text-muted-foreground">{hubState.maxSupply.toLocaleString()} MyPts</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <SystemVerification />
-        </div>
-
-        {/* Notifications Section */}
-        <div className="mt-6">
-          <AdminNotificationCenter />
-        </div>
-
-        {/* Pending Sell Transactions and Recent Transactions */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <PendingSellTransactions limit={5} />
-          <RecentTransactions limit={5} />
-        </div>
+      {/* Pending Sell Transactions and Recent Transactions */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <PendingSellTransactions limit={5} />
+        <RecentTransactions limit={5} />
+      </div>
     </div>
   );
 }

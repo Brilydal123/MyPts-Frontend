@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
         { currency: 'NGN', rate: 1550.75, symbol: '₦' },
         { currency: 'PKR', rate: 278.65, symbol: '₨' }
       ],
-      totalSupply: 50833912,
-      totalValueUSD: 1220014.88
+      totalSupply: 1000000000, // 1 billion total supply
+      totalValueUSD: 24000000 // 1 billion * 0.024
     };
 
     return NextResponse.json({

@@ -273,30 +273,86 @@ export class MyPtsApi extends ApiClient {
       const profileId = specificProfileId || (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null);
       console.log("🚀 ~ MyPtsApi ~ getBalance ~ profileId:", profileId)
 
-      // For direct conversion currencies, handle the calculation in the frontend
-      const directConversions: Record<string, { value: number, symbol: string }> = {
-        'XAF': { value: 13.61, symbol: 'FCFA' },  // 1 MyPt = 13.61 XAF
-        'EUR': { value: 0.0208, symbol: '€' },    // 1 MyPt = 0.0208 EUR
-        'GBP': { value: 0.0179, symbol: '£' },    // 1 MyPt = 0.0179 GBP
-        'NGN': { value: 38.26, symbol: '₦' },     // 1 MyPt = 38.26 NGN
-        'PKR': { value: 6.74, symbol: '₨' }       // 1 MyPt = 6.74 PKR
-      };
-
       // Include profileId as a query parameter
       const response = await this.get<MyPtsBalance>(`/my-pts/balance?currency=${currency}${profileId ? `&profileId=${profileId}` : ''}`);
 
-      // If it's a direct conversion currency, update the value
-      if (response.success && response.data && directConversions[currency]) {
-        const directValue = directConversions[currency].value;
-        const symbol = directConversions[currency].symbol;
+      if (response.success && response.data) {
+        // Now we'll use the ExchangeRate API to get the latest rates
+        try {
+          console.log(`[FRONTEND] Fetching exchange rates from ExchangeRate API for ${currency}...`);
 
-        console.log(`Updating balance value for ${currency} using direct conversion: ${directValue}`);
+          // Fetch the exchange rates from our API endpoint
+          const exchangeRateResponse = await fetch(`/api/exchange-rates/latest/USD?_t=${Date.now()}`);
 
-        // Update the value in the response
-        response.data.value.valuePerMyPt = directValue;
-        response.data.value.symbol = symbol;
-        response.data.value.totalValue = response.data.balance * directValue;
-        response.data.value.formattedValue = `${symbol}${response.data.value.totalValue.toFixed(2)}`;
+          if (exchangeRateResponse.ok) {
+            const exchangeRateData = await exchangeRateResponse.json();
+
+            if (exchangeRateData.success && exchangeRateData.data && exchangeRateData.data.rates) {
+              // Get the rate for the requested currency
+              const rate = exchangeRateData.data.rates[currency];
+
+              if (rate) {
+                // Base value of MyPts in USD
+                const baseValueInUsd = 0.024; // 1 MyPt = 0.024 USD
+
+                // Calculate the value in the requested currency
+                const valuePerMyPt = baseValueInUsd * rate;
+
+                console.log(`[FRONTEND] Successfully got rate from ExchangeRate API: 1 USD = ${rate} ${currency}`);
+                console.log(`[FRONTEND] Calculated value: 1 MyPt = ${valuePerMyPt} ${currency} (based on 1 MyPt = ${baseValueInUsd} USD)`);
+
+                // Update the response with the API value
+                response.data.value.valuePerMyPt = valuePerMyPt;
+                response.data.value.totalValue = response.data.balance * valuePerMyPt;
+                response.data.value.formattedValue = `${response.data.value.symbol}${response.data.value.totalValue.toFixed(2)}`;
+
+                return response;
+              } else {
+                console.warn(`[FRONTEND] ExchangeRate API doesn't have a rate for ${currency}, falling back to backend value`);
+              }
+            } else {
+              console.warn(`[FRONTEND] Invalid response from ExchangeRate API, falling back to backend value`);
+            }
+          } else {
+            console.warn(`[FRONTEND] Failed to fetch from ExchangeRate API (${exchangeRateResponse.status}), falling back to backend value`);
+          }
+        } catch (apiError) {
+          console.error(`[FRONTEND] Error fetching from ExchangeRate API:`, apiError);
+          console.log(`[FRONTEND] Falling back to backend value for ${currency}: ${response.data.value.valuePerMyPt}`);
+        }
+
+        // If we get here, we're using the backend value
+        console.log(`[FRONTEND] Using backend value for ${currency}: ${response.data.value.valuePerMyPt}`);
+      } else {
+        console.log(`[FRONTEND] No valid response from backend for ${currency}`);
+      }
+
+      // If the response is successful but the value is missing, provide a fallback
+      if (response.success && response.data && (!response.data.value.valuePerMyPt || response.data.value.valuePerMyPt === 0)) {
+        console.warn(`[FRONTEND] Backend returned zero or missing value for ${currency}, using fallback`);
+
+        // Fallback values for direct conversion if needed
+        const fallbackValues: Record<string, { value: number, symbol: string }> = {
+          'XAF': { value: 13.61, symbol: 'FCFA' },
+          'EUR': { value: 0.0208, symbol: '€' },
+          'GBP': { value: 0.0179, symbol: '£' },
+          'NGN': { value: 38.26, symbol: '₦' },
+          'PKR': { value: 6.74, symbol: '₨' },
+          'USD': { value: 0.024, symbol: '$' }
+        };
+
+        if (fallbackValues[currency]) {
+          const fallbackValue = fallbackValues[currency].value;
+          const symbol = fallbackValues[currency].symbol;
+
+          console.log(`[FRONTEND] Using fallback value for ${currency}: ${fallbackValue}`);
+
+          // Update the value in the response as a last resort
+          response.data.value.valuePerMyPt = fallbackValue;
+          response.data.value.symbol = symbol;
+          response.data.value.totalValue = response.data.balance * fallbackValue;
+          response.data.value.formattedValue = `${symbol}${response.data.value.totalValue.toFixed(2)}`;
+        }
       }
 
       return response;
@@ -451,6 +507,9 @@ export class MyPtsApi extends ApiClient {
   /**
    * Award MyPts to a profile (admin only)
    */
+  /**
+   * Award MyPts to a profile (admin only)
+   */
   async awardMyPts(
     profileId: string,
     amount: number,
@@ -459,11 +518,29 @@ export class MyPtsApi extends ApiClient {
     transaction: MyPtsTransaction;
     newBalance: number;
   }>> {
-    return this.post<any>('/my-pts/award', {
-      profileId,
-      amount,
-      reason
-    });
+    // Clean and validate the ObjectId
+    const idString = profileId.trim();
+    if (!/^[0-9a-fA-F]{24}$/.test(idString)) {
+      return {
+        success: false,
+        message: 'Invalid profile ID format. Must be a 24-character hex string.'
+      };
+    }
+
+    // Admin award request using standard API endpoint
+    try {
+      return this.post<any>('/my-pts/award', {
+        profileId: idString, // Use the cleaned ID
+        amount: Number(amount),
+        reason: reason || 'Admin reward'
+      });
+    } catch (error) {
+      console.error('Error in award MyPts:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to award MyPts'
+      };
+    }
   }
 
   /**
@@ -532,22 +609,9 @@ export class MyPtsValueApi extends ApiClient {
           'PKR': 6.74    // 1 MyPt = 6.74 PKR
         };
 
-        // Update exchange rates for direct conversion currencies
-        if (response.data?.exchangeRates && Array.isArray(response.data.exchangeRates)) {
-          response.data.exchangeRates.forEach(rate => {
-            if (rate.currency && directConversions[rate.currency]) {
-              // Calculate the rate that would give us the direct conversion value
-              // when multiplied by the base value (0.024 USD)
-              const directValue = directConversions[rate.currency];
-              const baseValue = response.data?.valuePerPts || 0.024;
-
-              // Set the rate to achieve the direct conversion
-              const newRate = directValue / baseValue;
-              console.log(`Updating ${rate.currency} rate from ${rate.rate} to ${newRate} for direct conversion`);
-              rate.rate = newRate;
-            }
-          });
-        }
+        // We no longer update the exchange rates from the API
+        // Instead, we'll use the direct conversion values when needed
+        // This avoids confusion between the two different types of rates
       }
 
       return response;
@@ -583,31 +647,115 @@ export class MyPtsValueApi extends ApiClient {
     formattedValue: string;
   }>> {
     try {
-      // For direct conversion currencies, handle the calculation in the frontend
-      const directConversions: Record<string, { value: number, symbol: string }> = {
-        'XAF': { value: 13.61, symbol: 'FCFA' },  // 1 MyPt = 13.61 XAF
-        'EUR': { value: 0.0208, symbol: '€' },    // 1 MyPt = 0.0208 EUR
-        'GBP': { value: 0.0179, symbol: '£' },    // 1 MyPt = 0.0179 GBP
-        'NGN': { value: 38.26, symbol: '₦' },     // 1 MyPt = 38.26 NGN
-        'PKR': { value: 6.74, symbol: '₨' }       // 1 MyPt = 6.74 PKR
+      // First, try to use the ExchangeRate API
+      console.log(`[FRONTEND] Calculating value of ${amount} MyPts in ${currency} using ExchangeRate API...`);
+
+      try {
+        // Fetch the exchange rates from our API endpoint
+        const exchangeRateResponse = await fetch(`/api/exchange-rates/latest/USD?_t=${Date.now()}`);
+
+        if (exchangeRateResponse.ok) {
+          const exchangeRateData = await exchangeRateResponse.json();
+
+          if (exchangeRateData.success && exchangeRateData.data && exchangeRateData.data.rates) {
+            // Get the rate for the requested currency
+            const rate = exchangeRateData.data.rates[currency];
+
+            if (rate) {
+              // Base value of MyPts in USD
+              const baseValueInUsd = 0.024; // 1 MyPt = 0.024 USD
+
+              // Calculate the value in the requested currency
+              const valuePerMyPt = baseValueInUsd * rate;
+              const totalValue = amount * valuePerMyPt;
+
+              console.log(`[FRONTEND] Successfully got rate from ExchangeRate API: 1 USD = ${rate} ${currency}`);
+              console.log(`[FRONTEND] Calculated value: ${amount} MyPts × ${valuePerMyPt} = ${totalValue} ${currency}`);
+
+              // Get the currency symbol
+              const currencySymbols: Record<string, string> = {
+                'XAF': 'FCFA',
+                'EUR': '€',
+                'GBP': '£',
+                'NGN': '₦',
+                'PKR': '₨',
+                'USD': '$',
+                'CAD': 'CA$',
+                'AUD': 'A$',
+                'JPY': '¥',
+                'CNY': '¥',
+                'INR': '₹'
+              };
+
+              const symbol = currencySymbols[currency] || currency;
+
+              return {
+                success: true,
+                data: {
+                  myPts: amount,
+                  valuePerMyPt: valuePerMyPt,
+                  currency: currency,
+                  symbol: symbol,
+                  totalValue: totalValue,
+                  formattedValue: `${symbol}${totalValue.toFixed(2)}`
+                }
+              };
+            } else {
+              console.warn(`[FRONTEND] ExchangeRate API doesn't have a rate for ${currency}, trying backend API`);
+            }
+          } else {
+            console.warn(`[FRONTEND] Invalid response from ExchangeRate API, trying backend API`);
+          }
+        } else {
+          console.warn(`[FRONTEND] Failed to fetch from ExchangeRate API (${exchangeRateResponse.status}), trying backend API`);
+        }
+      } catch (apiError) {
+        console.error(`[FRONTEND] Error fetching from ExchangeRate API:`, apiError);
+      }
+
+      // If ExchangeRate API fails, try the backend API
+      console.log(`[FRONTEND] Trying backend API for ${currency} calculation`);
+
+      try {
+        const response = await this.get<any>(`/my-pts-value/calculate?amount=${amount}&currency=${currency}`);
+
+        // If the backend API call is successful, return the response
+        if (response.success && response.data) {
+          console.log(`[FRONTEND] Successfully got value from backend API: ${amount} MyPts = ${response.data.totalValue} ${currency}`);
+          return response;
+        }
+
+        // If the backend API call fails, fall back to direct conversion
+        console.warn(`[FRONTEND] Backend API call failed for ${currency}, using fallback`);
+      } catch (apiError) {
+        console.error(`[FRONTEND] Error calling backend API for ${currency}:`, apiError);
+      }
+
+      // Fallback to direct conversion if both APIs fail
+      const fallbackValues: Record<string, { value: number, symbol: string }> = {
+        'XAF': { value: 13.61, symbol: 'FCFA' },
+        'EUR': { value: 0.0208, symbol: '€' },
+        'GBP': { value: 0.0179, symbol: '£' },
+        'NGN': { value: 38.26, symbol: '₦' },
+        'PKR': { value: 6.74, symbol: '₨' },
+        'USD': { value: 0.024, symbol: '$' }
       };
 
-      // If it's a direct conversion currency, calculate it directly
-      if (directConversions[currency]) {
-        const directValue = directConversions[currency].value;
-        const totalValue = amount * directValue;
+      if (fallbackValues[currency]) {
+        const fallbackValue = fallbackValues[currency].value;
+        const totalValue = amount * fallbackValue;
 
-        console.log(`Direct conversion for ${currency}: ${amount} MyPts × ${directValue} = ${totalValue}`);
+        console.log(`[FRONTEND] Using fallback for ${currency}: ${amount} MyPts × ${fallbackValue} = ${totalValue}`);
 
         return {
           success: true,
           data: {
             myPts: amount,
-            valuePerMyPt: directValue,
+            valuePerMyPt: fallbackValue,
             currency: currency,
-            symbol: directConversions[currency].symbol,
+            symbol: fallbackValues[currency].symbol,
             totalValue: totalValue,
-            formattedValue: `${directConversions[currency].symbol}${totalValue.toFixed(2)}`
+            formattedValue: `${fallbackValues[currency].symbol}${totalValue.toFixed(2)}`
           }
         };
       }
@@ -636,31 +784,116 @@ export class MyPtsValueApi extends ApiClient {
     formattedMyPtsValue: string;
   }>> {
     try {
-      // For direct conversion currencies, handle the calculation in the frontend
-      const directConversions: Record<string, { value: number, symbol: string }> = {
-        'XAF': { value: 13.61, symbol: 'FCFA' },  // 1 MyPt = 13.61 XAF
-        'EUR': { value: 0.0208, symbol: '€' },    // 1 MyPt = 0.0208 EUR
-        'GBP': { value: 0.0179, symbol: '£' },    // 1 MyPt = 0.0179 GBP
-        'NGN': { value: 38.26, symbol: '₦' },     // 1 MyPt = 38.26 NGN
-        'PKR': { value: 6.74, symbol: '₨' }       // 1 MyPt = 6.74 PKR
+      // First, try to use the ExchangeRate API
+      console.log(`[FRONTEND] Converting ${amount} ${currency} to MyPts using ExchangeRate API...`);
+
+      try {
+        // Fetch the exchange rates from our API endpoint
+        const exchangeRateResponse = await fetch(`/api/exchange-rates/latest/USD?_t=${Date.now()}`);
+
+        if (exchangeRateResponse.ok) {
+          const exchangeRateData = await exchangeRateResponse.json();
+
+          if (exchangeRateData.success && exchangeRateData.data && exchangeRateData.data.rates) {
+            // Get the rate for the requested currency
+            const rate = exchangeRateData.data.rates[currency];
+
+            if (rate) {
+              // Base value of MyPts in USD
+              const baseValueInUsd = 0.024; // 1 MyPt = 0.024 USD
+
+              // Calculate the value in the requested currency
+              const valuePerMyPt = baseValueInUsd * rate;
+              const myPtsAmount = amount / valuePerMyPt;
+
+              console.log(`[FRONTEND] Successfully got rate from ExchangeRate API: 1 USD = ${rate} ${currency}`);
+              console.log(`[FRONTEND] Calculated conversion: ${amount} ${currency} ÷ ${valuePerMyPt} = ${myPtsAmount} MyPts`);
+
+              // Get the currency symbol
+              const currencySymbols: Record<string, string> = {
+                'XAF': 'FCFA',
+                'EUR': '€',
+                'GBP': '£',
+                'NGN': '₦',
+                'PKR': '₨',
+                'USD': '$',
+                'CAD': 'CA$',
+                'AUD': 'A$',
+                'JPY': '¥',
+                'CNY': '¥',
+                'INR': '₹'
+              };
+
+              const symbol = currencySymbols[currency] || currency;
+
+              return {
+                success: true,
+                data: {
+                  currencyAmount: amount,
+                  currency: currency,
+                  symbol: symbol,
+                  valuePerMyPt: valuePerMyPt,
+                  myPtsAmount: myPtsAmount,
+                  formattedCurrencyValue: `${symbol}${amount.toFixed(2)}`,
+                  formattedMyPtsValue: `${myPtsAmount.toFixed(2)} MyPts`
+                }
+              };
+            } else {
+              console.warn(`[FRONTEND] ExchangeRate API doesn't have a rate for ${currency}, trying backend API`);
+            }
+          } else {
+            console.warn(`[FRONTEND] Invalid response from ExchangeRate API, trying backend API`);
+          }
+        } else {
+          console.warn(`[FRONTEND] Failed to fetch from ExchangeRate API (${exchangeRateResponse.status}), trying backend API`);
+        }
+      } catch (apiError) {
+        console.error(`[FRONTEND] Error fetching from ExchangeRate API:`, apiError);
+      }
+
+      // If ExchangeRate API fails, try the backend API
+      console.log(`[FRONTEND] Trying backend API for converting ${currency} to MyPts`);
+
+      try {
+        const response = await this.get<any>(`/my-pts-value/convert?amount=${amount}&currency=${currency}`);
+
+        // If the backend API call is successful, return the response
+        if (response.success && response.data) {
+          console.log(`[FRONTEND] Successfully got conversion from backend API: ${amount} ${currency} = ${response.data.myPtsAmount} MyPts`);
+          return response;
+        }
+
+        // If the backend API call fails, fall back to direct conversion
+        console.warn(`[FRONTEND] Backend API call failed for ${currency}, using fallback`);
+      } catch (apiError) {
+        console.error(`[FRONTEND] Error calling backend API for ${currency}:`, apiError);
+      }
+
+      // Fallback to direct conversion if both APIs fail
+      const fallbackValues: Record<string, { value: number, symbol: string }> = {
+        'XAF': { value: 13.61, symbol: 'FCFA' },
+        'EUR': { value: 0.0208, symbol: '€' },
+        'GBP': { value: 0.0179, symbol: '£' },
+        'NGN': { value: 38.26, symbol: '₦' },
+        'PKR': { value: 6.74, symbol: '₨' },
+        'USD': { value: 0.024, symbol: '$' }
       };
 
-      // If it's a direct conversion currency, calculate it directly
-      if (directConversions[currency]) {
-        const directValue = directConversions[currency].value;
-        const myPtsAmount = amount / directValue;
+      if (fallbackValues[currency]) {
+        const fallbackValue = fallbackValues[currency].value;
+        const myPtsAmount = amount / fallbackValue;
 
-        console.log(`Direct conversion from ${currency} to MyPts: ${amount} ${currency} ÷ ${directValue} = ${myPtsAmount} MyPts`);
+        console.log(`[FRONTEND] Using fallback for ${currency}: ${amount} ${currency} ÷ ${fallbackValue} = ${myPtsAmount} MyPts`);
 
         return {
           success: true,
           data: {
             currencyAmount: amount,
             currency: currency,
-            symbol: directConversions[currency].symbol,
-            valuePerMyPt: directValue,
+            symbol: fallbackValues[currency].symbol,
+            valuePerMyPt: fallbackValue,
             myPtsAmount: myPtsAmount,
-            formattedCurrencyValue: `${directConversions[currency].symbol}${amount.toFixed(2)}`,
+            formattedCurrencyValue: `${fallbackValues[currency].symbol}${amount.toFixed(2)}`,
             formattedMyPtsValue: `${myPtsAmount.toFixed(2)} MyPts`
           }
         };

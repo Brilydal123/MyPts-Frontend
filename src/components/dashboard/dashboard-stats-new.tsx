@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, UserPlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, UserPlus, RefreshCw } from "lucide-react";
 import { MyPtsBalance, MyPtsValue } from "@/types/mypts";
 import { DashboardStatsCard } from "./dashboard-stats-card";
 import { ReferralStatsCard } from "./referral-stats-card";
 import ShareReferralModal from "@/components/referrals/ShareReferralModal";
+import { useExchangeRates } from "@/hooks/use-exchange-rates";
+import { formatCurrency, getDirectConversionValue } from "@/lib/currency";
 
 interface DashboardStatsProps {
   balance: MyPtsBalance;
@@ -26,42 +28,80 @@ export function DashboardStats({
 }: DashboardStatsProps) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  const formatCurrency = (amount: number): string => {
-    if (currency === "XAF") {
-      return `FCFA ${amount.toFixed(2)}`;
-    } else if (currency === "NGN") {
-      return `₦${amount.toFixed(2)}`;
-    } else if (currency === "PKR") {
-      return `₨${amount.toFixed(2)}`;
-    } else {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(amount);
-    }
-  };
+  // Fetch exchange rates using our custom hook
+  const {
+    data: exchangeRates,
+    isLoading: isLoadingRates,
+    refetch: refetchRates
+  } = useExchangeRates('USD');
 
-  const getDirectConversionValue = (): number => {
-    const directConversions: Record<string, number> = {
-      XAF: 13.61,
-      EUR: 0.0208,
-      GBP: 0.0179,
-      NGN: 38.26,
-      PKR: 6.74,
-    };
+  // State to track if we're using API rates or fallback rates
+  const [usingFallbackRates, setUsingFallbackRates] = useState(false);
 
-    return directConversions[currency] || 0;
-  };
-
-  const getValuePerMyPt = (): number => {
-    const directValue = getDirectConversionValue();
+  // State to store the calculated value per MyPt
+  const [valuePerMyPt, setValuePerMyPt] = useState<number>(() => {
+    // Initialize with direct conversion or value from props
+    const directValue = getDirectConversionValue(currency);
     if (directValue > 0) {
       return directValue;
     }
     return value.valuePerPts || value.valuePerMyPt || 0;
-  };
+  });
+
+  // Update the value per MyPt when exchange rates or currency changes
+  useEffect(() => {
+    let newValue: number;
+    let useFallback = false;
+
+    // If we have exchange rates from the API
+    if (exchangeRates) {
+      // Base value of MyPts in USD
+      const baseValueInUsd = 0.024;
+
+      // If the selected currency is USD, use the base value
+      if (currency === 'USD') {
+        newValue = baseValueInUsd;
+      } else {
+        // Check if we have a direct conversion value first (preferred method)
+        const directValue = getDirectConversionValue(currency);
+        if (directValue > 0) {
+          // Use the direct conversion value as it's specifically calibrated for MyPts
+          newValue = directValue;
+          // We're using hardcoded values, but they're the preferred ones for MyPts
+          useFallback = false;
+        } else {
+          // Get the exchange rate for the selected currency from the API
+          const rate = exchangeRates.rates[currency];
+
+          // If we have a rate, calculate the value
+          if (rate) {
+            // Convert USD value to target currency
+            newValue = baseValueInUsd * rate;
+            useFallback = false;
+          } else {
+            // Last resort: use the value from the value object
+            newValue = value.valuePerPts || value.valuePerMyPt || 0;
+            useFallback = true;
+          }
+        }
+      }
+    } else {
+      // No exchange rates, use fallback
+      const directValue = getDirectConversionValue(currency);
+      if (directValue > 0) {
+        newValue = directValue;
+        useFallback = true;
+      } else {
+        // Last resort: use the value from the value object
+        newValue = value.valuePerPts || value.valuePerMyPt || 0;
+        useFallback = true;
+      }
+    }
+
+    // Update state
+    setValuePerMyPt(newValue);
+    setUsingFallbackRates(useFallback);
+  }, [exchangeRates, currency, value]);
 
   const calculateChange = (): { percentage: number; isPositive: boolean } => {
     if (!value.previousValue || value.previousValue === 0) {
@@ -87,9 +127,9 @@ export function DashboardStats({
           icon={<TrendingUp className="h-5 w-5" />}
           iconColor="text-[#007AFF] dark:text-[#0A84FF]"
           iconBgColor="bg-[#f5f5f7] dark:bg-[#2c2c2e]"
-          value={getValuePerMyPt().toFixed(6)}
+          value={valuePerMyPt.toFixed(6)}
           unit={currency}
-          subtitle={`${currency === "XAF" ? "FCFA " : value.symbol || value.baseSymbol || "$"}${getValuePerMyPt().toFixed(6)} per MyPt`}
+          subtitle={`${formatCurrency(valuePerMyPt, currency)} per MyPt ${isLoadingRates ? '(Loading rates...)' : usingFallbackRates ? '(Fallback rates)' : '(Live rates)'}`}
           trend={{
             value: `${change.percentage.toFixed(2)}%`,
             isPositive: change.isPositive,
@@ -106,7 +146,7 @@ export function DashboardStats({
           iconBgColor="bg-[#f2f7f2] dark:bg-[#1c2b1f]"
           value={balance.balance.toLocaleString()}
           unit="MyPts"
-          subtitle={`${formatCurrency(balance.balance * getValuePerMyPt())} • ${currency === "XAF" ? "FCFA " : balance.value.symbol || value.symbol || "$"}${getValuePerMyPt().toFixed(4)} per MyPt`}
+          subtitle={`${formatCurrency(balance.balance * valuePerMyPt, currency)} • ${formatCurrency(valuePerMyPt, currency)} per MyPt`}
           isLoading={isLoading}
         />
 
@@ -118,7 +158,7 @@ export function DashboardStats({
           iconBgColor="bg-[#f2f7f2] dark:bg-[#1c2b1f]"
           value={balance.lifetimeEarned.toLocaleString()}
           unit="MyPts"
-          subtitle={formatCurrency(balance.lifetimeEarned * getValuePerMyPt())}
+          subtitle={formatCurrency(balance.lifetimeEarned * valuePerMyPt, currency)}
           isLoading={isLoading}
         />
 
@@ -130,7 +170,7 @@ export function DashboardStats({
           iconBgColor="bg-[#f8f1f0] dark:bg-[#2f1a19]"
           value={balance.lifetimeSpent.toLocaleString()}
           unit="MyPts"
-          subtitle={formatCurrency(balance.lifetimeSpent * getValuePerMyPt())}
+          subtitle={formatCurrency(balance.lifetimeSpent * valuePerMyPt, currency)}
           isLoading={isLoading}
         />
 

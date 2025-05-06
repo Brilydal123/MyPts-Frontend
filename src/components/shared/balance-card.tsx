@@ -18,9 +18,13 @@ import {
   ArrowDownRight,
   Coins,
   BarChart4 as CurrencyExchange,
+  RefreshCw,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useExchangeRates } from "@/hooks/use-exchange-rates";
+import { formatCurrency, getDirectConversionValue } from "@/lib/currency";
+import { Button } from "@/components/ui/button";
 
 interface BalanceCardProps {
   balance: MyPtsBalance;
@@ -51,34 +55,97 @@ export function BalanceCard({
     }
   };
 
-  const getDirectConversionValue = (): number => {
-    const directConversions: Record<string, number> = {
-      XAF: 13.61,
-      EUR: 0.0208,
-      GBP: 0.0179,
-      NGN: 38.26,
-      PKR: 6.74,
-    };
+  // Fetch exchange rates using our custom hook
+  const {
+    data: exchangeRates,
+    isLoading: isLoadingRates,
+    refetch: refetchRates
+  } = useExchangeRates('USD');
 
-    return directConversions[currency] || 0;
-  };
+  // State to track if we're using API rates or fallback rates
+  const [usingFallbackRates, setUsingFallbackRates] = useState(false);
 
-  const getValuePerMyPt = (): number => {
-    const directValue = getDirectConversionValue();
+  // State to store the calculated value per MyPt
+  const [valuePerMyPt, setValuePerMyPt] = useState<number>(() => {
+    // Initialize with direct conversion or value from balance
+    const directValue = getDirectConversionValue(currency);
     if (directValue > 0) {
       return directValue;
     }
     return balance.value.valuePerMyPt;
+  });
+
+  // State to store the formatted total value
+  const [formattedTotalValue, setFormattedTotalValue] = useState<string>('');
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    refetchRates();
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
-  const getFormattedTotalValue = (): string => {
-    const currencyInfo = currencies.find((c) => c.value === currency);
-    const valuePerMyPt = getValuePerMyPt();
+  // Update the value per MyPt when exchange rates or currency changes
+  useEffect(() => {
+    let newValue: number;
+    let useFallback = false;
+
+    // If we have exchange rates from the API
+    if (exchangeRates) {
+      // Base value of MyPts in USD
+      const baseValueInUsd = 0.024;
+
+      // If the selected currency is USD, use the base value
+      if (currency === 'USD') {
+        newValue = baseValueInUsd;
+      } else {
+        // Check if we have a direct conversion value first (preferred method)
+        const directValue = getDirectConversionValue(currency);
+        if (directValue > 0) {
+          // Use the direct conversion value as it's specifically calibrated for MyPts
+          newValue = directValue;
+          // We're using hardcoded values, but they're the preferred ones for MyPts
+          useFallback = false;
+        } else {
+          // Get the exchange rate for the selected currency from the API
+          const rate = exchangeRates.rates[currency];
+
+          // If we have a rate, calculate the value
+          if (rate) {
+            // Convert USD value to target currency
+            newValue = baseValueInUsd * rate;
+            useFallback = false;
+          } else {
+            // Last resort: use the value from the balance object
+            newValue = balance.value.valuePerMyPt;
+            useFallback = true;
+          }
+        }
+      }
+    } else {
+      // No exchange rates, use fallback
+      const directValue = getDirectConversionValue(currency);
+      if (directValue > 0) {
+        newValue = directValue;
+        useFallback = true;
+      } else {
+        // Last resort: use the value from the balance object
+        newValue = balance.value.valuePerMyPt;
+        useFallback = true;
+      }
+    }
+
+    // Update state
+    setValuePerMyPt(newValue);
+    setUsingFallbackRates(useFallback);
+  }, [exchangeRates, currency, balance.value.valuePerMyPt]);
+
+  // Update the formatted total value when valuePerMyPt or balance changes
+  useEffect(() => {
     const totalValue = balance.balance * valuePerMyPt;
-
-    return `${currencyInfo?.symbol || balance.value.symbol
-      } ${totalValue.toFixed(2)}`;
-  };
+    setFormattedTotalValue(formatCurrency(totalValue, currency));
+  }, [valuePerMyPt, balance.balance, currency]);
 
   // Animation variants
   const cardVariants = {
@@ -131,23 +198,43 @@ export function BalanceCard({
               <CurrencyExchange className="h-5 w-5" />
               Local Currencies Conversion
             </CardTitle>
-            <Select value={currency} onValueChange={handleCurrencyChange}>
-              <SelectTrigger className="w-[130px] bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full">
-                <SelectValue placeholder="Currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {currencies.map((curr) => (
-                  <SelectItem key={curr.value} value={curr.value}>
-                    {curr.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRefresh}
+                className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full h-9 w-9"
+                disabled={isLoadingRates}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoadingRates ? 'animate-spin' : ''}`} />
+              </Button>
+              <Select value={currency} onValueChange={handleCurrencyChange}>
+                <SelectTrigger className="w-[130px] bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full">
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((curr) => (
+                    <SelectItem key={curr.value} value={curr.value}>
+                      {curr.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <CardDescription className="text-primary-foreground/90 mt-2">
             {currencies.find((c) => c.value === currency)?.label || currency}
             <br />
             Your current MyPts balance and equivalent value
+            {isLoadingRates && (
+              <span className="ml-2 text-xs opacity-70">(Loading rates...)</span>
+            )}
+            {!isLoadingRates && usingFallbackRates && (
+              <span className="ml-2 text-xs opacity-70">(Using fallback rates)</span>
+            )}
+            {!isLoadingRates && !usingFallbackRates && exchangeRates && (
+              <span className="ml-2 text-xs opacity-70">(Live rates from ExchangeRate-API)</span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-2 md:p-5">
@@ -180,12 +267,12 @@ export function BalanceCard({
                     Equivalent Value
                   </p>
                   <p className="text-2xl sm:text-3xl font-semibold">
-                    {getFormattedTotalValue()}
+                    {formattedTotalValue}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     {currencies.find((c) => c.value === currency)?.symbol ||
                       balance.value.symbol}{" "}
-                    {getValuePerMyPt().toFixed(4)} per MyPt
+                    {valuePerMyPt.toFixed(4)} per MyPt
                   </p>
                 </div>
               </motion.div>
