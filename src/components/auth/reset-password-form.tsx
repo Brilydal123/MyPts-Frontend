@@ -37,7 +37,7 @@ type ResetPasswordFormValues = z.infer<typeof formSchema>;
 export function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams ? searchParams.get("token") : null;
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -99,18 +99,18 @@ export function ResetPasswordForm() {
 
   // Display message if token is invalid or missing early
   if (!token) {
-     return (
-       <Card className="w-full max-w-md mx-auto mt-10">
-         <CardHeader>
-           <CardTitle>Invalid Link</CardTitle>
-           <CardDescription>The password reset link is invalid or has expired.</CardDescription>
-         </CardHeader>
-         <CardContent>
-           <p className="text-red-600">Please request a new password reset link.</p>
-           {/* Optionally link back to forgot password page */}
-         </CardContent>
-       </Card>
-     );
+    return (
+      <Card className="w-full max-w-md mx-auto mt-10">
+        <CardHeader>
+          <CardTitle>Invalid Link</CardTitle>
+          <CardDescription>The password reset link is invalid or has expired.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-600">Please request a new password reset link.</p>
+          {/* Optionally link back to forgot password page */}
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -155,9 +155,9 @@ export function ResetPasswordForm() {
             {success && (
               <div className="space-y-4">
                 <p className="text-sm font-medium text-green-600">{success}</p>
-                <Button 
-                  type="button" 
-                  className="w-full" 
+                <Button
+                  type="button"
+                  className="w-full"
                   variant="outline"
                   onClick={() => router.push('/login')}
                 >
