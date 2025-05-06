@@ -10,11 +10,11 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { currency: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // In Next.js 14, params need to be awaited
-    const paramsData = await Promise.resolve(params);
+    const paramsData:any = await Promise.resolve(params);
     const baseCurrency = paramsData.currency.toUpperCase();
 
     // Get the API key from environment variables
