@@ -362,49 +362,44 @@ export default function RewardMyPtsPage() {
   };
 
   return (
-    // Increase overall padding, ensure clean sans-serif font stack (Tailwind default is usually fine)
-    <div className="space-y-10 p-6 md:p-12 bg-gray-50 min-h-screen font-sans">
+    <div className="space-y-6 sm:space-y-10 p-4 sm:p-6 md:p-8 lg:p-12 bg-gray-50 min-h-screen font-sans">
       <div className="flex justify-between items-center">
-        {/* Keep heading prominent but clean */}
-        <h1 className="text-3xl font-semibold text-gray-900">Award MyPts</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Award MyPts</h1>
       </div>
 
-      {/* Increase gap between columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 ">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10 max-w-full w-full mx-auto">
         {/* Profile Search Card - Softer corners, more padding */}
-        <Card className="border-none shadow-sm  rounded-xl overflow-hidden">
-          {/* Increase header padding, make refresh button ghost */}
-          <CardHeader className="flex flex-row items-start justify-between space-y-0 px-8 pt-8 pb-4">
+        <Card className="border-none shadow-sm rounded-xl overflow-hidden w-full">
+          {/* Responsive header padding */}
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-3 sm:pb-4">
             <div>
-              <CardTitle className="text-xl font-medium text-gray-900">Find Profile</CardTitle>
-              <CardDescription className="text-gray-500 pt-1">
+              <CardTitle className="text-lg sm:text-xl font-medium text-gray-900">Find Profile</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-gray-500 pt-1">
                 {allProfilesData?.success && allProfilesData.data?.pagination
                   ? `${allProfilesData.data.pagination.total} profiles available`
                   : "Search by name, email, or ID to award MyPts"}
               </CardDescription>
             </div>
             <Button
-              variant="ghost" // Use ghost variant for minimal look
+              variant="ghost"
               size="icon"
               onClick={() => refetchAllProfiles()}
               disabled={isLoadingAllProfiles}
-              className="text-gray-500 hover:bg-gray-100"
+              className="text-gray-500 hover:bg-gray-100 h-8 w-8 sm:h-10 sm:w-10"
             >
               <RefreshCw
-                className={`h-5 w-5 ${ // Slightly larger icon
-                  isLoadingAllProfiles ? "animate-spin" : ""
+                className={`h-4 w-4 sm:h-5 sm:w-5 ${isLoadingAllProfiles ? "animate-spin" : ""
                   }`}
               />
               <span className="sr-only">Refresh profiles</span>
             </Button>
           </CardHeader>
-          {/* Increase content padding */}
-          <CardContent className="px-8 pb-8">
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Simplify input style */}
+          {/* Responsive content padding */}
+          <CardContent className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Input
-                  className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg flex-grow"
+                  className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg flex-grow text-sm sm:text-base"
                   placeholder="Search by name, email, or profile ID"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -413,23 +408,23 @@ export default function RewardMyPtsPage() {
                 <Button
                   onClick={handleSearch}
                   disabled={searchQuery.length < 2}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300 px-5"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300 px-3 sm:px-5 h-9 sm:h-10 mt-2 sm:mt-0"
                 >
-                  <Search className="h-4 w-4 mr-2" />
+                  <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Search
                 </Button>
               </div>
               {/* Sort Dropdown - Hide when searching? Or allow sorting search results? (Current setup sorts the main list fetch) */}
               {!searchQuery && (
                 <div className="w-full sm:w-auto">
-                  <Label htmlFor="sort-profiles" className="sr-only">Sort by</Label> {/* Hidden label for accessibility */}
+                  <Label htmlFor="sort-profiles" className="sr-only">Sort by</Label>
                   <Select value={sortOption} onValueChange={setSortOption}>
-                    <SelectTrigger id="sort-profiles" className="w-full sm:w-[200px]">
+                    <SelectTrigger id="sort-profiles" className="w-full sm:w-[200px] text-xs sm:text-sm h-9 sm:h-10">
                       <SelectValue placeholder="Sort by..." />
                     </SelectTrigger>
                     <SelectContent>
                       {sortOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
+                        <SelectItem key={option.value} value={option.value} className="text-xs sm:text-sm">
                           {option.label}
                         </SelectItem>
                       ))}
@@ -439,38 +434,34 @@ export default function RewardMyPtsPage() {
               )}
               {/* Loading State */}
               {isSearching || isLoadingAllProfiles ? (
-                <div className="space-y-3 pt-4">
+                <div className="space-y-2 sm:space-y-3 pt-2 sm:pt-4">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      // Use p-4 for padding consistency with ProfileSelector item target
-                      className="flex items-center justify-between p-4 border border-gray-100 rounded-xl"
+                      className="flex items-center justify-between p-3 sm:p-4 border border-gray-100 rounded-xl"
                     >
                       <div className="flex items-center">
-                        {/* Match avatar size h-12 w-12 */}
-                        <Skeleton className="h-12 w-12 rounded-full mr-4 bg-gray-200" />
-                        <div className="space-y-2 flex-1">
-                          <Skeleton className="h-5 w-32 bg-gray-200" /> {/* Larger name skeleton */}
-                          <Skeleton className="h-4 w-48 bg-gray-200" /> {/* Desc/Balance skeleton */}
+                        <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-full mr-3 sm:mr-4 bg-gray-200" />
+                        <div className="space-y-1 sm:space-y-2 flex-1">
+                          <Skeleton className="h-4 sm:h-5 w-24 sm:w-32 bg-gray-200" />
+                          <Skeleton className="h-3 sm:h-4 w-32 sm:w-48 bg-gray-200" />
                         </div>
                       </div>
-                      {/* Skeleton for checkmark area */}
-                      <Skeleton className="h-8 w-8 rounded-full bg-gray-200" />
+                      <Skeleton className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gray-200" />
                     </div>
                   ))}
                 </div>
               ) : filteredProfiles.length > 0 ? (
                 <>
-                  {/* Adjust margin/padding if needed */}
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto pt-4 pr-3 -mr-1  pb-5 pl-3">
+                  <div className="space-y-2 max-h-[300px] sm:max-h-[400px] overflow-y-auto pt-2 sm:pt-4 pr-2 sm:pr-3 -mr-1 pb-3 sm:pb-5 pl-2 sm:pl-3">
                     {filteredProfiles.map((profile: any) => (
-                      <motion.div // Wrap item in motion.div like ProfileSelector
+                      <motion.div
                         key={profile._id || profile.id}
-                        layout // Enable layout animation
-                        className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-colors duration-150 ease-in-out
+                        layout
+                        className={`flex items-center justify-between p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-150 ease-in-out
                           ${selectedProfileId === (profile._id || profile.id)
-                            ? 'border-transparent ring-2 ring-primary' // Use ring for selection
-                            : 'border-gray-200 hover:bg-gray-100' // Standard hover
+                            ? 'border-0 outline-2 outline-primary shadow-md'
+                            : 'border border-gray-200 hover:bg-gray-100'
                           }`}
                         onClick={() =>
                           handleSelectProfile(profile._id || profile.id)
@@ -479,24 +470,23 @@ export default function RewardMyPtsPage() {
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <div className="flex items-center">
-                          {/* Match avatar style */}
-                          <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mr-4 text-gray-500 font-medium">
+                        <div className="flex items-center w-full">
+                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-100 flex items-center justify-center mr-3 sm:mr-4 text-gray-500 font-medium text-sm sm:text-base flex-shrink-0">
                             {profile.name?.charAt(0).toUpperCase() || "?"}
                           </div>
-                          <div className="flex-1">
-                            {/* Match text styles */}
-                            <p className="font-semibold text-lg text-gray-900">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <p className="font-semibold text-base sm:text-lg text-gray-900 truncate">
                               {profile.name || "Unnamed Profile"}
                             </p>
-                            <div className="flex items-center mt-1 text-sm text-gray-500">
-                              <span className="mr-2">{getProfileType(profile)}</span>
-                              <Coins className="h-4 w-4 mr-1 text-gray-400" />
-                              <span>{profile.myPtsBalance ?? 0} MyPts</span>
+                            <div className="flex flex-wrap items-center mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                              <span className="mr-2 truncate">{getProfileType(profile)}</span>
+                              <div className="flex items-center flex-shrink-0">
+                                <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-gray-400" />
+                                <span>{profile.myPtsBalance ?? 0} MyPts</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        {/* Animated checkmark for selection */}
                         <AnimatePresence>
                           {selectedProfileId === (profile._id || profile.id) && (
                             <motion.div
@@ -508,10 +498,10 @@ export default function RewardMyPtsPage() {
                                 stiffness: 500,
                                 damping: 30,
                               }}
-                              className="flex items-center justify-center"
+                              className="flex items-center justify-center flex-shrink-0 ml-2"
                             >
-                              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                                <Check className="h-5 w-5 text-white" />
+                              <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-primary flex items-center justify-center">
+                                <Check className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                               </div>
                             </motion.div>
                           )}
@@ -523,25 +513,23 @@ export default function RewardMyPtsPage() {
                   {allProfilesData?.data?.pagination &&
                     allProfilesData.data.pagination.pages > 1 &&
                     !searchQuery && (
-                      <div className="mt-6 flex justify-center pb-2"> {/* Add padding/margin */}
+                      <div className="mt-4 sm:mt-6 flex justify-center pb-2">
                         <Pagination
                           currentPage={page}
                           totalPages={allProfilesData.data.pagination.pages}
                           onPageChange={(newPage) => {
                             setPage(newPage);
-                            // Optional: Scroll to top of the card when page changes
-                            // Consider adding a ref to the card/list container
                           }}
                         />
                       </div>
                     )}
                 </>
               ) : searchQuery.length >= 2 ? (
-                <div className="text-center py-10 px-4 text-gray-500">
+                <div className="text-center py-6 sm:py-10 px-4 text-gray-500 text-sm sm:text-base">
                   No profiles found matching your search.
                 </div>
               ) : (
-                <div className="text-center py-10 px-4 text-gray-500">
+                <div className="text-center py-6 sm:py-10 px-4 text-gray-500 text-sm sm:text-base">
                   Enter a name, email, or profile ID to search.
                 </div>
               )}
@@ -550,62 +538,63 @@ export default function RewardMyPtsPage() {
         </Card>
 
         {/* Award MyPts Card - Softer corners, more padding */}
-        <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
-          {/* Increase header padding */}
-          <CardHeader className="px-8 pt-8 pb-4">
-            <CardTitle className="text-xl font-medium text-gray-900">Award MyPts</CardTitle>
-            <CardDescription className="text-gray-500 pt-1">Award the selected profile with MyPts.</CardDescription>
+        <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden w-full">
+          {/* Responsive header padding */}
+          <CardHeader className="px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl font-medium text-gray-900">Award MyPts</CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-gray-500 pt-1">Award the selected profile with MyPts.</CardDescription>
           </CardHeader>
-          {/* Increase content padding */}
-          <CardContent className="px-8">
+          {/* Responsive content padding */}
+          <CardContent className="px-4 sm:px-6 md:px-8">
             {selectedProfileId ? (
               selectedProfileData ? (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Display selected profile info */}
-                  <div className="flex items-center p-4 bg-gray-100 rounded-xl border border-gray-200">
-                    <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center mr-4 text-gray-500 font-medium">
+                  <div className="flex items-center p-3 sm:p-4 bg-gray-100 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3 sm:mr-4 text-blue-600 font-medium text-sm sm:text-base">
                       {selectedProfileData.name?.charAt(0).toUpperCase() || "?"}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-800 text-base">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">
                         {selectedProfileData.name || "Unnamed Profile"}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">
                         {getProfileType(selectedProfileData)}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        ID: {selectedProfileData._id || selectedProfileData.id}
-                      </p>
-                      {/* Assuming email is available in selectedProfileData */}
-                      {selectedProfileData.email && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Email: {selectedProfileData.email}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 mt-0.5 sm:mt-1">
+                        <p className="text-[10px] sm:text-xs text-gray-500 truncate">
+                          ID: {selectedProfileData._id || selectedProfileData.id}
                         </p>
-                      )}
+                        {/* Assuming email is available in selectedProfileData */}
+                        {selectedProfileData.email && (
+                          <p className="text-[10px] sm:text-xs text-gray-500 truncate">
+                            Email: {selectedProfileData.email}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Award Form */}
-                  <div className="space-y-3">
-                    <Label htmlFor="amount" className="text-gray-700 font-medium">Amount (MyPts)</Label>
+                  <div className="space-y-2 sm:space-y-3">
+                    <Label htmlFor="amount" className="text-gray-700 font-medium text-sm sm:text-base">Amount (MyPts)</Label>
                     <Input
                       id="amount"
                       type="number"
                       min="1"
-                      className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg" // Standard rounding
+                      className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg text-sm sm:text-base h-9 sm:h-10"
                       value={amount || ""}
                       onChange={(e) => setAmount(Number(e.target.value))}
                       placeholder="Enter amount to award"
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    <Label htmlFor="reason" className="text-gray-700 font-medium">Reason (optional)</Label>
-                    {/* Simplify textarea style */}
+                  <div className="space-y-2 sm:space-y-3">
+                    <Label htmlFor="reason" className="text-gray-700 font-medium text-sm sm:text-base">Reason (optional)</Label>
                     <Textarea
                       id="reason"
                       value={reason}
-                      className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg" // Standard rounding
+                      className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg text-sm sm:text-base"
                       onChange={(e) => setReason(e.target.value)}
                       placeholder="Enter reason for awarding MyPts (e.g., Contest winner)"
                       rows={3}
@@ -619,7 +608,7 @@ export default function RewardMyPtsPage() {
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <Alert className="bg-green-50 border-green-200 mt-4">
+                        <Alert className="bg-green-50 border-green-200 mt-3 sm:mt-4 text-sm sm:text-base">
                           <motion.svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -628,7 +617,7 @@ export default function RewardMyPtsPage() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="h-5 w-5 text-green-600 mr-2" // Size and color
+                            className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mr-1.5 sm:mr-2"
                             initial="hidden"
                             animate="visible"
                           >
@@ -643,10 +632,10 @@ export default function RewardMyPtsPage() {
                               stroke="currentColor"
                             ></motion.polyline>
                           </motion.svg>
-                          <AlertTitle className="text-green-800">
+                          <AlertTitle className="text-green-800 text-sm sm:text-base">
                             Success!
                           </AlertTitle>
-                          <AlertDescription className="text-green-700">
+                          <AlertDescription className="text-green-700 text-xs sm:text-sm">
                             {awardedAmount} MyPts have been successfully awarded to{" "}
                             {selectedProfileData.name}.
                           </AlertDescription>
@@ -657,37 +646,32 @@ export default function RewardMyPtsPage() {
 
                   {/* Error Alert: Check our manual error state */}
                   {awardApiError && (
-                    <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 mt-4">
+                    <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 mt-3 sm:mt-4 text-sm sm:text-base">
                       <AlertCircle className="h-4 w-4 !text-red-600" />
-                      <AlertTitle>Award Failed</AlertTitle>
-                      <AlertDescription>
-                        {/* Display the stored error message */}
+                      <AlertTitle className="text-sm sm:text-base">Award Failed</AlertTitle>
+                      <AlertDescription className="text-xs sm:text-sm">
                         {awardApiError}
                       </AlertDescription>
                     </Alert>
                   )}
                 </div>
               ) : (
-                // Show loading or error if selectedProfileData is somehow null despite selectedProfileId being set
-                <div className="text-center py-10 px-4 text-gray-500">
+                <div className="text-center py-6 sm:py-10 px-4 text-gray-500 text-sm sm:text-base">
                   Loading profile data...
-                  {/* Or display an error if profile wasn't found in handleSelectProfile */}
                 </div>
               )
             ) : (
-              // Placeholder when no profile is selected
-              <div className="text-center py-10 px-4 text-gray-500">
-                <Award className="h-10 w-10 mx-auto mb-4 text-gray-300" />
+              <div className="text-center py-6 sm:py-10 px-4 text-gray-500 text-sm sm:text-base">
+                <Award className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-3 sm:mb-4 text-gray-300" />
                 <p>Select a profile to begin awarding MyPts.</p>
               </div>
             )}
           </CardContent>
-          {/* Increase footer padding */}
-          <CardFooter className="px-8 pb-8 pt-6">
-            {/* Refine button style */}
+          {/* Responsive footer padding */}
+          <CardFooter className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 pt-4 sm:pt-6">
             <Button
               size="lg"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300" // Standard rounding
+              className="w-full bg-black hover:bg-slate-700 text-white text-sm sm:text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300 h-10 sm:h-12"
               onClick={handleAwardMyPts}
               disabled={
                 !selectedProfileId || !amount || amount <= 0 || isAwarding

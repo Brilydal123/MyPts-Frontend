@@ -3,36 +3,81 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
   CommandSeparator
 } from "@/components/ui/command";
+import { ClickableCommandItem } from "@/components/shared/clickable-command-item";
 import {
   Search,
   User,
   CreditCard,
   BarChart,
   Settings,
-  Loader2
+  Loader2,
+  X,
+  Clock
 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { profileApi } from "@/lib/api/profile-api";
 import { myPtsApi } from "@/lib/api/mypts-api";
 import { useAuth } from "@/hooks/use-auth";
+import { DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 interface GlobalSearchProps {
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function GlobalSearch({ defaultOpen, onOpenChange }: GlobalSearchProps = {}) {
+// Storage key for recent searches
+const RECENT_SEARCHES_KEY = 'mypts-recent-searches';
+
+// Helper to get recent searches from localStorage
+const getRecentSearches = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.error('Error reading recent searches:', e);
+    return [];
+  }
+};
+
+// Helper to save recent searches to localStorage
+const saveRecentSearch = (query: string) => {
+  if (typeof window === 'undefined' || !query.trim()) return;
+  try {
+    const searches = getRecentSearches();
+    // Remove if already exists (to move to top)
+    const filtered = searches.filter(s => s !== query);
+    // Add to beginning and limit to 5 items
+    const updated = [query, ...filtered].slice(0, 5);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Error saving recent search:', e);
+  }
+};
+
+// Helper to clear all recent searches
+const clearRecentSearches = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch (e) {
+    console.error('Error clearing recent searches:', e);
+  }
+};
+
+export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearchProps) {
   const router = useRouter();
   const { isAdmin } = useAuth();
-  const [open, setOpen] = useState(defaultOpen || false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
 
@@ -46,6 +91,7 @@ export function GlobalSearch({ defaultOpen, onOpenChange }: GlobalSearchProps = 
   const [isLoading, setIsLoading] = useState(false);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -69,25 +115,77 @@ export function GlobalSearch({ defaultOpen, onOpenChange }: GlobalSearchProps = 
     const fetchSearchResults = async () => {
       setIsLoading(true);
       try {
-        // Search profiles
-        const profilesResponse = await profileApi.searchProfiles(debouncedQuery);
+        // Run searches in parallel for better performance
+        const [profilesResponse, transactionsResponse] = await Promise.all([
+          // Search profiles
+          profileApi.searchProfiles(debouncedQuery),
+          // Get transactions
+          myPtsApi.getTransactions(10, 0)
+        ]);
+
+        // Process profiles
         if (profilesResponse.success && profilesResponse.data) {
           setProfiles(profilesResponse.data.slice(0, 5));
+        } else {
+          setProfiles([]);
         }
 
-        // Search transactions (simplified for now)
-        const transactionsResponse = await myPtsApi.getTransactions(5, 0);
-        if (transactionsResponse.success && transactionsResponse.data && transactionsResponse.data.transactions) {
-          // Filter transactions by query (client-side for now)
-          const filteredTransactions = transactionsResponse.data.transactions.filter(
-            (tx: any) =>
-              tx.description?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-              tx.transactionId?.toLowerCase().includes(debouncedQuery.toLowerCase())
-          );
-          setTransactions(filteredTransactions.slice(0, 5));
+        // Process transactions with improved filtering
+        if (transactionsResponse.success &&
+          transactionsResponse.data &&
+          transactionsResponse.data.transactions) {
+
+          const query = debouncedQuery.toLowerCase();
+
+          // More sophisticated filtering with relevance scoring
+          const scoredTransactions = transactionsResponse.data.transactions
+            .map((tx: any) => {
+              let score = 0;
+
+              // Check description match (highest priority)
+              if (tx.description?.toLowerCase().includes(query)) {
+                score += 10;
+                // Exact match gets higher score
+                if (tx.description.toLowerCase() === query) {
+                  score += 5;
+                }
+              }
+
+              // Check transaction ID match
+              if (tx.transactionId?.toLowerCase().includes(query)) {
+                score += 8;
+              }
+
+              // Check amount match
+              if (tx.amount?.toString() === query) {
+                score += 7;
+              }
+
+              // Check status match
+              if (tx.status?.toLowerCase().includes(query)) {
+                score += 6;
+              }
+
+              // Check date match (if query looks like a date)
+              const txDate = new Date(tx.createdAt).toLocaleDateString();
+              if (txDate.includes(query)) {
+                score += 5;
+              }
+
+              return { ...tx, relevanceScore: score };
+            })
+            .filter((tx: any) => tx.relevanceScore > 0)
+            .sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
+            .slice(0, 5);
+
+          setTransactions(scoredTransactions);
+        } else {
+          setTransactions([]);
         }
       } catch (error) {
         console.error("Error fetching search results:", error);
+        setProfiles([]);
+        setTransactions([]);
       } finally {
         setIsLoading(false);
       }
@@ -96,17 +194,19 @@ export function GlobalSearch({ defaultOpen, onOpenChange }: GlobalSearchProps = 
     fetchSearchResults();
   }, [debouncedQuery]);
 
-  const onSelect = (item: any, type: string) => {
-    setOpen(false);
-
-    if (type === "profile") {
-      router.push(`/profiles/${item._id}`);
-    } else if (type === "transaction") {
-      router.push(`/transactions/${item.transactionId}`);
-    } else if (type === "page") {
-      router.push(item.path);
+  // Load recent searches when dialog opens
+  useEffect(() => {
+    if (open) {
+      setRecentSearches(getRecentSearches());
     }
-  };
+  }, [open]);
+
+  // Save search query when user performs a search
+  useEffect(() => {
+    if (debouncedQuery && debouncedQuery.length >= 2) {
+      saveRecentSearch(debouncedQuery);
+    }
+  }, [debouncedQuery]);
 
   // Common pages for quick navigation
   const commonPages = [
@@ -133,122 +233,172 @@ export function GlobalSearch({ defaultOpen, onOpenChange }: GlobalSearchProps = 
 
   return (
     <CommandDialog open={open} onOpenChange={handleOpenChange}>
-      <CommandInput
-        placeholder="Search for anything..."
-        value={query}
-        onValueChange={setQuery}
-        className="border-none focus:ring-0"
-      />
-      <CommandList>
-        <CommandEmpty>
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">Searching...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Search className="h-8 w-8 mb-2 opacity-50" />
-              <p>No results found.</p>
-              <p className="text-xs mt-1">Try a different search term</p>
-            </div>
+      <VisuallyHidden>
+        <DialogTitle>Global Search</DialogTitle>
+      </VisuallyHidden>
+      <Command>
+        <CommandInput
+          placeholder="Search for anything..."
+          value={query}
+          onValueChange={setQuery}
+          className="border-none focus:ring-0"
+        />
+        <CommandList>
+          <CommandEmpty>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">Searching...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Search className="h-8 w-8 mb-2 opacity-50" />
+                <p>No results found.</p>
+                <p className="text-xs mt-1">Try a different search term</p>
+              </div>
+            )}
+          </CommandEmpty>
+
+          {/* Recent Searches - only show when no query and we have recent searches */}
+          {!query && recentSearches.length > 0 && (
+            <CommandGroup heading="Recent Searches">
+              <div className="flex items-center justify-end mb-1">
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearRecentSearches();
+                    setRecentSearches([]);
+                  }}
+                >
+                  Clear
+                  <X className="ml-1 h-3 w-3" />
+                </button>
+              </div>
+              {recentSearches.map((searchTerm) => (
+                <ClickableCommandItem
+                  key={searchTerm}
+                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
+                  onItemClick={() => {
+                    setQuery(searchTerm);
+                    saveRecentSearch(searchTerm);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="bg-muted/30 p-1.5 rounded-md mr-3">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <span>{searchTerm}</span>
+                </ClickableCommandItem>
+              ))}
+            </CommandGroup>
           )}
-        </CommandEmpty>
 
-        {/* Quick Navigation */}
-        <CommandGroup heading="Quick Navigation">
-          {commonPages.map((page) => (
-            <CommandItem
-              key={page.path}
-              onSelect={() => onSelect(page, "page")}
-              className="flex items-center py-2 px-2 cursor-pointer transition-colors"
-            >
-              <div className="bg-muted/50 p-1.5 rounded-md mr-3">
-                <page.icon className="h-4 w-4" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-medium">{page.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  Navigate to {page.name.toLowerCase()}
-                </span>
-              </div>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        {/* Profiles */}
-        {profiles.length > 0 && (
-          <CommandGroup heading="Profiles">
-            {profiles.map((profile) => (
-              <CommandItem
-                key={profile._id}
-                onSelect={() => onSelect(profile, "profile")}
-                className="flex items-center py-2 px-2 cursor-pointer transition-colors"
+          {/* Quick Navigation */}
+          <CommandGroup heading="Quick Navigation">
+            {commonPages.map((page) => (
+              <ClickableCommandItem
+                key={page.path}
+                className="flex items-center py-2 px-2 cursor-pointer transition-colors "
+                onItemClick={() => {
+                  router.push(page.path);
+                  setOpen(false);
+                }}
               >
-                <div className="bg-blue-50 p-1.5 rounded-md mr-3">
-                  <User className="h-4 w-4 text-blue-500" />
+                <div className="bg-muted/50 p-1.5 rounded-md mr-3">
+                  <page.icon className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-medium">{profile.name}</span>
+                  <span className="font-medium">{page.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {profile.type || "Profile"}
+                    Navigate to {page.name.toLowerCase()}
                   </span>
                 </div>
-              </CommandItem>
+              </ClickableCommandItem>
             ))}
           </CommandGroup>
-        )}
 
-        {/* Transactions */}
-        {transactions.length > 0 && (
-          <CommandGroup heading="Transactions">
-            {transactions.map((transaction) => (
-              <CommandItem
-                key={transaction.transactionId}
-                onSelect={() => onSelect(transaction, "transaction")}
-                className="flex items-center py-2 px-2 cursor-pointer transition-colors"
-              >
-                <div className="bg-green-50 p-1.5 rounded-md mr-3">
-                  <CreditCard className="h-4 w-4 text-green-500" />
-                </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium truncate">
-                      {transaction.description || transaction.transactionId}
-                    </span>
-                    <span className={`ml-2 text-sm font-medium ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {transaction.amount > 0 ? '+' : ''}{transaction.amount} MyPts
+          <CommandSeparator />
+
+          {/* Profiles */}
+          {profiles.length > 0 && (
+            <CommandGroup heading="Profiles">
+              {profiles.map((profile) => (
+                <ClickableCommandItem
+                  key={profile._id}
+                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
+                  onItemClick={() => {
+                    router.push(`/profiles/${profile._id}`);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="bg-blue-50 p-1.5 rounded-md mr-3">
+                    <User className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{profile.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {profile.type || "Profile"}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground truncate">
-                    {transaction.transactionId}
-                  </span>
-                </div>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
+                </ClickableCommandItem>
+              ))}
+            </CommandGroup>
+          )}
 
-        <div className="py-2 px-2 text-xs flex items-center justify-between text-muted-foreground border-t mt-2">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center">
-              <span className="px-1.5 py-0.5 border rounded mr-1">↑</span>
-              <span className="px-1.5 py-0.5 border rounded">↓</span>
-              <span className="ml-1">to navigate</span>
+          {/* Transactions */}
+          {transactions.length > 0 && (
+            <CommandGroup heading="Transactions">
+              {transactions.map((transaction) => (
+                <ClickableCommandItem
+                  key={transaction.transactionId}
+                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
+                  onItemClick={() => {
+                    router.push(`/transactions/${transaction.transactionId}`);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="bg-green-50 p-1.5 rounded-md mr-3">
+                    <CreditCard className="h-4 w-4 text-green-500" />
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium truncate">
+                        {transaction.description || transaction.transactionId}
+                      </span>
+                      <span className={`ml-2 text-sm font-medium ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {transaction.amount > 0 ? '+' : ''}{transaction.amount} MyPts
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {transaction.transactionId}
+                    </span>
+                  </div>
+                </ClickableCommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          <div className="py-2 px-2 text-xs flex items-center justify-between text-muted-foreground border-t mt-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center">
+                <span className="px-1.5 py-0.5 border rounded mr-1">↑</span>
+                <span className="px-1.5 py-0.5 border rounded">↓</span>
+                <span className="ml-1">to navigate</span>
+              </div>
+              <div className="flex items-center">
+                <span className="px-1.5 py-0.5 border rounded mr-1">Enter</span>
+                <span>to select</span>
+              </div>
             </div>
             <div className="flex items-center">
-              <span className="px-1.5 py-0.5 border rounded mr-1">Enter</span>
-              <span>to select</span>
+              <span className="px-1.5 py-0.5 border rounded mr-1">Esc</span>
+              <span>to close</span>
             </div>
           </div>
-          <div className="flex items-center">
-            <span className="px-1.5 py-0.5 border rounded mr-1">Esc</span>
-            <span>to close</span>
-          </div>
-        </div>
-      </CommandList>
+        </CommandList>
+      </Command>
     </CommandDialog>
   );
 }

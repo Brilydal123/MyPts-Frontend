@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
 import { NotificationCenter } from "@/components/shared/notification-center";
 import { GlobalSearch } from "@/components/shared/global-search";
@@ -14,7 +13,7 @@ import {
   ChevronRight as ChevronRightIcon,
   Menu as MenuIcon,
   X as CloseIcon,
-  Command,
+  Command as CommandIcon,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -30,8 +29,7 @@ export function Navbar({
   mobileMenuOpen,
   onMobileMenuToggle,
 }: NavbarProps) {
-  const { user, isAuthenticated, logout } = useAuth();
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const { user, isAuthenticated } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
@@ -79,18 +77,20 @@ export function Navbar({
             <div className="relative w-full">
               <Button
                 variant="outline"
-                className="w-full justify-between pl-3 pr-2 py-5 bg-background/50 rounded-full border text-muted-foreground hover:bg-background/80"
+                className="w-full justify-between pl-3 pr-2 py-5 bg-background/50 rounded-full border text-muted-foreground hover:bg-background/80 group"
                 onClick={() => setIsSearchOpen(true)}
               >
                 <div className="flex items-center">
-                  <Search className="h-4 w-4 mr-2" />
-                  <span className="text-sm">Search...</span>
+                  <Search className="h-4 w-4 mr-2 group-hover:text-foreground transition-colors" />
+                  <span className="text-sm group-hover:text-foreground transition-colors">Search...</span>
                 </div>
                 <div className="flex items-center border rounded px-1.5 py-0.5 text-xs text-muted-foreground">
-                  <Command className="h-3 w-3 mr-1" />
+                  <CommandIcon className="h-3 w-3 mr-1" />
                   <span>K</span>
                 </div>
               </Button>
+              {/* We only need this instance of GlobalSearch for handling the navbar button click.
+                  The main instance is in the MainLayout component */}
               <GlobalSearch
                 defaultOpen={isSearchOpen}
                 onOpenChange={setIsSearchOpen}

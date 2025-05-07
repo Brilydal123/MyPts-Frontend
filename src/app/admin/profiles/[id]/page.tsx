@@ -212,39 +212,47 @@ export default function ProfileDetailPage({ params, searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold">{profile.name}</h1>
-          {getProfileTypeBadge()}
-          <Badge variant={profile.claimed ? "default" : "outline"}>
-            {profile.claimed ? 'Claimed' : 'Unclaimed'}
-          </Badge>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
+            <h1 className="text-2xl sm:text-3xl font-bold">{profile.name}</h1>
+            <div className="flex items-center gap-2">
+              {getProfileTypeBadge()}
+              <Badge variant={profile.claimed ? "default" : "outline"}>
+                {profile.claimed ? 'Claimed' : 'Unclaimed'}
+              </Badge>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchProfileDetails}>
+        <div className="flex flex-wrap items-center gap-2 mt-4 sm:mt-0 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={fetchProfileDetails} className="flex-1 sm:flex-none">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
+            <span className="sm:hidden">Refresh</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleEditProfile}>
+          <Button variant="outline" size="sm" onClick={handleEditProfile} className="flex-1 sm:flex-none">
             <Edit className="h-4 w-4 mr-2" />
-            Edit
+            <span className="hidden sm:inline">Edit</span>
+            <span className="sm:hidden">Edit</span>
           </Button>
-          <Button variant="default" size="sm" onClick={handleRewardProfile}>
+          <Button variant="default" size="sm" onClick={handleRewardProfile} className="flex-1 sm:flex-none">
             <Award className="h-4 w-4 mr-2" />
-            Reward MyPts
+            <span className="hidden sm:inline">Reward MyPts</span>
+            <span className="sm:hidden">Reward</span>
           </Button>
-          <Button variant="destructive" size="sm" onClick={handleDeleteClick}>
+          <Button variant="destructive" size="sm" onClick={handleDeleteClick} className="flex-1 sm:flex-none">
             <Trash className="h-4 w-4 mr-2" />
-            Delete
+            <span className="hidden sm:inline">Delete</span>
+            <span className="sm:hidden">Delete</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full">
         <Card>
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>

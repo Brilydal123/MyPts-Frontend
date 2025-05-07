@@ -504,29 +504,29 @@ export function SystemVerification() {
                           )}
 
                           <div className="mt-4 space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                            <div className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
-                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                            <div className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300 flex justify-center sm:justify-between sm:items-center gap-1 sm:gap-0">
+                              <div className="flex  sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                                 <span className="font-light">Hub circulating:</span>
                                 <span className="font-medium">{verificationResult.hubCirculatingSupply.toLocaleString()} MyPts</span>
                               </div>
                             </div>
-                            <div className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
-                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                            <div className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300  flex justify-center sm:justify-between sm:items-center gap-1 sm:gap-0">
+                              <div className="flex  sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                                 <span className="font-light">Actual circulating:</span>
                                 <span className="font-medium">{verificationResult.actualCirculatingSupply.toLocaleString()} MyPts</span>
                               </div>
                             </div>
 
                             {verificationResult.isConsistent ? (
-                              <div className="text-xs sm:text-sm text-[#34C759] dark:text-[#30D158] mt-2">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                              <div className="text-xs sm:text-sm text-[#34C759] dark:text-[#30D158] mt-2  flex justify-center sm:justify-between sm:items-center gap-1 sm:gap-0">
+                                <div className="flex sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0 ">
                                   <span className="font-light">Difference:</span>
                                   <span className="font-medium">0 MyPts</span>
                                 </div>
                               </div>
                             ) : (
                               <div className="text-xs sm:text-sm text-[#FF3B30] dark:text-[#FF453A] mt-2">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                                <div className="flex  sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                                   <span className="font-light">Difference:</span>
                                   <span className="font-medium">
                                     {Math.abs(verificationResult.difference).toLocaleString()} MyPts
