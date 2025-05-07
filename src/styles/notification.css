@@ -12,9 +12,13 @@
   }
 }
 
-/* Add smooth scrolling for the notification list */
-.notification-panel .scrollbar-thumb {
-  border-radius: 9999px;
+/* Hide scrollbar for notification panel */
+.notification-panel {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+.notification-panel::-webkit-scrollbar {
+  display: none !important;
 }
 
 /* Improve the appearance of the notification items on hover */
