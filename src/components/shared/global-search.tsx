@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
+  CommandItem,
   CommandList,
   CommandSeparator
 } from "@/components/ui/command";
-import { ClickableCommandItem } from "@/components/shared/clickable-command-item";
 import {
   Search,
   User,
@@ -75,7 +74,6 @@ const clearRecentSearches = (): void => {
 };
 
 export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearchProps) {
-  const router = useRouter();
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(defaultOpen ?? false);
   const [query, setQuery] = useState("");
@@ -277,20 +275,21 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
                 </button>
               </div>
               {recentSearches.map((searchTerm) => (
-                <ClickableCommandItem
+                <CommandItem
                   key={searchTerm}
-                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
-                  onItemClick={() => {
+                  value={`search-${searchTerm}`}
+                  onSelect={() => {
                     setQuery(searchTerm);
                     saveRecentSearch(searchTerm);
                     setOpen(false);
                   }}
+                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
                 >
                   <div className="bg-muted/30 p-1.5 rounded-md mr-3">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <span>{searchTerm}</span>
-                </ClickableCommandItem>
+                </CommandItem>
               ))}
             </CommandGroup>
           )}
@@ -298,13 +297,14 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
           {/* Quick Navigation */}
           <CommandGroup heading="Quick Navigation">
             {commonPages.map((page) => (
-              <ClickableCommandItem
+              <CommandItem
                 key={page.path}
-                className="flex items-center py-2 px-2 cursor-pointer transition-colors "
-                onItemClick={() => {
-                  router.push(page.path);
+                value={page.path}
+                onSelect={() => {
+                  window.location.href = page.path;
                   setOpen(false);
                 }}
+                className="flex items-center py-2 px-2 cursor-pointer transition-colors"
               >
                 <div className="bg-muted/50 p-1.5 rounded-md mr-3">
                   <page.icon className="h-4 w-4" />
@@ -315,7 +315,7 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
                     Navigate to {page.name.toLowerCase()}
                   </span>
                 </div>
-              </ClickableCommandItem>
+              </CommandItem>
             ))}
           </CommandGroup>
 
@@ -325,13 +325,14 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
           {profiles.length > 0 && (
             <CommandGroup heading="Profiles">
               {profiles.map((profile) => (
-                <ClickableCommandItem
+                <CommandItem
                   key={profile._id}
-                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
-                  onItemClick={() => {
-                    router.push(`/profiles/${profile._id}`);
+                  value={`profile-${profile._id}`}
+                  onSelect={() => {
+                    window.location.href = `/profiles/${profile._id}`;
                     setOpen(false);
                   }}
+                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
                 >
                   <div className="bg-blue-50 p-1.5 rounded-md mr-3">
                     <User className="h-4 w-4 text-blue-500" />
@@ -342,7 +343,7 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
                       {profile.type || "Profile"}
                     </span>
                   </div>
-                </ClickableCommandItem>
+                </CommandItem>
               ))}
             </CommandGroup>
           )}
@@ -351,13 +352,14 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
           {transactions.length > 0 && (
             <CommandGroup heading="Transactions">
               {transactions.map((transaction) => (
-                <ClickableCommandItem
+                <CommandItem
                   key={transaction.transactionId}
-                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
-                  onItemClick={() => {
-                    router.push(`/transactions/${transaction.transactionId}`);
+                  value={`transaction-${transaction.transactionId}`}
+                  onSelect={() => {
+                    window.location.href = `/transactions/${transaction.transactionId}`;
                     setOpen(false);
                   }}
+                  className="flex items-center py-2 px-2 cursor-pointer transition-colors"
                 >
                   <div className="bg-green-50 p-1.5 rounded-md mr-3">
                     <CreditCard className="h-4 w-4 text-green-500" />
@@ -375,7 +377,7 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
                       {transaction.transactionId}
                     </span>
                   </div>
-                </ClickableCommandItem>
+                </CommandItem>
               ))}
             </CommandGroup>
           )}

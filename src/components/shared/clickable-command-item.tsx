@@ -14,26 +14,33 @@ interface ClickableCommandItemProps extends React.ComponentPropsWithoutRef<typeo
 const ClickableCommandItem = React.forwardRef<
   React.ElementRef<typeof CommandItem>,
   ClickableCommandItemProps
->(({ className, onItemClick, onClick, ...props }, ref) => {
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Call the original onClick if provided
-    if (onClick) {
-      onClick(e);
-    }
-    
-    // Call our custom onItemClick handler
-    if (onItemClick) {
-      onItemClick();
-    }
-  };
-
+>(({ className, onItemClick, onClick, children, ...props }, ref) => {
   return (
     <CommandItem
       ref={ref}
-      className={cn("cursor-pointer", className)}
-      onClick={handleClick}
+      className={cn("cursor-pointer relative", className)}
+      onSelect={() => {
+        if (onItemClick) {
+          onItemClick();
+        }
+      }}
       {...props}
-    />
+    >
+      {children}
+      <div
+        className="absolute inset-0 cursor-pointer"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (onItemClick) {
+            onItemClick();
+          }
+          if (onClick) {
+            onClick(e);
+          }
+        }}
+      />
+    </CommandItem>
   );
 });
 
