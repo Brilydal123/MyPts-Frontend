@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
+import { StripeElementsOptions } from "@stripe/stripe-js";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { AnimatedButton } from "../ui/animated-button";
@@ -216,8 +217,8 @@ export function StripePaymentForm(props: StripePaymentFormProps) {
 
   // Configure Stripe Elements with the correct options
   // Make sure it's compatible with automatic_payment_methods on the backend
-  const options = {
-    mode: 'payment',
+  const options: StripeElementsOptions = {
+    mode: "payment" as const,
     currency: props.currency.toLowerCase(),
     amount: props.amount,
     appearance: {
