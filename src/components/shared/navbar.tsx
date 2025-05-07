@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
 import { NotificationCenter } from "@/components/shared/notification-center";
 import {
@@ -13,7 +12,10 @@ import {
   ChevronRight as ChevronRightIcon,
   Menu as MenuIcon,
   X as CloseIcon,
+  Command as CommandIcon,
 } from "lucide-react";
+import { Input } from "../ui/input";
+import UserButton from "./user-button";
 
 interface NavbarProps {
   sidebarOpen: boolean;
@@ -28,8 +30,8 @@ export function Navbar({
   mobileMenuOpen,
   onMobileMenuToggle,
 }: NavbarProps) {
-  const { user, isAuthenticated, logout } = useAuth();
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <div
@@ -37,7 +39,7 @@ export function Navbar({
         sidebarOpen ? "lg:left-64" : "lg:left-20"
       } transition-all duration-300`}
     >
-      <div className="h-16 bg-white border-b">
+      <div className="bg-white border-b">
         <div className="h-16 flex items-center justify-between gap-4 relative w-full">
           {/* Toggle buttons */}
           <div className="flex items-center px-4">
@@ -71,8 +73,7 @@ export function Navbar({
               )}
             </Button>
           </div>
-          {/* https://my-profile-server-api.onrender.com/api/stripe/webhook */}
-          {/* Search section */}
+
           <div className="flex-1 max-w-xl">
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -80,40 +81,17 @@ export function Navbar({
                 type="search"
                 placeholder="Search..."
                 className={`w-full pl-9 bg-background/50 rounded-full border ${
-                  isSearchFocused ? "ring-1 ring-ring" : ""
+                  isSearchOpen ? "ring-1 ring-ring" : ""
                 }`}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
+                onFocus={() => setIsSearchOpen(true)}
+                onBlur={() => setIsSearchOpen(false)}
               />
             </div>
           </div>
 
-          {/* Actions section */}
+          {/* No need to check if the user if authenticated because we're checking both in the middleware.ts*/}
           <div className="flex items-center gap-4 px-4">
-            {isAuthenticated ? (
-              <>
-                <NotificationCenter />
-                <div className="flex items-center gap-2">
-                  <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
-                    size={32}
-                  />
-                  <span className="hidden md:inline-block text-sm text-black">
-                    {user?.fullName || user?.name}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button asChild variant="ghost" className="text-white">
-                  <Link href="/login">Log in</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/register">Sign up</Link>
-                </Button>
-              </div>
-            )}
+            <UserButton />
           </div>
         </div>
       </div>

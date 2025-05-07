@@ -37,13 +37,14 @@ import { AnimatedButton } from "../ui/animated-button";
 // No longer need dialog for invoice
 import { InvoicePreview } from "./invoice-preview";
 import { DEFAULT_MYPTS_VALUE } from "@/lib/constants";
+import { PaymentMethodSelector } from "../payment/payment-method-selector";
 
 // Define form validation schema
 const formSchema = z.object({
   amount: z.coerce.number().positive({
     message: "Amount must be greater than 0",
   }),
-  paymentMethod: z.enum(["credit", "debit", "paypal"], {
+  paymentMethod: z.enum(["credit", "debit"], {
     required_error: "Please select a payment method",
   }),
 });
@@ -59,10 +60,10 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
   // Payment form state is now managed by currentStep
   const [paymentInfo, setPaymentInfo] = useState<{
     clientSecret: string;
-    amount: number;
+    amount: number; // Amount in cents, confirmed for Stripe payment
     currency: string;
-    transactionId: string;
-    myPtsAmount?: number; // Add myPtsAmount to track the actual MyPts being purchased
+    stripePaymentIntentId: string; // ID from Stripe, not our local transaction ID
+    myPtsAmount?: number; // The quantity of MyPts this payment is for
   } | null>(null);
 
   // Flow state management
@@ -104,90 +105,134 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
     calculatedAmountCents?: number
   ) => {
     if (!formData) return;
+    if (!calculatedAmountCents || calculatedAmountCents <= 0) {
+      toast.error("Invalid amount", {
+        description: "The calculated amount for payment is invalid.",
+      });
+      return;
+    }
     setIsSubmitting(true);
+    setActualPaymentAmount(null); // Reset actual payment amount before new attempt
 
-    // Always create a new payment intent with the calculated amount
     try {
       console.log(
-        "Creating payment intent with invoice calculated amount:",
-        calculatedAmountCents
+        `Preparing Stripe payment for ${qty} MyPts, calculated amount: ${calculatedAmountCents} cents`
       );
 
-      // Create payment intent with the calculated amount
-      console.log(
-        `Sending calculated amount to API: ${calculatedAmountCents} cents for ${qty} MyPts`
+      // NEW: Call an API that only creates Stripe Payment Intent and returns clientSecret
+      // Assumes myPtsApi.prepareStripePaymentIntent(myPtsQuantity, totalAmountCents, paymentMethod)
+      // The backend should use `calculatedAmountCents` as the authoritative amount for the Stripe intent.
+      const intentResponse = await myPtsApi.prepareStripePaymentIntent(
+        qty,
+        calculatedAmountCents,
+        formData.paymentMethod
       );
 
-      // Use standard API but override the amount in the response
-      const response = await myPtsApi.buyMyPts(qty, formData.paymentMethod);
-
-      // If we have a successful response, override the amount with our calculated amount
       if (
-        response.success &&
-        response.data?.clientSecret &&
-        calculatedAmountCents
+        intentResponse.success &&
+        intentResponse.data?.clientSecret &&
+        intentResponse.data?.stripePaymentIntentId &&
+        intentResponse.data?.amount // Amount confirmed by backend for Stripe
       ) {
         console.log(
-          `Overriding API amount ${response.data.amount} with calculated amount ${calculatedAmountCents}`
+          "Stripe Payment Intent created successfully.",
+          "Client Secret and Stripe Payment Intent ID received.",
+          "Amount for Stripe: ", intentResponse.data.amount
         );
-        // Store the original amount for reference
-        const originalAmount = response.data.amount;
-        // Override the amount with our calculated amount
-        response.data.amount = calculatedAmountCents;
-      }
 
-      if (response.success && response.data?.clientSecret) {
-        console.log(
-          "Payment intent created with amount:",
-          response.data.amount
-        );
         setPaymentInfo({
-          clientSecret: response.data.clientSecret,
-          amount: response.data.amount, // Use the amount from the API response
-          currency: response.data.currency || "USD",
-          transactionId: response.data.transactionId,
+          clientSecret: intentResponse.data.clientSecret,
+          amount: intentResponse.data.amount, // Use amount confirmed by backend for Stripe
+          currency: intentResponse.data.currency || "USD",
+          stripePaymentIntentId: intentResponse.data.stripePaymentIntentId,
           myPtsAmount: qty,
         });
-
-        // We've already overridden the amount, so no need to log discrepancy
+        setActualPaymentAmount(intentResponse.data.amount / 100); // For display/confirmation
         setCurrentStep("payment");
       } else {
-        toast.error("Failed to initiate payment", {
-          description: response.message || "Error setting up payment",
+        toast.error("Failed to prepare payment", {
+          description:
+            intentResponse.message || "Could not set up payment with Stripe.",
         });
       }
     } catch (error) {
-      console.error("Error initiating payment:", error);
-      toast.error("Payment setup failed", {
-        description: "An unexpected error occurred",
+      console.error("Error preparing Stripe payment:", error);
+      toast.error("Payment preparation failed", {
+        description: "An unexpected error occurred while setting up payment.",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle successful payment
+  // Handle successful payment (called by StripePayment component)
   const handlePaymentSuccess = async () => {
-    // Call onSuccess callback immediately to refresh the balance
-    if (onSuccess) {
-      await onSuccess();
+    if (!paymentInfo || !paymentInfo.stripePaymentIntentId || !paymentInfo.myPtsAmount) {
+      toast.error("Critical: Payment confirmation error", {
+        description: "Missing payment information to finalize your purchase. Please contact support.",
+        duration: 10000,
+      });
+      // Reset to avoid inconsistent state, guide user
+      setCurrentStep("form");
+      setPaymentInfo(null);
+      form.reset();
+      return;
     }
 
-    // Show success message with the updated balance
-    if (paymentInfo?.myPtsAmount) {
-      toast.success("Purchase successful", {
-        description: `Your purchase of ${paymentInfo.myPtsAmount} MyPts was completed successfully! Your balance has been updated.`,
-      });
-    } else {
-      toast.success("Purchase successful", {
-        description: `Your MyPts purchase was completed successfully! Your balance has been updated.`,
-      });
-    }
+    console.log(
+      `Stripe payment successful for intent ID: ${paymentInfo.stripePaymentIntentId}. Finalizing purchase.`
+    );
+    setIsSubmitting(true); // Indicate finalization processing
 
-    // Reset the form and payment state
-    form.reset();
-    setCurrentStep("form");
-    setPaymentInfo(null);
+    try {
+      // NEW: Call backend API to finalize purchase, create local transaction, and update balance
+      // Assumes myPtsApi.finalizeMyPtsPurchase(stripePaymentIntentId, myPtsQuantity, amountPaidCents)
+      const finalizeResponse = await myPtsApi.finalizeMyPtsPurchase(
+        paymentInfo.stripePaymentIntentId,
+        paymentInfo.myPtsAmount,
+        paymentInfo.amount // This is the amount (in cents) that Stripe processed
+      );
+
+      if (finalizeResponse.success) {
+        toast.success("Purchase successful!", {
+          description: `Your purchase of ${paymentInfo.myPtsAmount} MyPts is complete. Your balance has been updated.`,
+        });
+
+        // Call onSuccess callback (e.g., to refresh user balance display)
+        if (onSuccess) {
+          await onSuccess();
+        }
+      } else {
+        // CRITICAL: Stripe payment succeeded, but backend finalization failed.
+        // This requires careful handling. The user has paid.
+        toast.error("Purchase Confirmation Issue", {
+          description:
+            finalizeResponse.message ||
+            "Your payment was successful, but there was an issue confirming your purchase. Please contact support with your payment details.",
+          duration: 15000, // Longer duration for critical user guidance
+        });
+        console.error(
+          "Failed to finalize MyPts purchase after successful Stripe payment:",
+          { paymentInfo, error: finalizeResponse.message }
+        );
+        // Do NOT reset form here if finalization failed but payment went through.
+        // The user might need the info, or we might retry.
+        // For now, we will clear paymentInfo to prevent re-submission of this specific payment.
+      }
+    } catch (error) {
+      console.error("Error finalizing MyPts purchase:", error);
+      toast.error("Purchase Confirmation Error", {
+        description:
+          "An unexpected error occurred while confirming your purchase. Please contact support.",
+        duration: 15000,
+      });
+    } finally {
+      // Reset form and payment state after attempting finalization
+      form.reset();
+      setCurrentStep("form");
+      setPaymentInfo(null);
+      setIsSubmitting(false); // Reset submitting state
+    }
   };
 
   // Handle payment cancellation
@@ -273,22 +318,33 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Payment Method</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a payment method" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="credit">Credit Card</SelectItem>
-                          <SelectItem value="debit">Debit Card</SelectItem>
-                          <SelectItem value="paypal">PayPal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
+                      <FormControl>
+                        <PaymentMethodSelector
+                          value={field.value}
+                          onChange={field.onChange}
+                          options={[
+                            {
+                              id: "credit",
+                              name: "Credit Card",
+                              icon: "/images/payment/visa.svg",
+                              description: "Visa, Mastercard, Amex"
+                            },
+                            {
+                              id: "debit",
+                              name: "Debit Card",
+                              icon: "/images/payment/mastercard.svg",
+                              description: "Direct from your bank"
+                            },
+                            {
+                              id: "paypal-disabled",
+                              name: "PayPal",
+                              icon: "/images/payment/paypal.svg",
+                              description: "Coming Soon"
+                            }
+                          ]}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-[10px] mt-1">
                         Select your preferred payment method.
                       </FormDescription>
                       <FormMessage />

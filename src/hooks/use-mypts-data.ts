@@ -11,13 +11,20 @@ export function useBalance(currency: string = 'USD') {
   return useQuery({
     queryKey: ['balance', currency],
     queryFn: async () => {
+      // Fetch balance with the requested currency
       const response = await myPtsApi.getBalance(currency);
       if (!response.success) {
         throw new Error(response.message || 'Failed to fetch balance');
       }
+
+      // Log the currency being used
+      console.log(`[BALANCE] Fetched balance in ${currency}`);
+
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    // Add a small delay to prevent rapid refetching when switching currencies
+    refetchOnWindowFocus: false,
   });
 }
 

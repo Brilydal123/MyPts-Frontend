@@ -1128,6 +1128,33 @@ export class MyPtsHubApi extends ApiClient {
   }
 
   /**
+   * Initialize MyPts value system
+   */
+  async initialize(data: {
+    baseValue: number;
+    baseCurrency: string;
+    baseSymbol: string;
+    totalSupply: number;
+    exchangeRates?: Array<{
+      currency: string;
+      rate: number;
+      symbol: string;
+    }>;
+  }): Promise<ApiResponse<{
+    message: string;
+    valuePerMyPt: number;
+    totalSupply: number;
+    exchangeRates: Array<{
+      currency: string;
+      rate: number;
+      symbol: string;
+    }>;
+  }>> {
+    // Use the my-pts-value/initialize endpoint which exists in the backend
+    return this.post<any>('/my-pts-value/initialize', data);
+  }
+
+  /**
    * Verify system consistency
    */
   async verifySystemConsistency(): Promise<ApiResponse<{

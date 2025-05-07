@@ -14,6 +14,7 @@ import { DashboardStatsCard } from "./dashboard-stats-card";
 import { ReferralStatsCard } from "./referral-stats-card";
 import ShareReferralModal from "@/components/referrals/ShareReferralModal";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
+import { useCachedExchangeRates } from "@/hooks/use-cached-exchange-rates";
 import { formatCurrency, getDirectConversionValue } from "@/lib/currency";
 
 interface DashboardStatsProps {
@@ -35,7 +36,7 @@ export function DashboardStats({
 }: DashboardStatsProps) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  // Fetch exchange rates using our custom hook
+  // Use our cached exchange rates hook to prevent excessive API calls
   const {
     data: exchangeRates,
     isLoading: isLoadingRates,
@@ -47,12 +48,8 @@ export function DashboardStats({
 
   // State to store the calculated value per MyPt
   const [valuePerMyPt, setValuePerMyPt] = useState<number>(() => {
-    // Initialize with direct conversion or value from props
-    const directValue = getDirectConversionValue(currency);
-    if (directValue > 0) {
-      return directValue;
-    }
-    return value.valuePerPts || value.valuePerMyPt || 0;
+    // Initialize with value from props
+    return value.valuePerPts || value.valuePerMyPt || 0.024;
   });
 
   // Update the value per MyPt when exchange rates or currency changes
@@ -60,7 +57,9 @@ export function DashboardStats({
     let newValue: number;
     let useFallback = false;
 
-    // If we have exchange rates from the API
+    // Define a consistent base value for MyPts in USD, aligning with initial state and other fallbacks
+    const baseValueInUsd = value.valuePerPts || value.valuePerMyPt || 0.024;
+
     if (exchangeRates) {
       // Base value of MyPts in USD
       const baseValueInUsd = 0.024;
@@ -68,41 +67,26 @@ export function DashboardStats({
       // If the selected currency is USD, use the base value
       if (currency === "USD") {
         newValue = baseValueInUsd;
+        useFallback = false; // Using direct USD value, not a fallback
       } else {
-        // Check if we have a direct conversion value first (preferred method)
-        const directValue = getDirectConversionValue(currency);
-        if (directValue > 0) {
-          // Use the direct conversion value as it's specifically calibrated for MyPts
-          newValue = directValue;
-          // We're using hardcoded values, but they're the preferred ones for MyPts
-          useFallback = false;
+        // Try to get the exchange rate for the selected currency
+        const rate = exchangeRates.rates[currency];
+        if (rate) {
+          // If rate is available, convert USD value to target currency
+          newValue = baseValueInUsd * rate;
+          useFallback = false; // Using live API rate
         } else {
-          // Get the exchange rate for the selected currency from the API
-          const rate = exchangeRates.rates[currency];
-
-          // If we have a rate, calculate the value
-          if (rate) {
-            // Convert USD value to target currency
-            newValue = baseValueInUsd * rate;
-            useFallback = false;
-          } else {
-            // Last resort: use the value from the value object
-            newValue = value.valuePerPts || value.valuePerMyPt || 0;
-            useFallback = true;
-          }
+          // If rate for the specific currency is not found in API response,
+          // use the base USD value as a fallback.
+          newValue = baseValueInUsd;
+          useFallback = true;
         }
       }
     } else {
-      // No exchange rates, use fallback
-      const directValue = getDirectConversionValue(currency);
-      if (directValue > 0) {
-        newValue = directValue;
-        useFallback = true;
-      } else {
-        // Last resort: use the value from the value object
-        newValue = value.valuePerPts || value.valuePerMyPt || 0;
-        useFallback = true;
-      }
+      // No exchange rates data available (e.g., API call failed or still loading)
+      // Use the base USD value as a fallback.
+      newValue = baseValueInUsd;
+      useFallback = true;
     }
 
     // Update state

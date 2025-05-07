@@ -248,8 +248,41 @@ function ExchangeRates() {
         }
       ];
 
-      // Update exchange rates
-      updateRatesMutation.mutate(exchangeRates);
+      // Check if we need to create a new MyPts value entry
+      if (!valueData) {
+        // If no MyPts value data exists, we need to create a new entry with default values
+        try {
+          // Create a default MyPts value entry with the new currency
+          const initResponse = await myPtsHubApi.initialize({
+            baseValue: 0.024,
+            baseCurrency: 'USD',
+            baseSymbol: '$',
+            totalSupply: 1000000000, // 1 billion
+            exchangeRates: [{
+              currency: currencyCode,
+              rate: apiRate,
+              symbol: newCurrency.symbol
+            }]
+          });
+
+          if (!initResponse.success) {
+            throw new Error(initResponse.message || 'Failed to initialize MyPts value');
+          }
+
+          // Refetch data after successful initialization
+          refetchCurrencies();
+          refetchValue();
+
+          toast.success(`Initialized MyPts value system with ${currencyCode}`);
+        } catch (initError) {
+          console.error('Error initializing MyPts value:', initError);
+          toast.error(initError instanceof Error ? initError.message : 'Failed to initialize MyPts value');
+          return;
+        }
+      } else {
+        // If MyPts value data exists, just update the exchange rates
+        updateRatesMutation.mutate(exchangeRates);
+      }
 
       // Reset form
       setNewCurrency({
@@ -399,7 +432,7 @@ function ExchangeRates() {
                         The exchange rate will be automatically fetched from the ExchangeRate API.
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        The rate will be calculated based on the current base value of 1 MyPt = {valueData?.valuePerPts.toFixed(4) || '0.024'} USD.
+                        The rate will be calculated based on the current base value of 1 MyPt = {valueData?.valuePerPts ? valueData.valuePerPts.toFixed(4) : '0.024'} USD.
                       </p>
                     </div>
                   </div>
@@ -508,7 +541,7 @@ function ExchangeRates() {
                                 />
                               </div>
                               <p className="text-xs text-muted-foreground">
-                                Current value: {valueData?.baseSymbol}{valueData?.valuePerPts.toFixed(4)}
+                                Current value: {valueData ? `${valueData.baseSymbol}${valueData.valuePerPts.toFixed(4)}` : '$0.0240'}
                               </p>
                             </div>
                             <Button
@@ -555,10 +588,10 @@ function ExchangeRates() {
 
                       <div className="mb-4">
                         <p className="text-sm text-muted-foreground">
-                          Base currency: <span className="font-medium">{valueData?.baseCurrency} ({valueData?.baseSymbol})</span>
+                          Base currency: <span className="font-medium">{valueData?.baseCurrency || 'USD'} ({valueData?.baseSymbol || '$'})</span>
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Base value per MyPt: <span className="font-medium">{valueData?.baseSymbol}{valueData?.valuePerPts.toFixed(4)}</span>
+                          Base value per MyPt: <span className="font-medium">{valueData ? `${valueData.baseSymbol}${valueData.valuePerPts.toFixed(4)}` : '$0.0240'}</span>
                         </p>
                       </div>
 
@@ -575,10 +608,10 @@ function ExchangeRates() {
                         <TableBody>
                           {/* Base currency row */}
                           <TableRow className="bg-muted/50">
-                            <TableCell className="font-medium">{valueData?.baseCurrency}</TableCell>
-                            <TableCell>{valueData?.baseSymbol}</TableCell>
+                            <TableCell className="font-medium">{valueData?.baseCurrency || 'USD'}</TableCell>
+                            <TableCell>{valueData?.baseSymbol || '$'}</TableCell>
                             <TableCell>1.0 (Base)</TableCell>
-                            <TableCell>{valueData?.baseSymbol}{valueData?.valuePerPts.toFixed(4)}</TableCell>
+                            <TableCell>{valueData ? `${valueData.baseSymbol}${valueData.valuePerPts.toFixed(4)}` : '$0.0240'}</TableCell>
                             <TableCell className="text-right">
                               <Button variant="ghost" size="sm" disabled>
                                 <Edit className="h-4 w-4 mr-1" />
@@ -588,7 +621,7 @@ function ExchangeRates() {
                           </TableRow>
 
                           {/* Other currencies */}
-                          {valueData?.exchangeRates.map((rate) => (
+                          {valueData?.exchangeRates?.map((rate) => (
                             <TableRow key={rate.currency}>
                               <TableCell className="font-medium">{rate.currency}</TableCell>
                               <TableCell>{rate.symbol}</TableCell>
@@ -699,14 +732,14 @@ function ExchangeRates() {
                         <p className="text-sm font-medium mb-2">Sync Exchange Rates from API</p>
                         <p className="text-sm text-muted-foreground mb-4">
                           This will update your system's exchange rates based on the latest data from the ExchangeRate API.
-                          The rates will be calculated using the base value of 1 MyPt = 0.024 USD.
+                          The rates will be calculated using the current base value of 1 MyPt = {valueData?.valuePerPts ? `$${valueData.valuePerPts.toFixed(4)}` : '$0.0240'} USD.
                         </p>
                         <Button
                           onClick={() => {
                             // Prepare the exchange rates to update
                             if (!apiRatesData?.rates || !valueData?.exchangeRates) return;
 
-                            const baseValueInUsd = 0.024; // 1 MyPt = 0.024 USD
+                            const baseValueInUsd = valueData?.valuePerPts || 0.024; // Use actual base value
                             const exchangeRates: ExchangeRate[] = [];
 
                             // Get existing currency symbols
@@ -784,7 +817,7 @@ function ExchangeRates() {
                             })
                             .map(([currency, apiRate]) => {
                               const systemRate = valueData.exchangeRates.find(rate => rate.currency === currency);
-                              const baseValueInUsd = 0.024; // 1 MyPt = 0.024 USD
+                              const baseValueInUsd = valueData?.valuePerPts || 0.024; // Use actual base value
                               const calculatedRate = baseValueInUsd * (apiRate as number);
 
                               // Determine if the rates are in sync (within 1%)

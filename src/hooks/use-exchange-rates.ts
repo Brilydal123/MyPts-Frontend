@@ -16,7 +16,7 @@ export function useExchangeRates(baseCurrency: string = 'USD') {
       }
       return response.data;
     },
-    staleTime: 60 * 60 * 1000, // 1 hour
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours to conserve API quota
   });
 }
 
@@ -36,7 +36,7 @@ export function useCurrencyConversion(fromCurrency: string, toCurrency: string) 
       }
       return response.data;
     },
-    staleTime: 60 * 60 * 1000, // 1 hour
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours to conserve API quota
   });
 }
 
@@ -57,7 +57,7 @@ export function useAmountConversion(fromCurrency: string, toCurrency: string, am
       }
       return response.data;
     },
-    staleTime: 60 * 60 * 1000, // 1 hour
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours to conserve API quota
     // Only run the query if amount is valid
     enabled: !isNaN(amount) && amount > 0,
   });
@@ -66,7 +66,7 @@ export function useAmountConversion(fromCurrency: string, toCurrency: string, am
 /**
  * Utility function to convert an amount using cached exchange rates
  * This is useful when you already have the exchange rates and don't want to make an API call
- * 
+ *
  * @param amount The amount to convert
  * @param fromCurrency The source currency code
  * @param toCurrency The target currency code
@@ -82,32 +82,32 @@ export function convertAmountWithRates(
   if (isNaN(amount) || amount <= 0) {
     return null;
   }
-  
+
   // If the currencies are the same, return the original amount
   if (fromCurrency === toCurrency) {
     return amount;
   }
-  
+
   // If the base currency is the source currency, direct conversion
   if (fromCurrency === exchangeRates.baseCurrency) {
     const rate = exchangeRates.rates[toCurrency];
     if (!rate) return null;
     return amount * rate;
   }
-  
+
   // If the base currency is the target currency, inverse conversion
   if (toCurrency === exchangeRates.baseCurrency) {
     const rate = exchangeRates.rates[fromCurrency];
     if (!rate) return null;
     return amount / rate;
   }
-  
+
   // Cross-currency conversion via the base currency
   const fromRate = exchangeRates.rates[fromCurrency];
   const toRate = exchangeRates.rates[toCurrency];
-  
+
   if (!fromRate || !toRate) return null;
-  
+
   // Convert to base currency first, then to target currency
   const amountInBaseCurrency = amount / fromRate;
   return amountInBaseCurrency * toRate;

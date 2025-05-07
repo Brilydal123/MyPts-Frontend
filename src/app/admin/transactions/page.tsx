@@ -239,227 +239,227 @@ export default function TransactionsPage() {
   return (
     <>
       <div className={`space-y-6 transition-all ${isModalOpen ? 'blur-sm' : ''}`}>
-      <h1 className="text-3xl font-bold">Transaction History</h1>
+        <h1 className="text-3xl font-bold">Supply Transaction History</h1>
 
-      {/* Search and filters */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search transactions..."
-            className="pl-8 w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Calendar className="h-4 w-4 mr-2" />
-                Date Range
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Select Date Range</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const today = new Date();
-                      const lastWeek = new Date();
-                      lastWeek.setDate(today.getDate() - 7);
-                      setDateRange({ from: lastWeek, to: today });
-                    }}
-                  >
-                    Last 7 days
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const today = new Date();
-                      const lastMonth = new Date();
-                      lastMonth.setMonth(today.getMonth() - 1);
-                      setDateRange({ from: lastMonth, to: today });
-                    }}
-                  >
-                    Last 30 days
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      setDateRange({ from: undefined, to: undefined })
-                    }
-                  >
-                    Clear dates
-                  </Button>
-                </div>
-                {dateRange.from && dateRange.to && (
-                  <div className="text-sm">
-                    <p className="text-muted-foreground">Selected range:</p>
-                    <p className="font-medium">
-                      {dateRange.from.toLocaleDateString()} -{" "}
-                      {dateRange.to.toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by action" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Actions</SelectItem>
-              <SelectItem value="ISSUE">Issue</SelectItem>
-              <SelectItem value="MOVE_TO_CIRCULATION">
-                To Circulation
-              </SelectItem>
-              <SelectItem value="MOVE_TO_RESERVE">To Reserve</SelectItem>
-              <SelectItem value="ADJUST_MAX_SUPPLY">Adjust Max</SelectItem>
-              <SelectItem value="UPDATE_VALUE">Update Value</SelectItem>
-              <SelectItem value="RECONCILE">Reconcile</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-
-          <Button variant="outline" size="sm" onClick={fetchTransactions}>
-            <Filter className="h-4 w-4 mr-2" />
-            Apply Filters
-          </Button>
-        </div>
-      </div>
-
-      {/* Transaction table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date/Time</TableHead>
-                <TableHead>ID</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Admin</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead className="text-right">Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                // Loading skeleton
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={`loading-${i}`}>
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <TableCell key={`loading-cell-${i}-${j}`}>
-                        <div className="h-4 bg-muted animate-pulse rounded" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : filteredTransactions.length > 0 ? (
-                // Show transactions when data is available
-                filteredTransactions.map((tx) => (
-                  <TableRow key={tx._id}>
-                    <TableCell>
-                      {formatDate(tx.createdAt || tx.timestamp)}
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-xs">
-                        {tx._id.substring(0, 10)}...
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getActionVariant(tx.action)}>
-                        {formatActionName(tx.action)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {tx.amount?.toLocaleString() || 0} MyPts
-                    </TableCell>
-                    <TableCell>{tx.adminName || "Admin"}</TableCell>
-                    <TableCell
-                      className="max-w-[200px] truncate"
-                      title={tx.reason}
-                    >
-                      {tx.reason}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewTransaction(tx)}
-                      >
-                        <Info className="h-4 w-4" />
-                        <span className="sr-only md:not-sr-only md:inline-block ml-2">
-                          View
-                        </span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                // Show empty state when no data
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No transactions found. Try adjusting your filters.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-        <CardFooter className="flex items-center justify-between p-4">
-          <div className="text-sm text-muted-foreground">
-            {isLoading
-              ? "Loading transactions..."
-              : `Showing ${filteredTransactions.length} of ${totalCount} transactions`}
+        {/* Search and filters */}
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search transactions..."
+              className="pl-8 w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1 || isLoading}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setCurrentPage(Math.min(totalPages, currentPage + 1))
-                }
-                disabled={currentPage === totalPages || isLoading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Date Range
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Select Date Range</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const today = new Date();
+                        const lastWeek = new Date();
+                        lastWeek.setDate(today.getDate() - 7);
+                        setDateRange({ from: lastWeek, to: today });
+                      }}
+                    >
+                      Last 7 days
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const today = new Date();
+                        const lastMonth = new Date();
+                        lastMonth.setMonth(today.getMonth() - 1);
+                        setDateRange({ from: lastMonth, to: today });
+                      }}
+                    >
+                      Last 30 days
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setDateRange({ from: undefined, to: undefined })
+                      }
+                    >
+                      Clear dates
+                    </Button>
+                  </div>
+                  {dateRange.from && dateRange.to && (
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">Selected range:</p>
+                      <p className="font-medium">
+                        {dateRange.from.toLocaleDateString()} -{" "}
+                        {dateRange.to.toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Filter by action" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Actions</SelectItem>
+                <SelectItem value="ISSUE">Issue</SelectItem>
+                <SelectItem value="MOVE_TO_CIRCULATION">
+                  To Circulation
+                </SelectItem>
+                <SelectItem value="MOVE_TO_RESERVE">To Reserve</SelectItem>
+                <SelectItem value="ADJUST_MAX_SUPPLY">Adjust Max</SelectItem>
+                <SelectItem value="UPDATE_VALUE">Update Value</SelectItem>
+                <SelectItem value="RECONCILE">Reconcile</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={fetchTransactions}>
+              <Filter className="h-4 w-4 mr-2" />
+              Apply Filters
+            </Button>
+          </div>
+        </div>
+
+        {/* Transaction table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Transaction History</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date/Time</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Admin</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead className="text-right">Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={`loading-${i}`}>
+                      {Array.from({ length: 7 }).map((_, j) => (
+                        <TableCell key={`loading-cell-${i}-${j}`}>
+                          <div className="h-4 bg-muted animate-pulse rounded" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : filteredTransactions.length > 0 ? (
+                  // Show transactions when data is available
+                  filteredTransactions.map((tx) => (
+                    <TableRow key={tx._id}>
+                      <TableCell>
+                        {formatDate(tx.createdAt || tx.timestamp)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs">
+                          {tx._id.substring(0, 10)}...
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getActionVariant(tx.action)}>
+                          {formatActionName(tx.action)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {tx.amount?.toLocaleString() || 0} MyPts
+                      </TableCell>
+                      <TableCell>{tx.adminName || "Admin"}</TableCell>
+                      <TableCell
+                        className="max-w-[200px] truncate"
+                        title={tx.reason}
+                      >
+                        {tx.reason}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewTransaction(tx)}
+                        >
+                          <Info className="h-4 w-4" />
+                          <span className="sr-only md:not-sr-only md:inline-block ml-2">
+                            View
+                          </span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  // Show empty state when no data
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      No transactions found. Try adjusting your filters.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+          <CardFooter className="flex items-center justify-between p-4">
+            <div className="text-sm text-muted-foreground">
+              {isLoading
+                ? "Loading transactions..."
+                : `Showing ${filteredTransactions.length} of ${totalCount} transactions`}
             </div>
-          )}
-        </CardFooter>
-      </Card>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages || isLoading}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </CardFooter>
+        </Card>
 
       </div>
       {/* Transaction details dialog */}
@@ -485,7 +485,7 @@ export default function TransactionsPage() {
                 <p className="text-sm text-muted-foreground">
                   {selectedTransaction && formatDate(
                     selectedTransaction.createdAt ||
-                      selectedTransaction.timestamp
+                    selectedTransaction.timestamp
                   )}
                 </p>
               </div>

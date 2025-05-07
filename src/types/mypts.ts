@@ -101,6 +101,7 @@ export interface MyPtsHubState {
   totalSupply: number;
   circulatingSupply: number;
   reserveSupply: number;
+  holdingSupply: number;
   maxSupply: number | null;
   valuePerMyPt: number;
   lastAdjustment: string;

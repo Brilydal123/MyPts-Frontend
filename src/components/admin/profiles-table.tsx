@@ -42,13 +42,18 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [deleteUserAccount, setDeleteUserAccount] = useState(false);
 
   const handleViewProfile = (profile: any) => {
-    window.open(`/profiles/${profile._id}`, '_blank');
+    // Navigate to a profile detail view in the admin section
+    router.push(`/admin/profiles/${profile._id}`);
+    toast.info(`Viewing profile: ${profile.name}`);
   };
 
   const handleEditProfile = (profile: any) => {
-    window.open(`/profiles/${profile._id}/edit`, '_blank');
+    // Navigate to the profile edit page in the admin section
+    router.push(`/admin/profiles/edit/${profile._id}`);
+    toast.info(`Editing profile: ${profile.name}`);
   };
 
   const handleRewardProfile = (profile: any) => {
@@ -66,15 +71,30 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
 
     setIsActionLoading(true);
     try {
-      const response = await fetch(`/api/profiles/${selectedProfile._id}`, {
+      // Build the URL with the deleteUserAccount parameter if needed
+      const url = deleteUserAccount
+        ? `/api/admin/profiles/${selectedProfile._id}?deleteUserAccount=true`
+        : `/api/admin/profiles/${selectedProfile._id}`;
+
+      const response = await fetch(url, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {
         throw new Error('Failed to delete profile');
       }
 
-      toast.success('Profile deleted successfully');
+      // Show different success messages based on what was deleted
+      if (deleteUserAccount) {
+        toast.success('User account and all associated profiles deleted successfully');
+      } else {
+        toast.success('Profile deleted successfully');
+      }
+
       setIsDeleteDialogOpen(false);
       onRefresh();
     } catch (error) {
@@ -246,9 +266,52 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
           <DialogHeader>
             <DialogTitle>Delete Profile</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the profile "{selectedProfile?.name}"? This action cannot be undone.
+              Choose whether to delete just this profile or the entire user account with all associated profiles.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="flex items-start space-x-3">
+              <div>
+                <input
+                  type="radio"
+                  id="delete-profile-only"
+                  name="delete-option"
+                  className="mt-1"
+                  checked={!deleteUserAccount}
+                  onChange={() => setDeleteUserAccount(false)}
+                  disabled={isActionLoading}
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-profile-only" className="font-medium">Delete profile only</label>
+                <p className="text-sm text-muted-foreground">
+                  This will delete only the profile "{selectedProfile?.name}" while keeping the user account and other profiles.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <div>
+                <input
+                  type="radio"
+                  id="delete-user-account"
+                  name="delete-option"
+                  className="mt-1"
+                  checked={deleteUserAccount}
+                  onChange={() => setDeleteUserAccount(true)}
+                  disabled={isActionLoading}
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-user-account" className="font-medium">Delete user account</label>
+                <p className="text-sm text-muted-foreground">
+                  This will delete the entire user account and all associated profiles. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -262,7 +325,7 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
               onClick={handleDeleteConfirm}
               disabled={isActionLoading}
             >
-              {isActionLoading ? 'Deleting...' : 'Delete'}
+              {isActionLoading ? 'Deleting...' : deleteUserAccount ? 'Delete User Account' : 'Delete Profile'}
             </Button>
           </DialogFooter>
         </DialogContent>

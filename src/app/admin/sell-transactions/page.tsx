@@ -270,13 +270,13 @@ function SellTransactions() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Sell Transactions</h1>
+      <h1 className="text-3xl font-bold mb-6">Redeemed Transactions</h1>
 
       {/* Filters */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter sell transactions by various criteria</CardDescription>
+          <CardDescription>Filter redeemed transactions by various criteria</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -356,7 +356,7 @@ function SellTransactions() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Sell Transactions</CardTitle>
+            <CardTitle>Redeemed Transactions</CardTitle>
             <div className="flex space-x-2">
               <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
                 <SelectTrigger className="w-[100px]">
@@ -555,7 +555,7 @@ function SellTransactions() {
 
                                     {/* Stripe Payment Error Alert */}
                                     {selectedTransaction.metadata.paymentResult?.status === 'error' ||
-                                     selectedTransaction.metadata.paymentResult?.status === 'manual_required' ? (
+                                      selectedTransaction.metadata.paymentResult?.status === 'manual_required' ? (
                                       <div className="mb-3 bg-amber-50 border border-amber-200 p-3 rounded-md">
                                         <h5 className="text-sm font-medium text-amber-800 flex items-center">
                                           <AlertTriangle className="h-4 w-4 mr-1" />

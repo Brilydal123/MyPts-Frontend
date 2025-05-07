@@ -3,6 +3,7 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface InvoicePreviewProps {
   myPtsAmount: number;
@@ -28,8 +29,7 @@ export function InvoicePreview({
   const totalCents = myPtsAmount * conversionRate;
   const usdAmount = totalCents / 100;
   const stripeFeeCents = totalCents * 0.029;
-  const platformFeeCents = totalCents * 0.0215;
-  const totalFeeCents = stripeFeeCents + platformFeeCents;
+  const totalFeeCents = stripeFeeCents; // Only include Stripe fees
   const totalChargeCents = totalCents + totalFeeCents;
 
   // Recalculate when amount changes
@@ -92,24 +92,32 @@ export function InvoicePreview({
                   ${usdAmount.toFixed(2)}
                 </td>
               </tr>
-              <tr className="border-b bg-muted/30">
-                <td className="p-2 sm:p-3 text-xs sm:text-sm">
+              {/* <tr className="border-b bg-muted/30">
+                <td className="p-2 sm:p-3 text-xs sm:text-sm flex items-center">
+                  <div className="relative h-4 w-6 mr-1.5">
+                    <Image
+                      src={
+                        paymentMethod === "paypal"
+                          ? "/images/payment/paypal.svg"
+                          : paymentMethod === "debit"
+                            ? "/images/payment/mastercard.svg"
+                            : "/images/payment/visa.svg"
+                      }
+                      alt={paymentMethod}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                   {paymentMethod === "paypal"
-                    ? "PayPal Fee (2.99%)"
-                    : "Stripe Fee (2.99%)"}
+                    ? "PayPal Fee (2.9%)"
+                    : "Stripe Fee (2.9%)"}
                 </td>
                 <td className="p-2 sm:p-3 text-xs sm:text-sm text-right font-medium">
                   ${(stripeFeeCents / 100).toFixed(2)}
                 </td>
-              </tr>
-              <tr className="border-b bg-muted/30">
-                <td className="p-2 sm:p-3 text-xs sm:text-sm">Platform Fee (2.15%)</td>
-                <td className="p-2 sm:p-3 text-xs sm:text-sm text-right font-medium">
-                  ${(platformFeeCents / 100).toFixed(2)}
-                </td>
-              </tr>
+              </tr> */}
               <tr className="border-b bg-muted/50">
-                <td className="p-2 sm:p-3 text-xs sm:text-sm font-medium">Total Fees</td>
+                <td className="p-2 sm:p-3 text-xs sm:text-sm font-medium"> Fees</td>
                 <td className="p-2 sm:p-3 text-xs sm:text-sm text-right font-medium">
                   ${(totalFeeCents / 100).toFixed(2)}
                 </td>
@@ -130,8 +138,8 @@ export function InvoicePreview({
           transition={{ delay: 0.3, duration: 0.4 }}
           className="text-xs text-muted-foreground"
         >
-          <p>• Payment processing fees are non-refundable</p>
-          <p>• All prices are in USD</p>
+          {/* <p>• Stripe processing fees are non-refundable</p>
+          <p>• All prices are in USD</p> */}
         </motion.div>
       </CardContent>
 

@@ -169,14 +169,11 @@ export function ProfileSelector() {
 
           setProfiles(mappedProfiles);
 
-          // If user only has one profile, select it automatically
-          if (mappedProfiles.length === 1) {
-            setSelectedProfileId(mappedProfiles[0].id);
-            console.log(
-              "Auto-selecting the only profile from localStorage:",
-              mappedProfiles[0].id
-            );
-          }
+          // Don't auto-select profiles, even if there's only one
+          console.log(
+            "Found profiles from localStorage:",
+            mappedProfiles.length > 0 ? mappedProfiles.map((p: { id: any; }) => p.id) : "none"
+          );
 
           // Try to fetch full profile details for each profile
           mappedProfiles.forEach(async (profile: { id: string }) => {
@@ -192,15 +189,15 @@ export function ProfileSelector() {
                   prevProfiles.map((p) =>
                     p.id === profile.id
                       ? {
-                          ...p,
-                          name: profileDetails.data.name || p.name,
-                          description:
-                            profileDetails.data.description || p.description,
-                          profileType:
-                            profileDetails.data.profileType ||
-                            profileDetails.data.type ||
-                            p.profileType,
-                        }
+                        ...p,
+                        name: profileDetails.data.name || p.name,
+                        description:
+                          profileDetails.data.description || p.description,
+                        profileType:
+                          profileDetails.data.profileType ||
+                          profileDetails.data.type ||
+                          p.profileType,
+                      }
                       : p
                   )
                 );
@@ -275,26 +272,20 @@ export function ProfileSelector() {
 
           setProfiles(mappedProfiles);
 
-          // If user only has one profile, select it automatically
-          if (mappedProfiles.length === 1) {
-            setSelectedProfileId(mappedProfiles[0].id);
-            console.log(
-              "Auto-selecting the only profile:",
-              mappedProfiles[0].id
-            );
-          } else {
-            console.log("Multiple profiles found, letting user choose");
-            // Clear any stored profile ID to ensure the user can select a profile
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("selectedProfileId");
-              localStorage.removeItem("selectedProfileToken");
-            }
+          // Don't auto-select profiles, even if there's only one
+          console.log(
+            "Found profiles from user API:",
+            mappedProfiles.length > 0 ? mappedProfiles.map((p: { id: any; }) => p.id) : "none"
+          );
+
+          // Clear any stored profile ID to ensure the user can select a profile
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("selectedProfileId");
+            localStorage.removeItem("selectedProfileToken");
           }
 
-          // If user already has a profile selected in the session, select it
-          if (session?.profileId) {
-            setSelectedProfileId(session.profileId);
-          }
+          // Don't auto-select profiles from session either
+          console.log("Not auto-selecting profile from session");
 
           setLoading(false);
           return;
@@ -340,8 +331,7 @@ export function ProfileSelector() {
           Object.entries(response.data).forEach(
             ([category, categoryProfiles]: [string, any]) => {
               console.log(
-                `Processing category: ${category} with ${
-                  Array.isArray(categoryProfiles) ? categoryProfiles.length : 0
+                `Processing category: ${category} with ${Array.isArray(categoryProfiles) ? categoryProfiles.length : 0
                 } profiles`
               );
 
@@ -414,23 +404,20 @@ export function ProfileSelector() {
 
         setProfiles(allProfiles);
 
-        // If user only has one profile, select it automatically
-        if (allProfiles.length === 1) {
-          setSelectedProfileId(allProfiles[0].id);
-          console.log("Auto-selecting the only profile:", allProfiles[0].id);
-        } else {
-          console.log("Multiple profiles found, letting user choose");
-          // Clear any stored profile ID to ensure the user can select a profile
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("selectedProfileId");
-            localStorage.removeItem("selectedProfileToken");
-          }
+        // Don't auto-select profiles, even if there's only one
+        console.log(
+          "Found profiles from profile API:",
+          allProfiles.length > 0 ? allProfiles.map(p => p.id) : "none"
+        );
+
+        // Clear any stored profile ID to ensure the user can select a profile
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("selectedProfileId");
+          localStorage.removeItem("selectedProfileToken");
         }
 
-        // If user already has a profile selected in the session, select it
-        if (session?.profileId) {
-          setSelectedProfileId(session.profileId);
-        }
+        // Don't auto-select profiles from session either
+        console.log("Not auto-selecting profile from session");
       } catch (error) {
         console.error("Error loading profiles:", error);
         toast.error("Failed to load profiles");
@@ -723,11 +710,10 @@ export function ProfileSelector() {
                   setSelectedProfileId(profile.id);
                 }
               }}
-              className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                selectedProfileId === profile.id
-                  ? "border-primary bg-primary/5"
-                  : "hover:bg-muted"
-              }`}
+              className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedProfileId === profile.id
+                ? "border-primary bg-primary/5"
+                : "hover:bg-muted"
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div>

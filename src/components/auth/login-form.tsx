@@ -84,10 +84,38 @@ export function LoginForm() {
           console.error("Error getting session:", sessionError);
         }
 
-        toast.success("Login successful", {
-          description: "Redirecting to profile selection...",
-        });
-        router.push(callbackUrl);
+        // Check if user is admin
+        let isAdmin = false;
+        try {
+          const sessionResponse = await fetch("/api/auth/session");
+          const sessionData = await sessionResponse.json();
+          
+          // Check if user is admin from session data
+          isAdmin = sessionData?.user?.role === 'admin' || sessionData?.user?.isAdmin === true;
+          
+          console.log("Admin check during login:", { isAdmin, userData: sessionData?.user });
+          
+          // Store admin status in localStorage if admin
+          if (isAdmin && typeof window !== 'undefined') {
+            localStorage.setItem('isAdmin', 'true');
+            console.log("Admin status stored in localStorage");
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+        }
+        
+        // Redirect based on admin status
+        if (isAdmin) {
+          toast.success("Admin login successful", {
+            description: "Redirecting to admin dashboard...",
+          });
+          router.push('/admin');
+        } else {
+          toast.success("Login successful", {
+            description: "Redirecting to profile selection...",
+          });
+          router.push(callbackUrl);
+        }
       }
     } catch (error) {
       console.error("Login error:", error);

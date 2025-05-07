@@ -23,7 +23,7 @@ export function SupplyOverview({ hubState, isLoading = false }: SupplyOverviewPr
   };
 
   // Calculate percentages
-  const holdingPercentage = (hubState.reserveSupply / hubState.totalSupply) * 100;
+  const holdingPercentage = (hubState.holdingSupply / hubState.totalSupply) * 100;
   const circulatingPercentage = (hubState.circulatingSupply / hubState.totalSupply) * 100;
 
   return (
@@ -75,7 +75,7 @@ export function SupplyOverview({ hubState, isLoading = false }: SupplyOverviewPr
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Holding (Reserve)</p>
                     <div className="flex items-baseline gap-2">
-                      <p className="text-xl font-bold">{formatNumber(hubState.reserveSupply)}</p>
+                      <p className="text-xl font-bold">{formatNumber(hubState.holdingSupply)}</p>
                       <p className="text-sm font-medium text-amber-600">
                         {holdingPercentage.toFixed(2)}%
                       </p>
@@ -85,7 +85,7 @@ export function SupplyOverview({ hubState, isLoading = false }: SupplyOverviewPr
                 <div className="text-right">
                   <p className="text-sm font-medium text-muted-foreground">Value</p>
                   <p className="text-lg font-semibold">
-                    {formatCurrency(hubState.reserveSupply * hubState.valuePerMyPt)}
+                    {formatCurrency(hubState.holdingSupply * hubState.valuePerMyPt)}
                   </p>
                 </div>
               </div>
