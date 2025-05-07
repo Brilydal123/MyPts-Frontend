@@ -30,10 +30,12 @@ export function UsernameSuggestionsDialog({
 
   const handleSelect = (username: string) => {
     setSelectedUsername(username);
-    
-    // Add a small delay before calling onSelect for better visual feedback
+
+    // Call onSelect immediately to update the form value
+    onSelect(username);
+
+    // Add a small delay before closing the dialog for better visual feedback
     setTimeout(() => {
-      onSelect(username);
       onClose();
     }, 300);
   };
@@ -47,7 +49,7 @@ export function UsernameSuggestionsDialog({
             This username is already taken. Here are some available alternatives:
           </DialogDescription>
         </DialogHeader>
-        
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="flex space-x-2 mb-4">
@@ -68,17 +70,16 @@ export function UsernameSuggestionsDialog({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
                 onClick={() => handleSelect(username)}
-                className={`group relative flex items-center justify-between w-full p-3 rounded-md text-left transition-all ${
-                  selectedUsername === username
+                className={`group relative flex items-center justify-between w-full p-3 rounded-md text-left transition-all ${selectedUsername === username
                     ? 'bg-blue-50 border border-blue-300 text-blue-700'
                     : 'bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center">
                   <User size={16} className={`mr-2 ${selectedUsername === username ? 'text-blue-500' : 'text-gray-400'}`} />
                   <span className={`${selectedUsername === username ? 'font-medium' : ''}`}>{username}</span>
                 </div>
-                
+
                 {selectedUsername === username && (
                   <Check size={16} className="text-blue-500" />
                 )}
@@ -86,7 +87,7 @@ export function UsernameSuggestionsDialog({
             ))}
           </div>
         )}
-        
+
         <div className="text-center text-xs text-gray-500 mt-2">
           Click on a username to use it for your account
         </div>

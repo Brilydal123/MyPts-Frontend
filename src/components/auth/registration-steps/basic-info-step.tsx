@@ -129,12 +129,21 @@ export function BasicInfoStep({
     }
   }, [referralCode, referralAnswer, form]);
 
+  // Check if form is valid and complete
   const isFormValid = form.formState.isValid;
   const isFormComplete =
     !!fullName &&
     !!username &&
     referralAnswer !== null &&
     (referralAnswer === "no" || (referralAnswer === "yes" && !!referralCode));
+
+  // Force validation when username changes
+  useEffect(() => {
+    if (username && username.length >= 3) {
+      // Trigger validation to update form.formState.isValid
+      form.trigger();
+    }
+  }, [username, form]);
 
   // Update referral answer and form values if they change in registrationData (e.g., from URL parameter)
   // This effect should only run once on component mount
@@ -160,10 +169,25 @@ export function BasicInfoStep({
 
   // Handle selecting a suggested username
   const handleSelectUsername = (selectedUsername: string) => {
-    form.setValue("username", selectedUsername);
+    // Set the value and trigger validation
+    form.setValue("username", selectedUsername, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true
+    });
+
+    // Clear any existing errors
     form.clearErrors("username");
-    setUsernameSuggestions([]); // Clear suggestions after selection
-    setHasGeneratedSuggestions(false); // Reset the flag
+
+    // Clear suggestions and reset flag
+    setUsernameSuggestions([]);
+    setHasGeneratedSuggestions(false);
+
+    console.log("Username selected:", selectedUsername);
+    console.log("Form state after selection:", form.formState);
+
+    // Force a re-validation of the form
+    form.trigger();
   };
 
   // Track if we've already generated suggestions for the current username
@@ -617,9 +641,23 @@ export function BasicInfoStep({
               <Button
                 type="submit"
                 className="px-16 max-md:px-5"
-                disabled={isLoading || !form.formState.isValid}
+                disabled={isLoading || !form.formState.isValid || !isFormComplete}
+                onClick={() => {
+                  // Log form state for debugging
+                  console.log("Form state on button click:", {
+                    isValid: form.formState.isValid,
+                    isFormComplete,
+                    errors: form.formState.errors,
+                    values: form.getValues()
+                  });
+
+                  // If the form is not valid but seems complete, try to trigger validation
+                  if (!form.formState.isValid && isFormComplete) {
+                    form.trigger();
+                  }
+                }}
               >
-                Continue
+                {isFormComplete ? "Continue" : "Complete Form"}
               </Button>
             </div>
           </div>
