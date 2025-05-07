@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { myPtsHubApi } from '@/lib/api/mypts-api';
 import { toast } from 'sonner';
-import { AlertCircle, CheckCircle2, XCircle, Clock, RotateCw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, RotateCw, Shield, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { motion, MotionConfig, AnimatePresence } from 'framer-motion';
 
 export function SystemVerification() {
   const [isLoading, setIsLoading] = useState(false);
@@ -264,191 +265,351 @@ export function SystemVerification() {
     };
   }, []);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 24
+      }
+    }
+  };
+
   return (
-    <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/80 border border-gray-100 dark:border-gray-800 shadow-sm">
-      <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-        <CardTitle className="text-gray-900 dark:text-white">System Verification</CardTitle>
-        <CardDescription className="text-gray-500 dark:text-gray-400">Verify and reconcile the MyPts system</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 p-6">
-        {/* Automatic verification settings */}
-        <div className="space-y-4 pb-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex justify-between items-center">
-            <div className="space-y-0.5">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">Periodic Verification</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Automatically check system consistency at regular intervals
-              </p>
-            </div>
-            <Switch
-              checked={autoCheckEnabled}
-              onCheckedChange={handleAutoCheckToggle}
-              aria-label="Toggle automatic verification"
-            />
-          </div>
-
-          {autoCheckEnabled && (
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="space-y-2">
-                <Label htmlFor="check-interval" className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Check Interval
-                </Label>
-                <Select
-                  value={checkInterval}
-                  onValueChange={handleIntervalChange}
-                  disabled={!autoCheckEnabled}
-                >
-                  <SelectTrigger id="check-interval" className="w-full">
-                    <SelectValue placeholder="Select interval" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">Every 5 minutes</SelectItem>
-                    <SelectItem value="15">Every 15 minutes</SelectItem>
-                    <SelectItem value="30">Every 30 minutes</SelectItem>
-                    <SelectItem value="60">Every hour</SelectItem>
-                    <SelectItem value="360">Every 6 hours</SelectItem>
-                    <SelectItem value="720">Every 12 hours</SelectItem>
-                    <SelectItem value="1440">Every 24 hours</SelectItem>
-                  </SelectContent>
-                </Select>
+    <MotionConfig reducedMotion="user">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          type: "spring",
+          stiffness: 100,
+          damping: 15
+        }}
+      >
+        <Card className="bg-white dark:bg-black border-0 shadow-sm rounded-xl overflow-hidden">
+          <CardHeader className="border-b border-neutral-100 dark:border-neutral-800 px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-black dark:text-white tracking-tight">System Verification</CardTitle>
+                <CardDescription className="text-neutral-500 dark:text-neutral-400 mt-1 font-light">
+                  Verify and reconcile the MyPts system integrity
+                </CardDescription>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  Status
-                </Label>
-                <div className="flex items-center h-10 px-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  {timeRemaining ? (
-                    <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
-                      <Clock className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-                      <span>Next check in {timeRemaining}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <span>Not active</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {lastAutoCheck && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-              Last automatic check: {lastAutoCheck.toLocaleString()}
-            </div>
-          )}
-        </div>
-
-        {/* Manual verification */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">Manual Verification</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Check if the hub's circulating supply matches the sum of all profile balances
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleVerify}
-              disabled={isLoading}
-              className="h-9 px-4"
-            >
-              {isLoading ? (
-                <>
-                  <RotateCw className="h-4 w-4 mr-2 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                'Verify Now'
-              )}
-            </Button>
-          </div>
-
-          {verificationResult && (
-            <div className={`p-4 rounded-lg border ${verificationResult.isConsistent
-              ? 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
-              : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
-              }`}>
-              <div className="flex items-start gap-3">
-                {verificationResult.isConsistent ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5" />
-                ) : (
-                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
-                )}
-                <div>
-                  <p className={`font-medium ${verificationResult.isConsistent
-                    ? 'text-gray-900 dark:text-gray-100'
-                    : 'text-amber-800 dark:text-amber-300'
-                    }`}>
-                    {verificationResult.message}
-                  </p>
-                  <div className="mt-2 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                    <p>Hub circulating: <span className="font-medium">{verificationResult.hubCirculatingSupply.toLocaleString()} MyPts</span></p>
-                    <p>Actual circulating: <span className="font-medium">{verificationResult.actualCirculatingSupply.toLocaleString()} MyPts</span></p>
-                    {!verificationResult.isConsistent && (
-                      <p>
-                        Difference: <span className="font-medium">{Math.abs(verificationResult.difference).toLocaleString()} MyPts</span>
-                        {verificationResult.difference > 0 ? ' (excess)' : ' (missing)'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {verificationResult && !verificationResult.isConsistent && (
-          <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">Reconcile System</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                This operation will adjust the hub data to match the actual profile balances.
-                {verificationResult.difference > 0
-                  ? ' New MyPts will be issued to match the excess in circulation.'
-                  : ' MyPts will be moved from circulation to reserve to match the actual balances.'}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="reconcileReason" className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Reason for Reconciliation
-              </Label>
-              <Input
-                id="reconcileReason"
-                placeholder="Provide a reason for this reconciliation"
-                value={reconcileReason}
-                onChange={(e) => setReconcileReason(e.target.value)}
-                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                This will be recorded in the system logs
-              </p>
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                variant="default"
-                onClick={handleReconcile}
-                disabled={isReconciling || !reconcileReason.trim()}
-                className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900"
+              <motion.div
+                className="h-10 w-10 rounded-full bg-[#0066FF] dark:bg-[#0A84FF] flex items-center justify-center"
+                whileHover={{ scale: 1.1, rotate: 10 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                {isReconciling ? (
-                  <>
-                    <RotateCw className="h-4 w-4 mr-2 animate-spin" />
-                    Reconciling...
-                  </>
-                ) : (
-                  'Reconcile System'
-                )}
-              </Button>
+                <ShieldCheck className="h-5 w-5 text-white" />
+              </motion.div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </CardHeader>
+          <CardContent className="space-y-8 p-8">
+            <motion.div
+              className="space-y-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Automatic verification settings */}
+              <motion.div variants={itemVariants} className="space-y-5 pb-6 border-b border-neutral-100 dark:border-neutral-800">
+                <div className="flex justify-between items-center">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-medium text-black dark:text-white">Periodic Verification</h3>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 font-light">
+                      Automatically check system consistency at regular intervals
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autoCheckEnabled}
+                    onCheckedChange={handleAutoCheckToggle}
+                    aria-label="Toggle automatic verification"
+                    className="data-[state=checked]:bg-[#0066FF] dark:data-[state=checked]:bg-[#0A84FF] data-[state=checked]:text-white"
+                  />
+                </div>
+
+                {autoCheckEnabled && (
+                  <div className="grid grid-cols-2 gap-6 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="check-interval" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                        Check Interval
+                      </Label>
+                      <Select
+                        value={checkInterval}
+                        onValueChange={handleIntervalChange}
+                        disabled={!autoCheckEnabled}
+                      >
+                        <SelectTrigger id="check-interval" className="w-full bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 focus:ring-[#0066FF] dark:focus:ring-[#0A84FF] focus:border-[#0066FF] dark:focus:border-[#0A84FF]">
+                          <SelectValue placeholder="Select interval" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg">
+                          <SelectItem value="5">Every 5 minutes</SelectItem>
+                          <SelectItem value="15">Every 15 minutes</SelectItem>
+                          <SelectItem value="30">Every 30 minutes</SelectItem>
+                          <SelectItem value="60">Every hour</SelectItem>
+                          <SelectItem value="360">Every 6 hours</SelectItem>
+                          <SelectItem value="720">Every 12 hours</SelectItem>
+                          <SelectItem value="1440">Every 24 hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                        Status
+                      </Label>
+                      <div className="flex items-center h-10 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+                        {timeRemaining ? (
+                          <div className="flex items-center text-sm text-neutral-700 dark:text-neutral-300">
+                            <Clock className="h-4 w-4 mr-2 text-neutral-500 dark:text-neutral-400" />
+                            <span>Next check in {timeRemaining}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-sm text-neutral-500 dark:text-neutral-400">
+                            <span>Not active</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {lastAutoCheck && (
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400 pt-1 font-light">
+                    Last automatic check: {lastAutoCheck.toLocaleString()}
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Manual verification */}
+              <motion.div variants={itemVariants} className="space-y-5">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-medium text-black dark:text-white">Manual Verification</h3>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 font-light">
+                      Check if the hub's circulating supply matches the sum of all profile balances
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleVerify}
+                    disabled={isLoading}
+                    className="h-9 px-4 border-[#0066FF] dark:border-[#0A84FF] text-[#0066FF] dark:text-[#0A84FF] hover:bg-[#F0F7FF] dark:hover:bg-[#0A2A4F] disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      'Verify Now'
+                    )}
+                  </Button>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {verificationResult && (
+                    <motion.div
+                      key={verificationResult.isConsistent ? "consistent" : "inconsistent"}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                        mass: 1
+                      }}
+                      className={`p-6 rounded-xl border ${verificationResult.isConsistent
+                        ? 'bg-[#F5F9FF] dark:bg-[#0A1A2F] border-[#E1EAFF] dark:border-[#1A3A5F]'
+                        : 'bg-[#FFF1F0] dark:bg-[#2F1A1A] border-[#FFCECB] dark:border-[#5F2A2A]'
+                        }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        {verificationResult.isConsistent ? (
+                          <motion.div
+                            className="h-12 w-12 rounded-full bg-[#0066FF] dark:bg-[#0A84FF] flex items-center justify-center"
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 15,
+                              delay: 0.2
+                            }}
+                          >
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 0.5 }}
+                            >
+                              <ShieldCheck className="h-6 w-6 text-white" />
+                            </motion.div>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            className="h-12 w-12 rounded-full bg-[#FF3B30] dark:bg-[#FF453A] flex items-center justify-center"
+                            initial={{ scale: 0, rotate: 180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 15,
+                              delay: 0.2
+                            }}
+                          >
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{
+                                opacity: 1,
+                                scale: [1, 1.2, 1],
+                              }}
+                              transition={{
+                                delay: 0.5,
+                                repeat: 2,
+                                duration: 1,
+                              }}
+                            >
+                              <ShieldAlert className="h-6 w-6 text-white" />
+                            </motion.div>
+                          </motion.div>
+                        )}
+                        <div className="flex-1">
+                          <p className={`font-medium text-lg ${verificationResult.isConsistent
+                            ? 'text-[#0066FF] dark:text-[#0A84FF]'
+                            : 'text-[#FF3B30] dark:text-[#FF453A]'
+                            }`}>
+                            {verificationResult.message}
+                          </p>
+
+                          {verificationResult.isConsistent && (
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1 font-light">
+                              All profile balances match the hub's circulating supply. The system is in perfect balance.
+                            </p>
+                          )}
+
+                          <div className="mt-4 space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                            <div className="text-sm text-neutral-700 dark:text-neutral-300">
+                              <div className="flex justify-between items-center">
+                                <span className="font-light">Hub circulating:</span>
+                                <span className="font-medium">{verificationResult.hubCirculatingSupply.toLocaleString()} MyPts</span>
+                              </div>
+                            </div>
+                            <div className="text-sm text-neutral-700 dark:text-neutral-300">
+                              <div className="flex justify-between items-center">
+                                <span className="font-light">Actual circulating:</span>
+                                <span className="font-medium">{verificationResult.actualCirculatingSupply.toLocaleString()} MyPts</span>
+                              </div>
+                            </div>
+
+                            {verificationResult.isConsistent ? (
+                              <div className="text-sm text-[#34C759] dark:text-[#30D158] mt-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-light">Difference:</span>
+                                  <span className="font-medium">0 MyPts</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-[#FF3B30] dark:text-[#FF453A] mt-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-light">Difference:</span>
+                                  <span className="font-medium">
+                                    {Math.abs(verificationResult.difference).toLocaleString()} MyPts
+                                    {verificationResult.difference > 0 ? ' (excess)' : ' (missing)'}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {verificationResult.isConsistent && (
+                              <div className="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                                <div className="flex items-center gap-2 text-sm text-[#34C759] dark:text-[#30D158]">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span>Last verified: {new Date().toLocaleString()}</span>
+                                </div>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2 font-light">
+                                  The system verification ensures that all MyPts tokens are properly accounted for across all user profiles.
+                                  This verification helps maintain the integrity and trust in the MyPts ecosystem.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
+              {verificationResult && !verificationResult.isConsistent && (
+                <motion.div
+                  variants={itemVariants}
+                  className="space-y-5 pt-6 border-t border-neutral-100 dark:border-neutral-800"
+                >
+                  <div>
+                    <h3 className="text-sm font-medium text-black dark:text-white">Reconcile System</h3>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 font-light">
+                      This operation will adjust the hub data to match the actual profile balances.
+                      {verificationResult.difference > 0
+                        ? ' New MyPts will be issued to match the excess in circulation.'
+                        : ' MyPts will be moved from circulation to reserve to match the actual balances.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="reconcileReason" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      Reason for Reconciliation
+                    </Label>
+                    <Input
+                      id="reconcileReason"
+                      placeholder="Provide a reason for this reconciliation"
+                      value={reconcileReason}
+                      onChange={(e) => setReconcileReason(e.target.value)}
+                      className="bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 focus-visible:ring-[#0066FF] dark:focus-visible:ring-[#0A84FF] focus-visible:border-[#0066FF] dark:focus-visible:border-[#0A84FF]"
+                    />
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 font-light">
+                      This will be recorded in the system logs
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      variant="default"
+                      onClick={handleReconcile}
+                      disabled={isReconciling || !reconcileReason.trim()}
+                      className="bg-[#0066FF] hover:bg-[#0055DD] text-white dark:bg-[#0A84FF] dark:hover:bg-[#0A74EE] disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      {isReconciling ? (
+                        <>
+                          <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+                          Reconciling...
+                        </>
+                      ) : (
+                        'Reconcile System'
+                      )}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </MotionConfig>
   );
 }

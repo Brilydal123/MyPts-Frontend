@@ -28,22 +28,25 @@ interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function ProfileDetailPage({ params, searchParams }: PageProps) {
+export default function ProfileDetailPage({ params, searchParams }: PageProps) {
   const router = useRouter();
-  const { id } = await params;
+  // Use React.use to unwrap the params Promise
+  const unwrappedParams = use(params);
+  const [profileId] = useState<string>(unwrappedParams.id);
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [deleteUserAccount, setDeleteUserAccount] = useState(false);
 
   // Fetch profile details
   const fetchProfileDetails = async () => {
     setIsLoading(true);
     try {
-      console.log('Fetching profile with ID:', id);
+      console.log('Fetching profile with ID:', profileId);
 
       // Use the profileApi service to get the profile by ID
-      const result = await profileApi.getProfileByIdAdmin(id);
+      const result = await profileApi.getProfileByIdAdmin(profileId);
 
       if (result.success) {
         console.log('Profile data:', result.data);
@@ -64,18 +67,18 @@ export default async function ProfileDetailPage({ params, searchParams }: PagePr
   };
 
   useEffect(() => {
-    if (id) {
+    if (profileId) {
       fetchProfileDetails();
     }
-  }, [id]);
+  }, [profileId]);
 
   // Handle profile actions
   const handleEditProfile = () => {
-    router.push(`/admin/profiles/edit/${id}`);
+    router.push(`/admin/profiles/edit/${profileId}`);
   };
 
   const handleRewardProfile = () => {
-    router.push(`/admin/reward?profileId=${id}`);
+    router.push(`/admin/reward?profileId=${profileId}`);
   };
 
   const handleDeleteClick = () => {
@@ -85,8 +88,13 @@ export default async function ProfileDetailPage({ params, searchParams }: PagePr
   const handleDeleteConfirm = async () => {
     setIsActionLoading(true);
     try {
+      // Build the URL with the deleteUserAccount parameter if needed
+      const url = deleteUserAccount
+        ? `/api/admin/profiles/${profileId}?deleteUserAccount=true`
+        : `/api/admin/profiles/${profileId}`;
+
       // Use fetch with credentials to ensure cookies are sent
-      const response = await fetch(`/api/admin/profiles/${id}`, {
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -98,7 +106,13 @@ export default async function ProfileDetailPage({ params, searchParams }: PagePr
         throw new Error('Failed to delete profile');
       }
 
-      toast.success('Profile deleted successfully');
+      // Show different success messages based on what was deleted
+      if (deleteUserAccount) {
+        toast.success('User account and all associated profiles deleted successfully');
+      } else {
+        toast.success('Profile deleted successfully');
+      }
+
       setIsDeleteDialogOpen(false);
       router.push('/admin/profiles');
     } catch (error) {
@@ -330,7 +344,7 @@ export default async function ProfileDetailPage({ params, searchParams }: PagePr
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => router.push(`/admin/profile-transactions?profileId=${id}`)}>
+            <Button variant="outline" className="w-full" onClick={() => router.push(`/admin/profile-transactions?profileId=${profileId}`)}>
               View All Transactions
             </Button>
           </CardFooter>
@@ -610,9 +624,52 @@ export default async function ProfileDetailPage({ params, searchParams }: PagePr
           <DialogHeader>
             <DialogTitle>Delete Profile</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the profile "{profile?.name}"? This action cannot be undone.
+              Choose whether to delete just this profile or the entire user account with all associated profiles.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="flex items-start space-x-3">
+              <div>
+                <input
+                  type="radio"
+                  id="delete-profile-only"
+                  name="delete-option"
+                  className="mt-1"
+                  checked={!deleteUserAccount}
+                  onChange={() => setDeleteUserAccount(false)}
+                  disabled={isActionLoading}
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-profile-only" className="font-medium">Delete profile only</label>
+                <p className="text-sm text-muted-foreground">
+                  This will delete only the profile "{profile?.name}" while keeping the user account and other profiles.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <div>
+                <input
+                  type="radio"
+                  id="delete-user-account"
+                  name="delete-option"
+                  className="mt-1"
+                  checked={deleteUserAccount}
+                  onChange={() => setDeleteUserAccount(true)}
+                  disabled={isActionLoading}
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-user-account" className="font-medium">Delete user account</label>
+                <p className="text-sm text-muted-foreground">
+                  This will delete the entire user account and all associated profiles. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -626,7 +683,7 @@ export default async function ProfileDetailPage({ params, searchParams }: PagePr
               onClick={handleDeleteConfirm}
               disabled={isActionLoading}
             >
-              {isActionLoading ? 'Deleting...' : 'Delete'}
+              {isActionLoading ? 'Deleting...' : deleteUserAccount ? 'Delete User Account' : 'Delete Profile'}
             </Button>
           </DialogFooter>
         </DialogContent>

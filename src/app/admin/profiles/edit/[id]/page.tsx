@@ -57,15 +57,16 @@ interface PageProps {
 }
 
 export default function EditProfilePage({ params, searchParams }: PageProps) {
-  // Properly unwrap params using React.use()
+  // Use React.use to unwrap the params Promise
   const unwrappedParams = use(params);
-  const { id } = unwrappedParams;
+  const [profileId] = useState<string>(unwrappedParams.id);
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [deleteUserAccount, setDeleteUserAccount] = useState(false);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -82,15 +83,15 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
   const fetchProfileDetails = async () => {
     setIsLoading(true);
     try {
-      console.log('Fetching profile with ID:', id);
-      
+      console.log('Fetching profile with ID:', profileId);
+
       // Use the profileApi service to get the profile by ID
-      const result = await profileApi.getProfileByIdAdmin(id);
-      
+      const result = await profileApi.getProfileByIdAdmin(profileId);
+
       if (result.success) {
         console.log('Profile data:', result.data);
         setProfile(result.data);
-        
+
         // Set form values
         form.reset({
           name: result.data.name || '',
@@ -114,17 +115,17 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
   };
 
   useEffect(() => {
-    if (id) {
+    if (profileId) {
       fetchProfileDetails();
     }
-  }, [id]);
+  }, [profileId]);
 
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSaving(true);
     try {
       console.log('Submitting form with values:', values);
-      
+
       const payload = {
         name: values.name,
         description: values.description,
@@ -134,7 +135,7 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
         },
       };
 
-      const response = await fetch(`/api/admin/profiles/${id}`, {
+      const response = await fetch(`/api/admin/profiles/${profileId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +153,7 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
       if (data.success) {
         toast.success('Profile updated successfully');
         // Navigate back to profile detail page
-        router.push(`/admin/profiles/${id}`);
+        router.push(`/admin/profiles/${profileId}`);
       } else {
         toast.error('Failed to update profile', {
           description: data.message || 'An error occurred',
@@ -176,7 +177,12 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
   const handleDeleteConfirm = async () => {
     setIsActionLoading(true);
     try {
-      const response = await fetch(`/api/admin/profiles/${id}`, {
+      // Build the URL with the deleteUserAccount parameter if needed
+      const url = deleteUserAccount
+        ? `/api/admin/profiles/${profileId}?deleteUserAccount=true`
+        : `/api/admin/profiles/${profileId}`;
+
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -188,7 +194,13 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
         throw new Error('Failed to delete profile');
       }
 
-      toast.success('Profile deleted successfully');
+      // Show different success messages based on what was deleted
+      if (deleteUserAccount) {
+        toast.success('User account and all associated profiles deleted successfully');
+      } else {
+        toast.success('Profile deleted successfully');
+      }
+
       setIsDeleteDialogOpen(false);
       router.push('/admin/profiles');
     } catch (error) {
@@ -390,9 +402,52 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
           <DialogHeader>
             <DialogTitle>Delete Profile</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the profile "{profile?.name}"? This action cannot be undone.
+              Choose whether to delete just this profile or the entire user account with all associated profiles.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="flex items-start space-x-3">
+              <div>
+                <input
+                  type="radio"
+                  id="delete-profile-only"
+                  name="delete-option"
+                  className="mt-1"
+                  checked={!deleteUserAccount}
+                  onChange={() => setDeleteUserAccount(false)}
+                  disabled={isActionLoading}
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-profile-only" className="font-medium">Delete profile only</label>
+                <p className="text-sm text-muted-foreground">
+                  This will delete only the profile "{profile?.name}" while keeping the user account and other profiles.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <div>
+                <input
+                  type="radio"
+                  id="delete-user-account"
+                  name="delete-option"
+                  className="mt-1"
+                  checked={deleteUserAccount}
+                  onChange={() => setDeleteUserAccount(true)}
+                  disabled={isActionLoading}
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-user-account" className="font-medium">Delete user account</label>
+                <p className="text-sm text-muted-foreground">
+                  This will delete the entire user account and all associated profiles. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -406,7 +461,7 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
               onClick={handleDeleteConfirm}
               disabled={isActionLoading}
             >
-              {isActionLoading ? 'Deleting...' : 'Delete'}
+              {isActionLoading ? 'Deleting...' : deleteUserAccount ? 'Delete User Account' : 'Delete Profile'}
             </Button>
           </DialogFooter>
         </DialogContent>
