@@ -177,7 +177,7 @@ export function ProfileSelector() {
           } else {
             console.log(
               "Found multiple profiles from localStorage:",
-              mappedProfiles.map(p => p.id)
+              mappedProfiles.map((p: { id: any; }) => p.id)
             );
           }
 
@@ -288,7 +288,7 @@ export function ProfileSelector() {
           } else {
             console.log(
               "Found multiple profiles from user API:",
-              mappedProfiles.map(p => p.id)
+              mappedProfiles.map((p: { id: any; }) => p.id)
             );
 
             // Clear any stored profile ID to ensure the user can select a profile
