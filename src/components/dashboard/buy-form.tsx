@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StripePayment } from "../payment/stripe-payment";
+import { StripePaymentForm } from "../payment/stripe-payment-form";
 import { AnimatedButton } from "../ui/animated-button";
 // No longer need dialog for invoice
 import { InvoicePreview } from "./invoice-preview";
@@ -60,10 +60,10 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
   // Payment form state is now managed by currentStep
   const [paymentInfo, setPaymentInfo] = useState<{
     clientSecret: string;
-    amount: number; // Amount in cents, confirmed for Stripe payment
+    amount: number;
     currency: string;
-    stripePaymentIntentId: string; // ID from Stripe, not our local transaction ID
-    myPtsAmount?: number; // The quantity of MyPts this payment is for
+    transactionId: string;
+    myPtsAmount?: number; // Add myPtsAmount to track the actual MyPts being purchased
   } | null>(null);
 
   // Flow state management
@@ -100,139 +100,62 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
   };
 
   // Proceed to payment after invoice confirmation
-  const proceedToPayment = async (
+  // This now just transitions to the payment form without creating a payment intent
+  const proceedToPayment = (
     qty: number,
     calculatedAmountCents?: number
   ) => {
     if (!formData) return;
-    if (!calculatedAmountCents || calculatedAmountCents <= 0) {
-      toast.error("Invalid amount", {
-        description: "The calculated amount for payment is invalid.",
-      });
-      return;
-    }
     setIsSubmitting(true);
-    setActualPaymentAmount(null); // Reset actual payment amount before new attempt
 
     try {
       console.log(
-        `Preparing Stripe payment for ${qty} MyPts, calculated amount: ${calculatedAmountCents} cents`
+        "Proceeding to payment form with calculated amount:",
+        calculatedAmountCents
       );
 
-      // NEW: Call an API that only creates Stripe Payment Intent and returns clientSecret
-      // Assumes myPtsApi.prepareStripePaymentIntent(myPtsQuantity, totalAmountCents, paymentMethod)
-      // The backend should use `calculatedAmountCents` as the authoritative amount for the Stripe intent.
-      const intentResponse = await myPtsApi.prepareStripePaymentIntent(
-        qty,
-        calculatedAmountCents,
-        formData.paymentMethod
-      );
+      // Store the payment details for later use when the user clicks "Pay"
+      setPaymentInfo({
+        clientSecret: "", // Will be set when the user clicks "Pay"
+        amount: calculatedAmountCents || 0, // Use the calculated amount
+        currency: "USD",
+        transactionId: "", // Will be set when the user clicks "Pay"
+        myPtsAmount: qty,
+      });
 
-      if (
-        intentResponse.success &&
-        intentResponse.data?.clientSecret &&
-        intentResponse.data?.stripePaymentIntentId &&
-        intentResponse.data?.amount // Amount confirmed by backend for Stripe
-      ) {
-        console.log(
-          "Stripe Payment Intent created successfully.",
-          "Client Secret and Stripe Payment Intent ID received.",
-          "Amount for Stripe: ", intentResponse.data.amount
-        );
-
-        setPaymentInfo({
-          clientSecret: intentResponse.data.clientSecret,
-          amount: intentResponse.data.amount, // Use amount confirmed by backend for Stripe
-          currency: intentResponse.data.currency || "USD",
-          stripePaymentIntentId: intentResponse.data.stripePaymentIntentId,
-          myPtsAmount: qty,
-        });
-        setActualPaymentAmount(intentResponse.data.amount / 100); // For display/confirmation
-        setCurrentStep("payment");
-      } else {
-        toast.error("Failed to prepare payment", {
-          description:
-            intentResponse.message || "Could not set up payment with Stripe.",
-        });
-      }
+      // Transition to the payment UI
+      setCurrentStep("payment");
     } catch (error) {
-      console.error("Error preparing Stripe payment:", error);
-      toast.error("Payment preparation failed", {
-        description: "An unexpected error occurred while setting up payment.",
+      console.error("Error proceeding to payment:", error);
+      toast.error("Failed to proceed to payment", {
+        description: "An unexpected error occurred",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle successful payment (called by StripePayment component)
+  // Handle successful payment
   const handlePaymentSuccess = async () => {
-    if (!paymentInfo || !paymentInfo.stripePaymentIntentId || !paymentInfo.myPtsAmount) {
-      toast.error("Critical: Payment confirmation error", {
-        description: "Missing payment information to finalize your purchase. Please contact support.",
-        duration: 10000,
-      });
-      // Reset to avoid inconsistent state, guide user
-      setCurrentStep("form");
-      setPaymentInfo(null);
-      form.reset();
-      return;
+    // Call onSuccess callback immediately to refresh the balance
+    if (onSuccess) {
+      await onSuccess();
     }
 
-    console.log(
-      `Stripe payment successful for intent ID: ${paymentInfo.stripePaymentIntentId}. Finalizing purchase.`
-    );
-    setIsSubmitting(true); // Indicate finalization processing
-
-    try {
-      // NEW: Call backend API to finalize purchase, create local transaction, and update balance
-      // Assumes myPtsApi.finalizeMyPtsPurchase(stripePaymentIntentId, myPtsQuantity, amountPaidCents)
-      const finalizeResponse = await myPtsApi.finalizeMyPtsPurchase(
-        paymentInfo.stripePaymentIntentId,
-        paymentInfo.myPtsAmount,
-        paymentInfo.amount // This is the amount (in cents) that Stripe processed
-      );
-
-      if (finalizeResponse.success) {
-        toast.success("Purchase successful!", {
-          description: `Your purchase of ${paymentInfo.myPtsAmount} MyPts is complete. Your balance has been updated.`,
-        });
-
-        // Call onSuccess callback (e.g., to refresh user balance display)
-        if (onSuccess) {
-          await onSuccess();
-        }
-      } else {
-        // CRITICAL: Stripe payment succeeded, but backend finalization failed.
-        // This requires careful handling. The user has paid.
-        toast.error("Purchase Confirmation Issue", {
-          description:
-            finalizeResponse.message ||
-            "Your payment was successful, but there was an issue confirming your purchase. Please contact support with your payment details.",
-          duration: 15000, // Longer duration for critical user guidance
-        });
-        console.error(
-          "Failed to finalize MyPts purchase after successful Stripe payment:",
-          { paymentInfo, error: finalizeResponse.message }
-        );
-        // Do NOT reset form here if finalization failed but payment went through.
-        // The user might need the info, or we might retry.
-        // For now, we will clear paymentInfo to prevent re-submission of this specific payment.
-      }
-    } catch (error) {
-      console.error("Error finalizing MyPts purchase:", error);
-      toast.error("Purchase Confirmation Error", {
-        description:
-          "An unexpected error occurred while confirming your purchase. Please contact support.",
-        duration: 15000,
+    // Show success message with the updated balance
+    if (paymentInfo?.myPtsAmount) {
+      toast.success("Purchase successful", {
       });
-    } finally {
-      // Reset form and payment state after attempting finalization
-      form.reset();
-      setCurrentStep("form");
-      setPaymentInfo(null);
-      setIsSubmitting(false); // Reset submitting state
+    } else {
+      toast.success("Purchase successful", {
+        description: `Your MyPts purchase was completed successfully! Your balance has been updated.`,
+      });
     }
+
+    // Reset the form and payment state
+    form.reset();
+    setCurrentStep("form");
+    setPaymentInfo(null);
   };
 
   // Handle payment cancellation
@@ -247,11 +170,11 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
   return (
     <>
       {currentStep === "payment" && paymentInfo ? (
-        <StripePayment
-          clientSecret={paymentInfo.clientSecret}
+        <StripePaymentForm
           amount={paymentInfo.amount}
           currency={paymentInfo.currency}
-          myPtsAmount={paymentInfo.myPtsAmount}
+          myPtsAmount={paymentInfo.myPtsAmount || 0}
+          paymentMethod={formData?.paymentMethod || "credit"}
           onSuccess={handlePaymentSuccess}
           onCancel={handlePaymentCancel}
         />

@@ -168,7 +168,8 @@ export function InvoicePreview({
           <AnimatedButton
             className="auth-button active h-12 px-4 sm:px-6 w-full"
             onClick={() => {
-              console.log(`Proceeding to payment with ${myPtsAmount} MyPts, total charge: ${totalChargeCents} cents`);
+              console.log(`Proceeding to payment form with ${myPtsAmount} MyPts, total charge: ${totalChargeCents} cents`);
+              // Just proceed to the payment form - no payment intent is created yet
               onProceed(myPtsAmount, Math.round(totalChargeCents)); // Pass the total amount in cents, rounded to integer
             }}
             disabled={myPtsAmount <= 0 || isLoading}
@@ -179,7 +180,7 @@ export function InvoicePreview({
                 Processing...
               </>
             ) : (
-              "Proceed to Payment"
+              "Continue to Payment Form"
             )}
           </AnimatedButton>
         </motion.div>
