@@ -71,7 +71,8 @@ export function BalanceCard({
   // State to store the calculated value per MyPt
   const [valuePerMyPt, setValuePerMyPt] = useState<number>(() => {
     // Initialize with value from balance
-    return balance.value.valuePerMyPt || 0.024;
+    // Use a consistent base value (0.024 USD per MyPt is the standard)
+    return 0.024;
   });
 
   // State to store the formatted total value
@@ -90,14 +91,15 @@ export function BalanceCard({
     let newValue: number;
     let useFallback = false;
 
+    // Define a consistent base value for MyPts in USD (0.024 USD per MyPt is the standard)
+    const baseValueInUsd = 0.024;
+
     // If we have exchange rates from the API
     if (exchangeRates) {
-      // Base value of MyPts in USD (use the actual value from the balance object)
-      const baseValueInUsd = balance.value.valuePerMyPt || 0.024;
-
       // If the selected currency is USD, use the base value
       if (currency === 'USD') {
         newValue = baseValueInUsd;
+        useFallback = false;
       } else {
         // Get the exchange rate for the selected currency from the API
         const rate = exchangeRates.rates[currency];
@@ -108,21 +110,21 @@ export function BalanceCard({
           newValue = baseValueInUsd * rate;
           useFallback = false;
         } else {
-          // Last resort: use the value from the balance object
-          newValue = balance.value.valuePerMyPt;
+          // Last resort: use the base value
+          newValue = baseValueInUsd;
           useFallback = true;
         }
       }
     } else {
-      // No exchange rates, use fallback from the balance object
-      newValue = balance.value.valuePerMyPt || 0.024;
+      // No exchange rates, use the base value
+      newValue = baseValueInUsd;
       useFallback = true;
     }
 
     // Update state
     setValuePerMyPt(newValue);
     setUsingFallbackRates(useFallback);
-  }, [exchangeRates, currency, balance.value.valuePerMyPt]);
+  }, [exchangeRates, currency]);
 
   // Update the formatted total value when valuePerMyPt or balance changes
   useEffect(() => {
@@ -253,9 +255,7 @@ export function BalanceCard({
                     {formattedTotalValue}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    {currencies.find((c) => c.value === currency)?.symbol ||
-                      balance.value.symbol}{" "}
-                    {valuePerMyPt.toFixed(4)} per MyPt
+                    {formatCurrency(valuePerMyPt, currency)} per MyPt
                   </p>
                 </div>
               </motion.div>
