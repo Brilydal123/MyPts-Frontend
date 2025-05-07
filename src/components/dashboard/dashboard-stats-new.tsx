@@ -1,21 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  ArrowUpRight,
-  ArrowDownRight,
-  TrendingUp,
-  DollarSign,
-  UserPlus,
-  RefreshCw,
-} from "lucide-react";
-import { MyPtsBalance, MyPtsValue } from "@/types/mypts";
-import { DashboardStatsCard } from "./dashboard-stats-card";
-import { ReferralStatsCard } from "./referral-stats-card";
 import ShareReferralModal from "@/components/referrals/ShareReferralModal";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
-import { useCachedExchangeRates } from "@/hooks/use-cached-exchange-rates";
-import { formatCurrency, getDirectConversionValue } from "@/lib/currency";
+import { formatCurrency } from "@/lib/currency";
+import { MyPtsBalance, MyPtsValue } from "@/types/mypts";
+import { ArrowDownRight, ArrowUpRight, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Icons } from "../ui/icons";
+import { DashboardStatsCard } from "./dashboard-stats-card";
+import { ReferralStatsCard } from "./referral-stats-card";
 
 interface DashboardStatsProps {
   balance: MyPtsBalance;
@@ -139,7 +132,7 @@ export function DashboardStats({
         {/* Current Balance Card */}
         <DashboardStatsCard
           title="Current Balance"
-          icon={<DollarSign className="h-5 w-5" />}
+          icon={<Icons.coin className="h-5 w-5" />}
           iconColor="text-[#34C759] dark:text-[#30D158]"
           iconBgColor="bg-[#f2f7f2] dark:bg-[#1c2b1f]"
           value={balance.balance.toLocaleString()}

@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StripePayment } from "../payment/stripe-payment";
-import { AnimatedButton } from "../ui/animated-button";
+import { AnimatedButton } from "@/components/ui/animated-button";
 // No longer need dialog for invoice
 import { InvoicePreview } from "./invoice-preview";
 import { DEFAULT_MYPTS_VALUE } from "@/lib/constants";
@@ -137,7 +137,8 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
         console.log(
           "Stripe Payment Intent created successfully.",
           "Client Secret and Stripe Payment Intent ID received.",
-          "Amount for Stripe: ", intentResponse.data.amount
+          "Amount for Stripe: ",
+          intentResponse.data.amount
         );
 
         setPaymentInfo({
@@ -167,9 +168,14 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
 
   // Handle successful payment (called by StripePayment component)
   const handlePaymentSuccess = async () => {
-    if (!paymentInfo || !paymentInfo.stripePaymentIntentId || !paymentInfo.myPtsAmount) {
+    if (
+      !paymentInfo ||
+      !paymentInfo.stripePaymentIntentId ||
+      !paymentInfo.myPtsAmount
+    ) {
       toast.error("Critical: Payment confirmation error", {
-        description: "Missing payment information to finalize your purchase. Please contact support.",
+        description:
+          "Missing payment information to finalize your purchase. Please contact support.",
         duration: 10000,
       });
       // Reset to avoid inconsistent state, guide user
@@ -327,20 +333,20 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                               id: "credit",
                               name: "Credit Card",
                               icon: "/images/payment/visa.svg",
-                              description: "Visa, Mastercard, Amex"
+                              description: "Visa, Mastercard, Amex",
                             },
                             {
                               id: "debit",
                               name: "Debit Card",
                               icon: "/images/payment/mastercard.svg",
-                              description: "Direct from your bank"
+                              description: "Direct from your bank",
                             },
                             {
                               id: "paypal-disabled",
                               name: "PayPal",
                               icon: "/images/payment/paypal.svg",
-                              description: "Coming Soon"
-                            }
+                              description: "Coming Soon",
+                            },
                           ]}
                         />
                       </FormControl>

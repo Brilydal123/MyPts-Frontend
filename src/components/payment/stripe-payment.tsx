@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { AnimatedButton } from "../ui/animated-button";
+import { AnimatedButton } from "@/components/ui/animated-button";
 
 interface CheckoutFormProps {
   clientSecret: string;

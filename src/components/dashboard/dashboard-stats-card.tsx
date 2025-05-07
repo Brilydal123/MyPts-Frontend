@@ -12,6 +12,7 @@ interface DashboardStatsCardProps {
   value: string;
   unit?: string;
   subtitle?: string;
+
   trend?: {
     value: string;
     isPositive: boolean;
@@ -55,7 +56,7 @@ export function DashboardStatsCard({
 
   return (
     <div className="rounded-shadow p-4">
-      <div className="flex justify-between items-center mb-5">
+      <div className="flex justify-between items-center">
         <h3 className="text-sm font-medium text-[#86868b] dark:text-[#86868b]">
           {title}
         </h3>
@@ -110,15 +111,13 @@ export function DashboardStatsCard({
 
       {action && (
         <div className="mt-4">
-          <motion.button
+          <button
             className="flex items-center text-sm text-[#007AFF] dark:text-[#0A84FF] hover:text-[#0051b3] dark:hover:text-[#409cff] transition-colors"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
             onClick={action.onClick}
           >
             <span className="mr-1.5">{action.icon}</span>
             {action.label}
-          </motion.button>
+          </button>
         </div>
       )}
     </div>

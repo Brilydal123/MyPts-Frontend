@@ -18,9 +18,9 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
-import { Button } from "../ui/button";
-import { Label } from "../ui/label";
-import { Checkbox } from "../ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const formSchema = z.object({
   identifier: z.string().email("Invalid email address"),
@@ -89,27 +89,32 @@ export function LoginForm() {
         try {
           const sessionResponse = await fetch("/api/auth/session");
           const sessionData = await sessionResponse.json();
-          
+
           // Check if user is admin from session data
-          isAdmin = sessionData?.user?.role === 'admin' || sessionData?.user?.isAdmin === true;
-          
-          console.log("Admin check during login:", { isAdmin, userData: sessionData?.user });
-          
+          isAdmin =
+            sessionData?.user?.role === "admin" ||
+            sessionData?.user?.isAdmin === true;
+
+          console.log("Admin check during login:", {
+            isAdmin,
+            userData: sessionData?.user,
+          });
+
           // Store admin status in localStorage if admin
-          if (isAdmin && typeof window !== 'undefined') {
-            localStorage.setItem('isAdmin', 'true');
+          if (isAdmin && typeof window !== "undefined") {
+            localStorage.setItem("isAdmin", "true");
             console.log("Admin status stored in localStorage");
           }
         } catch (error) {
           console.error("Error checking admin status:", error);
         }
-        
+
         // Redirect based on admin status
         if (isAdmin) {
           toast.success("Admin login successful", {
             description: "Redirecting to admin dashboard...",
           });
-          router.push('/admin');
+          router.push("/admin");
         } else {
           toast.success("Login successful", {
             description: "Redirecting to profile selection...",

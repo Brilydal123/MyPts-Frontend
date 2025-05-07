@@ -16,6 +16,8 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     error: queryError,
   } = useProfileInfo(profileId);
 
+  console.log(profile);
+
   // Convert query error to string for display
   const error = queryError ? (queryError as Error).message : null;
 

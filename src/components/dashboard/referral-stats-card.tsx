@@ -19,7 +19,6 @@ export function ReferralStatsCard({
   onShare,
 }: ReferralStatsCardProps) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = () => {
     navigator.clipboard
       .writeText(referralCode)
@@ -56,21 +55,17 @@ export function ReferralStatsCard({
   }
 
   return (
-    <div className="rounded-shadow">
-      <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent opacity-50 dark:opacity-10 pointer-events-none rounded-2xl"></div>
-
-      <div className="flex justify-between items-center mb-5">
+    <div className="rounded-shadow p-4">
+      <div className="flex justify-between items-center">
         <h3 className="text-sm font-medium text-[#86868b] dark:text-[#86868b]">
           Referrals
         </h3>
-        <div className="h-10 w-10 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] flex items-center justify-center">
-          <div className="h-5 w-5 text-[#007AFF] dark:text-[#0A84FF]">
-            <Share2 className="h-5 w-5" />
-          </div>
+        <div className="size-10 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] flex items-center justify-center">
+          <Share2 className="size-5 text-[#007AFF]" />
         </div>
       </div>
 
-      <div className="mt-1">
+      <div className="">
         <div className="flex items-baseline">
           <span className="text-[28px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
             {referralsCount}
@@ -83,8 +78,6 @@ export function ReferralStatsCard({
 
       <motion.div
         className="mt-4 relative group cursor-pointer"
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
         onClick={handleCopy}
       >
         <div className="flex items-center justify-between bg-[#fff8f0] dark:bg-[#2e2922] px-4 py-3 rounded-full">
@@ -123,7 +116,7 @@ export function ReferralStatsCard({
         </div>
       </motion.div>
 
-      <div className="mt-4 flex items-center justify-between">
+      {/* <div className="mt-4 flex items-center justify-between">
         <a
           href="/dashboard/referrals"
           className="text-sm text-[#007AFF] dark:text-[#0A84FF] hover:text-[#0051b3] dark:hover:text-[#409cff] transition-colors flex items-center"
@@ -141,7 +134,7 @@ export function ReferralStatsCard({
           <Share2 className="h-3.5 w-3.5 mr-1.5" />
           Share
         </motion.button>
-      </div>
+      </div> */}
     </div>
   );
 }

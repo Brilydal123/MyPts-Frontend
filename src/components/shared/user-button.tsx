@@ -13,7 +13,7 @@ import {
 import { useLogoutModal } from "@/hooks/use-logout";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 
 const routes = [
