@@ -11,6 +11,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { Icons } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -108,11 +109,13 @@ export function MainLayout({ children }: MainLayoutProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center px-3 py-2 rounded-md ${
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-md",
                       pathname === item.href
                         ? "bg-white text-black"
-                        : "text-white hover:bg-muted"
-                    } ${item.isAdmin ? "text-primary" : ""}`}
+                        : "text-white hover:bg-muted",
+                      item.isAdmin && "text-primary"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <span className="mr-3">
@@ -168,16 +171,19 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Desktop sidebar */}
       <div
-        className={`hidden lg:block fixed left-0 top-0 h-full ${
-          sidebarOpen ? "w-64" : "w-20"
-        } dark:bg-white bg-black transition-all duration-300 z-30`}
+        className={cn(
+          "hidden lg:block fixed left-0 top-0 h-full",
+          sidebarOpen ? "w-64" : "w-20",
+          "dark:bg-white bg-black transition-all duration-300 z-30"
+        )}
       >
         <div
-          className={`relative ${
+          className={cn(
+            "relative",
             sidebarOpen
               ? "flex pb-5 items-center px-6 justify-between pt-7"
               : "flex justify-center items-center pt-7"
-          }`}
+          )}
         >
           {sidebarOpen ? (
             <Link href="/" className="flex items-center space-x-2">
@@ -215,15 +221,17 @@ export function MainLayout({ children }: MainLayoutProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center ${
-                  sidebarOpen ? "px-3" : "justify-center"
-                } py-2 rounded-md ${
+                className={cn(
+                  "flex items-center",
+                  sidebarOpen ? "px-3" : "justify-center",
+                  "py-2 rounded-md",
                   pathname === item.href
                     ? "bg-white text-black"
-                    : "text-white hover:bg-muted hover:text-black"
-                } ${item.isAdmin ? "text-primary" : ""}`}
+                    : "text-white hover:bg-muted hover:text-black",
+                  item.isAdmin && "text-primary"
+                )}
               >
-                <span className={sidebarOpen ? "mr-3" : ""}>
+                <span className={cn(sidebarOpen && "mr-3")}>
                   {<item.icon className="size-5" />}
                 </span>
                 {sidebarOpen && <span>{item.name}</span>}
@@ -237,25 +245,28 @@ export function MainLayout({ children }: MainLayoutProps) {
             <div className="space-y-2">
               <Link
                 href="/settings"
-                className={`flex items-center ${
-                  sidebarOpen ? "px-3" : "justify-center"
-                } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
+                className={cn(
+                  "flex items-center",
+                  sidebarOpen ? "px-3" : "justify-center",
+                  "py-2 rounded-md text-white hover:bg-muted hover:text-black"
+                )}
               >
-                <span className={sidebarOpen ? "mr-3" : ""}>
+                <span className={cn(sidebarOpen && "mr-3")}>
                   <SettingsIcon className="h-5 w-5" />
                 </span>
                 {sidebarOpen && <span>Settings</span>}
               </Link>
               <Button
                 variant="ghost"
-                className={`flex items-center ${
-                  sidebarOpen ? "px-3" : "justify-center"
-                } py-2 rounded-md text-white hover:bg-muted w-full ${
+                className={cn(
+                  "flex items-center",
+                  sidebarOpen ? "px-3" : "justify-center",
+                  "py-2 rounded-md text-white hover:bg-muted w-full",
                   sidebarOpen ? "justify-start" : "justify-center"
-                }`}
+                )}
                 onClick={handleLogout}
               >
-                <span className={sidebarOpen ? "mr-2" : ""}>
+                <span className={cn(sidebarOpen && "mr-2")}>
                   <LogOutIcon className="h-5 w-5 -rotate-180" />
                 </span>
                 {sidebarOpen && <span>Log out</span>}
@@ -294,18 +305,22 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Main Content with padding for sidebar */}
       <main
-        className={`flex-1 ${
-          sidebarOpen ? "lg:ml-64" : "lg:ml-20"
-        } transition-all duration-300 p-4 lg:p-6`}
+        className={cn(
+          "flex-1",
+          sidebarOpen ? "lg:ml-64" : "lg:ml-20",
+          "transition-all duration-300 p-4 lg:p-6"
+        )}
       >
-        {children}
+        <div className="w-full  mx-auto">{children}</div>
       </main>
 
       {/* Footer */}
       <footer
-        className={`border-t py-6 md:py-0 ${
-          sidebarOpen ? "lg:ml-64" : "lg:ml-20"
-        } transition-all duration-300`}
+        className={cn(
+          "border-t py-6 md:py-0",
+          sidebarOpen ? "lg:ml-64" : "lg:ml-20",
+          "transition-all duration-300"
+        )}
       >
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
           <p className="text-sm text-white">

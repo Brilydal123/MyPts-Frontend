@@ -1,9 +1,10 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, Copy, Share2 } from "lucide-react";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, Share2, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
+import LoadingCardsStats from "../shared/loading-cards-stats";
 
 interface ReferralStatsCardProps {
   referralCode: string;
@@ -38,20 +39,7 @@ export function ReferralStatsCard({
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white dark:bg-[#1C1C1E] rounded-2xl p-6 h-full border border-[#E5E5EA] dark:border-[#38383A] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
-        <div className="flex justify-between items-center mb-5">
-          <div className="h-5 w-24 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-md animate-pulse"></div>
-          <div className="h-10 w-10 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] animate-pulse"></div>
-        </div>
-        <div className="h-9 w-28 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-md animate-pulse mt-4"></div>
-        <div className="h-10 w-full bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-full animate-pulse mt-4"></div>
-        <div className="flex justify-between mt-4">
-          <div className="h-5 w-24 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-md animate-pulse"></div>
-          <div className="h-5 w-16 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-md animate-pulse"></div>
-        </div>
-      </div>
-    );
+    return <LoadingCardsStats />;
   }
 
   return (

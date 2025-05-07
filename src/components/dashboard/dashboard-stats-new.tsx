@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Icons } from "../ui/icons";
 import { DashboardStatsCard } from "./dashboard-stats-card";
 import { ReferralStatsCard } from "./referral-stats-card";
+import LifeTimeStats from "./life-time-stats";
 
 interface DashboardStatsProps {
   balance: MyPtsBalance;
@@ -105,7 +106,7 @@ export function DashboardStats({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* MyPts Value Card */}
         <DashboardStatsCard
           title="MyPts Value"
@@ -145,12 +146,11 @@ export function DashboardStats({
         />
 
         {/* Lifetime Earned Card */}
-        <DashboardStatsCard
-          title="Lifetime Earned"
-          icon={<ArrowUpRight className="h-5 w-5" />}
-          iconColor="text-[#34C759] dark:text-[#30D158]"
-          iconBgColor="bg-[#f2f7f2] dark:bg-[#1c2b1f]"
-          value={balance.lifetimeEarned.toLocaleString()}
+        <LifeTimeStats
+          balance={{
+            lifetimeEarned: balance.lifetimeEarned,
+            lifetimeSpent: balance.lifetimeSpent,
+          }}
           unit="MyPts"
           subtitle={formatCurrency(
             balance.lifetimeEarned * valuePerMyPt,
@@ -158,22 +158,6 @@ export function DashboardStats({
           )}
           isLoading={isLoading}
         />
-
-        <DashboardStatsCard
-          title="Lifetime Spent"
-          icon={<ArrowDownRight className="h-5 w-5" />}
-          iconColor="text-[#FF3B30] dark:text-[#FF453A]"
-          iconBgColor="bg-[#f8f1f0] dark:bg-[#2f1a19]"
-          value={balance.lifetimeSpent.toLocaleString()}
-          unit="MyPts"
-          subtitle={formatCurrency(
-            balance.lifetimeSpent * valuePerMyPt,
-            currency
-          )}
-          isLoading={isLoading}
-        />
-
-        {/* Referrals Card */}
         <ReferralStatsCard
           referralCode={referralCode}
           referralsCount={referralsCount}
