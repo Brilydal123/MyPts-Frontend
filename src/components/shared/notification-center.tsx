@@ -167,7 +167,7 @@ export function NotificationCenter() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="notification-panel fixed left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] max-w-[550px] top-[3rem] bg-white sm:left-auto sm:right-4 sm:-translate-x-0 md:absolute md:right-0 md:top-[3rem] md:mt-2 sm:w-[500px]  md:w-[550px] backdrop-blur-md  dark:bg-neutral-900/75 border border-neutral-200/70 dark:border-neutral-800/70 rounded-2xl  shadow-lg dark:shadow-2xl shadow-neutral-400/20 dark:shadow-black/30 z-50 overflow-hidden"
+            className="notification-panel fixed left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] max-w-[550px] top-[3.9rem] bg-white sm:left-auto sm:right-4 sm:-translate-x-0 md:absolute md:right-0 md:top-[2.8rem] md:mt-2 sm:w-[500px]  md:w-[550px] backdrop-blur-md  dark:bg-neutral-900/75 border border-neutral-200/70 dark:border-neutral-800/70 rounded-2xl  shadow-lg dark:shadow-2xl shadow-neutral-400/20 dark:shadow-black/30 z-50 overflow-hidden"
           >
             <div className="p-3 sm:p-4 border-b border-neutral-200/70 dark:border-neutral-800/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
               <h3 className="font-semibold text-sm sm:text-base">Notifications</h3>
