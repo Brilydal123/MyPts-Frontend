@@ -54,7 +54,9 @@ const UserButton = ({ showName = true }: UserButtonProps) => {
           <div className="flex items-center gap-2">
             <div className="flex flex-col">
               <p className="text-sm font-semibold">{user.name}</p>
-              <p className="text-xs text-gray-500 text-start">Admin</p>
+              <p className="text-xs text-gray-500 text-start capitalize">
+                {user.role}
+              </p>
             </div>
 
             <ChevronDown className="size-4" />

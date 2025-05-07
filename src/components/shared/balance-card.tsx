@@ -62,7 +62,7 @@ export function BalanceCard({
     exchangeRates,
     isLoading: isLoadingRates,
     forceRefresh: refetchRates,
-    lastFetchTime
+    lastFetchTime,
   } = useCachedExchangeRates();
 
   // State to track if we're using API rates or fallback rates
@@ -75,7 +75,7 @@ export function BalanceCard({
   });
 
   // State to store the formatted total value
-  const [formattedTotalValue, setFormattedTotalValue] = useState<string>('');
+  const [formattedTotalValue, setFormattedTotalValue] = useState<string>("");
 
   // Handle refresh button click
   const handleRefresh = () => {
@@ -96,7 +96,7 @@ export function BalanceCard({
       const baseValueInUsd = balance.value.valuePerMyPt || 0.024;
 
       // If the selected currency is USD, use the base value
-      if (currency === 'USD') {
+      if (currency === "USD") {
         newValue = baseValueInUsd;
       } else {
         // Get the exchange rate for the selected currency from the API
@@ -174,11 +174,11 @@ export function BalanceCard({
       // whileHover="hover"
       className=""
     >
-      <Card className="overflow-hidden shadow-md h-full border-0 rounded-xl bg-gradient-to-br from-card to-background">
-        <CardHeader className="bg-primary rounded-t-md text-primary-foreground p-6">
+      <Card className="rounded-shadow">
+        <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold flex items-center gap-2">
-              <CurrencyExchange className="h-5 w-5" />
+              <CurrencyExchange className="size-5" />
               Local Currencies Conversion
             </CardTitle>
             <div className="flex items-center gap-2">
@@ -186,13 +186,15 @@ export function BalanceCard({
                 variant="ghost"
                 size="icon"
                 onClick={handleRefresh}
-                className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full h-9 w-9"
+                className="border rounded-full size-9"
                 disabled={isLoadingRates}
               >
-                <RefreshCw className={`h-4 w-4 ${isLoadingRates ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${isLoadingRates ? "animate-spin" : ""}`}
+                />
               </Button>
               <Select value={currency} onValueChange={handleCurrencyChange}>
-                <SelectTrigger className="w-[130px] bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full">
+                <SelectTrigger className="w-[130px] rounded-full">
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
                 <SelectContent>
@@ -205,22 +207,28 @@ export function BalanceCard({
               </Select>
             </div>
           </div>
-          <CardDescription className="text-primary-foreground/90 mt-2">
+          <CardDescription>
             {currencies.find((c) => c.value === currency)?.label || currency}
             <br />
             Your current MyPts balance and equivalent value
             {isLoadingRates && (
-              <span className="ml-2 text-xs opacity-70">(Loading rates...)</span>
+              <span className="ml-2 text-xs opacity-70">
+                (Loading rates...)
+              </span>
             )}
             {!isLoadingRates && usingFallbackRates && (
-              <span className="ml-2 text-xs opacity-70">(Using fallback rates)</span>
+              <span className="ml-2 text-xs opacity-70">
+                (Using fallback rates)
+              </span>
             )}
             {!isLoadingRates && !usingFallbackRates && exchangeRates && (
-              <span className="ml-2 text-xs opacity-70">(Live rates from ExchangeRate-API)</span>
+              <span className="ml-2 text-xs opacity-70">
+                (Live rates from ExchangeRate-API)
+              </span>
             )}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-2 md:p-5">
+        <CardContent>
           {isLoading ? (
             <div className="flex flex-col space-y-4 animate-pulse">
               <div className="h-8 w-3/4 bg-muted rounded-full"></div>

@@ -1,18 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/shared/main-layout';
-import { BalanceCard } from '@/components/shared/balance-card';
-import { TransactionList } from '@/components/shared/transaction-list';
-import { DashboardStats } from '@/components/dashboard/dashboard-stats-new';
-import { ProfileInfo } from '@/components/profile/profile-info';
-import { ReferralCard } from '@/components/referrals/ReferralCard';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
-import { useBalance, useMyPtsValue, useTransactions } from '@/hooks/use-mypts-data';
-import { useReferralData } from '@/hooks/use-referral-data';
-import { useCurrency } from '@/hooks/use-currency';
+import { useState, useEffect } from "react";
+import { MainLayout } from "@/components/shared/main-layout";
+import { BalanceCard } from "@/components/shared/balance-card";
+import { TransactionList } from "@/components/shared/transaction-list";
+import { DashboardStats } from "@/components/dashboard/dashboard-stats-new";
+import { ProfileInfo } from "@/components/profile/profile-info";
+import { ReferralCard } from "@/components/referrals/ReferralCard";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import {
+  useBalance,
+  useMyPtsValue,
+  useTransactions,
+} from "@/hooks/use-mypts-data";
+import { useReferralData } from "@/hooks/use-referral-data";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function DashboardPage() {
   // Use global currency state
@@ -29,39 +33,39 @@ export default function DashboardPage() {
   const {
     data: balance,
     isLoading: isBalanceLoading,
-    refetch: refetchBalance
+    refetch: refetchBalance,
   } = useBalance(currency);
 
   const {
     data: value,
     isLoading: isValueLoading,
-    refetch: refetchValue
+    refetch: refetchValue,
   } = useMyPtsValue();
 
   const {
     data: transactionsData,
     isLoading: isTransactionsLoading,
-    refetch: refetchTransactions
+    refetch: refetchTransactions,
   } = useTransactions(pagination.limit, pagination.offset);
 
   const {
     referralCode,
     referralCount,
     isLoading: isReferralLoading,
-    refetch: refetchReferral
+    refetch: refetchReferral,
   } = useReferralData();
 
   // Check if user is authenticated
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    const nextAuthToken = localStorage.getItem('next-auth.session-token');
-    const profileToken = localStorage.getItem('selectedProfileToken');
+    const accessToken = localStorage.getItem("accessToken");
+    const nextAuthToken = localStorage.getItem("next-auth.session-token");
+    const profileToken = localStorage.getItem("selectedProfileToken");
 
     if (!accessToken && !nextAuthToken && !profileToken) {
-      toast.error('Authentication required', {
-        description: 'Please log in to continue',
+      toast.error("Authentication required", {
+        description: "Please log in to continue",
       });
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
   }, []);
 
@@ -69,7 +73,12 @@ export default function DashboardPage() {
   const transactions = transactionsData?.transactions || [];
 
   // Combined loading state
-  const isLoading = isBalanceLoading || isValueLoading || isTransactionsLoading || isReferralLoading || isSwitchingCurrency;
+  const isLoading =
+    isBalanceLoading ||
+    isValueLoading ||
+    isTransactionsLoading ||
+    isReferralLoading ||
+    isSwitchingCurrency;
 
   // Refresh all data
   const refreshAllData = () => {
@@ -97,7 +106,7 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col gap-10">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <Button
@@ -107,8 +116,10 @@ export default function DashboardPage() {
             disabled={isLoading}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Refreshing...' : 'Refresh'}
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
+            {isLoading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
 
@@ -124,15 +135,13 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-muted rounded-lg animate-pulse"></div>
+              <div
+                key={i}
+                className="h-32 bg-muted rounded-lg animate-pulse"
+              ></div>
             ))}
           </div>
         )}
-
-        <div className="mb-6">
-          <ProfileInfo />
-        </div>
-
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <div className="md:col-span-1 lg:col-span-1">
             {balance ? (
@@ -146,7 +155,6 @@ export default function DashboardPage() {
               <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
             )}
 
-            {/* Add the new Referral Card */}
             <div className="mt-6">
               <ReferralCard />
             </div>
