@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -6,11 +6,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MyPtsTransaction, TransactionStatus, TransactionType } from '@/types/mypts';
-import { ArrowUpRight, ArrowDownRight, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  MyPtsTransaction,
+  TransactionStatus,
+  TransactionType,
+} from "@/types/mypts";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 interface TransactionListProps {
   transactions: MyPtsTransaction[];
@@ -30,60 +46,63 @@ export function TransactionList({
   pagination,
   onPageChange,
 }: TransactionListProps) {
-  const [selectedTransaction, setSelectedTransaction] = useState<MyPtsTransaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<MyPtsTransaction | null>(null);
 
   const getTransactionTypeLabel = (type: TransactionType): string => {
     switch (type) {
       case TransactionType.BUY_MYPTS:
-        return 'Buy MyPts';
+        return "Buy MyPts";
       case TransactionType.SELL_MYPTS:
-        return 'Sell MyPts';
+        return "Sell MyPts";
       case TransactionType.EARN_MYPTS:
-        return 'Earn MyPts';
+        return "Earn MyPts";
       case TransactionType.PURCHASE_PRODUCT:
-        return 'Purchase Product';
+        return "Purchase Product";
       case TransactionType.RECEIVE_PRODUCT_PAYMENT:
-        return 'Product Payment';
+        return "Product Payment";
       case TransactionType.DONATION_SENT:
-        return 'Donation Sent';
+        return "Donation Sent";
       case TransactionType.DONATION_RECEIVED:
-        return 'Donation Received';
+        return "Donation Received";
       case TransactionType.REFUND:
-        return 'Refund';
+        return "Refund";
       case TransactionType.EXPIRE:
-        return 'Expired';
+        return "Expired";
       case TransactionType.ADJUSTMENT:
-        return 'Adjustment';
+        return "Adjustment";
       default:
         return type;
     }
   };
 
   const getTransactionStatusBadge = (status: TransactionStatus): any => {
-    let bgColor = '';
-    let textColor = '';
+    let bgColor = "";
+    let textColor = "";
 
     switch (status) {
       case TransactionStatus.COMPLETED:
-        bgColor = 'bg-green-100';
-        textColor = 'text-green-800';
+        bgColor = "bg-green-100";
+        textColor = "text-green-800";
         break;
       case TransactionStatus.PENDING:
-        bgColor = 'bg-yellow-100';
-        textColor = 'text-yellow-800';
+        bgColor = "bg-yellow-100";
+        textColor = "text-yellow-800";
         break;
       case TransactionStatus.FAILED:
-        bgColor = 'bg-red-100';
-        textColor = 'text-red-800';
+        bgColor = "bg-red-100";
+        textColor = "text-red-800";
         break;
       case TransactionStatus.CANCELLED:
-        bgColor = 'bg-gray-100';
-        textColor = 'text-gray-800';
+        bgColor = "bg-gray-100";
+        textColor = "text-gray-800";
         break;
     }
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}
+      >
         {status}
       </span>
     );
@@ -99,7 +118,7 @@ export function TransactionList({
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
   };
 
   const handlePrevPage = () => {
@@ -117,17 +136,19 @@ export function TransactionList({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border transition-all duration-300 hover:shadow-lg shadow-md bg-card overflow-hidden">
+    <div className="flex flex-col gap-4">
+      <div className="rounded-shadow overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="h-12">
             <TableRow>
               <TableHead>Type</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead className="hidden md:table-cell">Balance</TableHead>
               <TableHead className="hidden md:table-cell">Status</TableHead>
               <TableHead className="hidden md:table-cell">Date</TableHead>
-              <TableHead className="hidden lg:table-cell">Transaction ID</TableHead>
+              <TableHead className="hidden lg:table-cell">
+                Transaction ID
+              </TableHead>
               <TableHead className="text-right">Details</TableHead>
             </TableRow>
           </TableHeader>
@@ -160,21 +181,31 @@ export function TransactionList({
               ))
             ) : transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   No transactions found
                 </TableCell>
               </TableRow>
             ) : (
               transactions.map((transaction) => (
-                <TableRow key={transaction._id} className="hover:bg-muted/50 transition-colors">
+                <TableRow
+                  key={transaction._id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {getTransactionIcon(transaction.type, transaction.amount)}
                       <span>{getTransactionTypeLabel(transaction.type)}</span>
                     </div>
                   </TableCell>
-                  <TableCell className={transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}>
-                    {transaction.amount > 0 ? '+' : ''}
+                  <TableCell
+                    className={
+                      transaction.amount > 0 ? "text-green-600" : "text-red-600"
+                    }
+                  >
+                    {transaction.amount > 0 ? "+" : ""}
                     {transaction.amount.toLocaleString()}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
@@ -213,37 +244,52 @@ export function TransactionList({
                           <div className="space-y-4 py-4">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <p className="text-sm font-medium text-muted-foreground">Type</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Type
+                                </p>
                                 <p className="text-sm font-semibold">
-                                  {getTransactionTypeLabel(selectedTransaction.type)}
+                                  {getTransactionTypeLabel(
+                                    selectedTransaction.type
+                                  )}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Status
+                                </p>
                                 <p className="text-sm font-semibold">
-                                  {getTransactionStatusBadge(selectedTransaction.status)}
+                                  {getTransactionStatusBadge(
+                                    selectedTransaction.status
+                                  )}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-muted-foreground">Amount</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Amount
+                                </p>
                                 <p
-                                  className={`text-sm font-semibold ${selectedTransaction.amount > 0
-                                      ? 'text-green-600'
-                                      : 'text-red-600'
-                                    }`}
+                                  className={`text-sm font-semibold ${
+                                    selectedTransaction.amount > 0
+                                      ? "text-green-600"
+                                      : "text-red-600"
+                                  }`}
                                 >
-                                  {selectedTransaction.amount > 0 ? '+' : ''}
+                                  {selectedTransaction.amount > 0 ? "+" : ""}
                                   {selectedTransaction.amount.toLocaleString()}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-muted-foreground">Balance</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Balance
+                                </p>
                                 <p className="text-sm font-semibold">
                                   {selectedTransaction.balance.toLocaleString()}
                                 </p>
                               </div>
                               <div className="col-span-2">
-                                <p className="text-sm font-medium text-muted-foreground">Date</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Date
+                                </p>
                                 <p className="text-sm font-semibold">
                                   {formatDate(selectedTransaction.createdAt)}
                                 </p>
@@ -253,7 +299,9 @@ export function TransactionList({
                                   <p className="text-sm font-medium text-muted-foreground">
                                     Description
                                   </p>
-                                  <p className="text-sm">{selectedTransaction.description}</p>
+                                  <p className="text-sm">
+                                    {selectedTransaction.description}
+                                  </p>
                                 </div>
                               )}
                               {selectedTransaction.referenceId && (
@@ -282,7 +330,11 @@ export function TransactionList({
                                     Additional Information
                                   </p>
                                   <pre className="text-xs p-2 bg-muted rounded-md overflow-auto max-h-32">
-                                    {JSON.stringify(selectedTransaction.metadata, null, 2)}
+                                    {JSON.stringify(
+                                      selectedTransaction.metadata,
+                                      null,
+                                      2
+                                    )}
                                   </pre>
                                 </div>
                               )}
@@ -303,8 +355,11 @@ export function TransactionList({
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing {pagination.offset + 1}-
-            {Math.min(pagination.offset + transactions.length, pagination.total)} of{' '}
-            {pagination.total} transactions
+            {Math.min(
+              pagination.offset + transactions.length,
+              pagination.total
+            )}{" "}
+            of {pagination.total} transactions
           </p>
           <div className="flex items-center space-x-2">
             <Button

@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MainLayout } from "@/components/shared/main-layout";
-import { BalanceCard } from "@/components/shared/balance-card";
-import { TransactionList } from "@/components/shared/transaction-list";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats-new";
-import { ProfileInfo } from "@/components/profile/profile-info";
 import { ReferralCard } from "@/components/referrals/ReferralCard";
+import { BalanceCard } from "@/components/shared/balance-card";
+import { MainLayout } from "@/components/shared/main-layout";
+import { TransactionList } from "@/components/shared/transaction-list";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { useCurrency } from "@/hooks/use-currency";
 import {
   useBalance,
   useMyPtsValue,
   useTransactions,
 } from "@/hooks/use-mypts-data";
 import { useReferralData } from "@/hooks/use-referral-data";
-import { useCurrency } from "@/hooks/use-currency";
+import { RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   // Use global currency state

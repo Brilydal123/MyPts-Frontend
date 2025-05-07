@@ -58,7 +58,6 @@ const UserButton = ({ showName = true }: UserButtonProps) => {
                 {user.role}
               </p>
             </div>
-
             <ChevronDown className="size-4" />
           </div>
         )}
