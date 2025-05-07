@@ -214,7 +214,7 @@ export function EmailRegistrationStep({
             )}
           />
 
-          <div className="text-xs text-gray-600 text-center w-[24rem] mx-auto">
+          <div className="text-xs text-gray-600 text-center line-clamp-3">
             We will send you a verification code to the email for verification
             purpose.{" "}
             <Link href="/privacy" className="text-blue-600 hover:underline">
@@ -232,8 +232,8 @@ export function EmailRegistrationStep({
               {isLoading
                 ? "Processing..."
                 : isEmailValid
-                ? "Save & Continue"
-                : "Enter Valid Email"}
+                  ? "Save & Continue"
+                  : "Enter Valid Email"}
             </Button>
           </div>
         </form>

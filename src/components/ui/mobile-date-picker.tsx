@@ -365,9 +365,14 @@ export function MobileDatePicker({
           side="bottom"
           className="h-[90vh] p-0 rounded-t-3xl border-t-0 shadow-2xl"
         >
-          <div className="flex justify-center items-center p-4 border-b relative">
-            <div className="w-12 h-1 bg-gray-300 rounded-full absolute -top-6" />
+          <div className="flex justify-between items-center p-4 border-b">
+            <div className="w-8" />
             <h3 className="font-semibold text-lg">Select Date</h3>
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <CloseIcon className="h-4 w-4" />
+              </Button>
+            </SheetClose>
           </div>
 
           <motion.div
@@ -417,7 +422,7 @@ export function MobileDatePicker({
 
             <DirectInput />
 
-            <div className="p-4 border-t space-y-3">
+            <div className="p-4 border-t">
               <Button
                 className="w-full rounded-full h-12 text-base font-medium"
                 onClick={() => {
@@ -430,15 +435,6 @@ export function MobileDatePicker({
               >
                 Confirm
               </Button>
-
-              <SheetClose asChild>
-                <Button
-                  variant="outline"
-                  className="w-full rounded-full h-12 text-base font-medium"
-                >
-                  Cancel
-                </Button>
-              </SheetClose>
             </div>
           </motion.div>
         </SheetContent>

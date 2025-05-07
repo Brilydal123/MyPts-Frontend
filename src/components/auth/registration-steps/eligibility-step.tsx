@@ -217,12 +217,12 @@ export function EligibilityStep({
             />
           </div>
 
-          <div className="flex justify-between pt-4 mb-8">
-            <BackButton onClick={onPrev} className="px-[2rem]" />
-            <div>
+          <div className="flex  pt-4 mb-8 justify-between  mx-auto">
+            <BackButton onClick={onPrev} className="" />
+            <div className="">
               <Button
                 type="submit"
-                className="px-16"
+                className="px-16 max-md:px-5"
                 disabled={isLoading || !form.formState.isValid}
               >
                 Continue

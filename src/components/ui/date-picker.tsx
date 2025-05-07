@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, getYear, getMonth, setYear, setMonth, isValid } from 'date-fns';
-import { Calendar as CalendarIcon, X as CloseIcon } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -11,12 +11,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetClose
-} from '@/components/ui/sheet';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DatePickerProps {
@@ -353,17 +347,9 @@ export function DatePicker({
     </>
   ), [value, placeholder]);
 
-  // Function to handle opening the date picker
-  const handleOpenChange = React.useCallback((isOpen: boolean) => {
-    if (isOpen) {
-      setView('calendar');
-    }
-    setOpen(isOpen);
-  }, []);
-
   return (
     <div className={cn('grid gap-2', className)}>
-      <Popover open={open} onOpenChange={handleOpenChange}>
+      <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
@@ -375,6 +361,10 @@ export function DatePicker({
               disabled && 'opacity-50 cursor-not-allowed'
             )}
             disabled={disabled}
+            onClick={() => {
+              setView('calendar');
+              setOpen(!open);
+            }}
           >
             {buttonContent}
           </Button>
@@ -385,15 +375,13 @@ export function DatePicker({
             align="center"
             side="bottom"
             sideOffset={5}
-            collisionPadding={10}
-            avoidCollisions={false}
+            avoidCollisions={true}
             onInteractOutside={() => setOpen(false)}
             onEscapeKeyDown={() => setOpen(false)}
             style={{
               width: 'min(calc(100vw - 20px), 340px)',
               position: 'relative',
-              zIndex: 50,
-              marginTop: '8px'
+              zIndex: 50
             }}
           >
             <motion.div

@@ -432,15 +432,17 @@ export function SecureStep({
             )}
           />
 
-          <div className="flex justify-between pt-6 mt-4 mb-8">
-            <BackButton onClick={onPrev} className="px-[2rem]" />
-            <Button
-              type="submit"
-              className="px-16"
-              disabled={isLoading || !form.formState.isValid}
-            >
-              Continue
-            </Button>
+          <div className="flex  pt-4 mb-8 justify-between  mx-auto">
+            <BackButton onClick={onPrev} className="" />
+            <div className="">
+              <Button
+                type="submit"
+                className="px-16 max-md:px-5"
+                disabled={isLoading || !form.formState.isValid}
+              >
+                Continue
+              </Button>
+            </div>
           </div>
         </form>
       </Form>
