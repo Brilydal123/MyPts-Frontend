@@ -170,7 +170,7 @@ export function ProfileSelector() {
           // Don't auto-select profiles, even if there's only one
           console.log(
             "Found profiles from localStorage:",
-            mappedProfiles.length > 0 ? mappedProfiles.map(p => p.id) : "none"
+            mappedProfiles.length > 0 ? mappedProfiles.map((p: { id: any; }) => p.id) : "none"
           );
 
           // Try to fetch full profile details for each profile
@@ -273,7 +273,7 @@ export function ProfileSelector() {
           // Don't auto-select profiles, even if there's only one
           console.log(
             "Found profiles from user API:",
-            mappedProfiles.length > 0 ? mappedProfiles.map(p => p.id) : "none"
+            mappedProfiles.length > 0 ? mappedProfiles.map((p: { id: any; }) => p.id) : "none"
           );
 
           // Clear any stored profile ID to ensure the user can select a profile
