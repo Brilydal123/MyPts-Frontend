@@ -24,12 +24,24 @@ import { profileApi } from "@/lib/api/profile-api";
 import { myPtsApi } from "@/lib/api/mypts-api";
 import { useAuth } from "@/hooks/use-auth";
 
-export function GlobalSearch() {
+interface GlobalSearchProps {
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function GlobalSearch({ defaultOpen, onOpenChange }: GlobalSearchProps = {}) {
   const router = useRouter();
   const { isAdmin } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen || false);
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
+
+  // Handle external open state changes
+  useEffect(() => {
+    if (defaultOpen !== undefined && defaultOpen !== open) {
+      setOpen(defaultOpen);
+    }
+  }, [defaultOpen]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -106,21 +118,40 @@ export function GlobalSearch() {
     ...(isAdmin ? [{ name: "Admin Dashboard", path: "/admin", icon: Settings }] : []),
   ];
 
+  // Handle open state changes
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+
+    // Reset query when closing
+    if (!newOpen) {
+      setQuery("");
+    }
+  };
+
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
+    <CommandDialog open={open} onOpenChange={handleOpenChange}>
       <CommandInput
         placeholder="Search for anything..."
         value={query}
         onValueChange={setQuery}
+        className="border-none focus:ring-0"
       />
       <CommandList>
         <CommandEmpty>
           {isLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Searching...</p>
             </div>
           ) : (
-            "No results found."
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Search className="h-8 w-8 mb-2 opacity-50" />
+              <p>No results found.</p>
+              <p className="text-xs mt-1">Try a different search term</p>
+            </div>
           )}
         </CommandEmpty>
 
@@ -130,10 +161,17 @@ export function GlobalSearch() {
             <CommandItem
               key={page.path}
               onSelect={() => onSelect(page, "page")}
-              className="flex items-center"
+              className="flex items-center py-2 px-2 cursor-pointer transition-colors"
             >
-              <page.icon className="mr-2 h-4 w-4" />
-              <span>{page.name}</span>
+              <div className="bg-muted/50 p-1.5 rounded-md mr-3">
+                <page.icon className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-medium">{page.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  Navigate to {page.name.toLowerCase()}
+                </span>
+              </div>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -147,15 +185,17 @@ export function GlobalSearch() {
               <CommandItem
                 key={profile._id}
                 onSelect={() => onSelect(profile, "profile")}
-                className="flex items-center"
+                className="flex items-center py-2 px-2 cursor-pointer transition-colors"
               >
-                <User className="mr-2 h-4 w-4" />
-                <span>{profile.name}</span>
-                {profile.type && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {profile.type}
+                <div className="bg-blue-50 p-1.5 rounded-md mr-3">
+                  <User className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium">{profile.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {profile.type || "Profile"}
                   </span>
-                )}
+                </div>
               </CommandItem>
             ))}
           </CommandGroup>
@@ -168,19 +208,46 @@ export function GlobalSearch() {
               <CommandItem
                 key={transaction.transactionId}
                 onSelect={() => onSelect(transaction, "transaction")}
-                className="flex items-center"
+                className="flex items-center py-2 px-2 cursor-pointer transition-colors"
               >
-                <CreditCard className="mr-2 h-4 w-4" />
-                <span className="truncate">
-                  {transaction.description || transaction.transactionId}
-                </span>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {transaction.amount} MyPts
-                </span>
+                <div className="bg-green-50 p-1.5 rounded-md mr-3">
+                  <CreditCard className="h-4 w-4 text-green-500" />
+                </div>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium truncate">
+                      {transaction.description || transaction.transactionId}
+                    </span>
+                    <span className={`ml-2 text-sm font-medium ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {transaction.amount > 0 ? '+' : ''}{transaction.amount} MyPts
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {transaction.transactionId}
+                  </span>
+                </div>
               </CommandItem>
             ))}
           </CommandGroup>
         )}
+
+        <div className="py-2 px-2 text-xs flex items-center justify-between text-muted-foreground border-t mt-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <span className="px-1.5 py-0.5 border rounded mr-1">↑</span>
+              <span className="px-1.5 py-0.5 border rounded">↓</span>
+              <span className="ml-1">to navigate</span>
+            </div>
+            <div className="flex items-center">
+              <span className="px-1.5 py-0.5 border rounded mr-1">Enter</span>
+              <span>to select</span>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <span className="px-1.5 py-0.5 border rounded mr-1">Esc</span>
+            <span>to close</span>
+          </div>
+        </div>
       </CommandList>
     </CommandDialog>
   );

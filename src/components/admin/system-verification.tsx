@@ -301,26 +301,26 @@ export function SystemVerification() {
         }}
       >
         <Card className="bg-white dark:bg-black border-0 shadow-sm rounded-xl overflow-hidden">
-          <CardHeader className="border-b border-neutral-100 dark:border-neutral-800 px-8 py-6">
+          <CardHeader className="border-b border-neutral-100 dark:border-neutral-800 px-4 sm:px-6 md:px-8 py-4 sm:py-6">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-black dark:text-white tracking-tight">System Verification</CardTitle>
-                <CardDescription className="text-neutral-500 dark:text-neutral-400 mt-1 font-light">
+                <CardTitle className="text-lg sm:text-xl font-semibold text-black dark:text-white tracking-tight">System Verification</CardTitle>
+                <CardDescription className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1 font-light">
                   Verify and reconcile the MyPts system integrity
                 </CardDescription>
               </div>
               <motion.div
-                className="h-10 w-10 rounded-full bg-[#0066FF] dark:bg-[#0A84FF] flex items-center justify-center"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#0066FF] dark:bg-[#0A84FF] flex items-center justify-center"
                 whileHover={{ scale: 1.1, rotate: 10 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                <ShieldCheck className="h-5 w-5 text-white" />
+                <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </motion.div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-8 p-8">
+          <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6 md:p-8">
             <motion.div
-              className="space-y-8"
+              className="space-y-6 sm:space-y-8"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -343,7 +343,7 @@ export function SystemVerification() {
                 </div>
 
                 {autoCheckEnabled && (
-                  <div className="grid grid-cols-2 gap-6 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2">
                     <div className="space-y-2">
                       <Label htmlFor="check-interval" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                         Check Interval
@@ -374,12 +374,12 @@ export function SystemVerification() {
                       </Label>
                       <div className="flex items-center h-10 px-4 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
                         {timeRemaining ? (
-                          <div className="flex items-center text-sm text-neutral-700 dark:text-neutral-300">
-                            <Clock className="h-4 w-4 mr-2 text-neutral-500 dark:text-neutral-400" />
+                          <div className="flex items-center text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                            <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-neutral-500 dark:text-neutral-400" />
                             <span>Next check in {timeRemaining}</span>
                           </div>
                         ) : (
-                          <div className="flex items-center text-sm text-neutral-500 dark:text-neutral-400">
+                          <div className="flex items-center text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
                             <span>Not active</span>
                           </div>
                         )}
@@ -396,8 +396,8 @@ export function SystemVerification() {
               </motion.div>
 
               {/* Manual verification */}
-              <motion.div variants={itemVariants} className="space-y-5">
-                <div className="flex justify-between items-center">
+              <motion.div variants={itemVariants} className="space-y-4 sm:space-y-5">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
                   <div>
                     <h3 className="text-sm font-medium text-black dark:text-white">Manual Verification</h3>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 font-light">
@@ -440,10 +440,10 @@ export function SystemVerification() {
                         : 'bg-[#FFF1F0] dark:bg-[#2F1A1A] border-[#FFCECB] dark:border-[#5F2A2A]'
                         }`}
                     >
-                      <div className="flex items-start gap-4">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                         {verificationResult.isConsistent ? (
                           <motion.div
-                            className="h-12 w-12 rounded-full bg-[#0066FF] dark:bg-[#0A84FF] flex items-center justify-center"
+                            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-[#0066FF] dark:bg-[#0A84FF] flex items-center justify-center"
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{
@@ -458,12 +458,12 @@ export function SystemVerification() {
                               animate={{ opacity: 1 }}
                               transition={{ delay: 0.5 }}
                             >
-                              <ShieldCheck className="h-6 w-6 text-white" />
+                              <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </motion.div>
                           </motion.div>
                         ) : (
                           <motion.div
-                            className="h-12 w-12 rounded-full bg-[#FF3B30] dark:bg-[#FF453A] flex items-center justify-center"
+                            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-[#FF3B30] dark:bg-[#FF453A] flex items-center justify-center"
                             initial={{ scale: 0, rotate: 180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{
@@ -485,12 +485,12 @@ export function SystemVerification() {
                                 duration: 1,
                               }}
                             >
-                              <ShieldAlert className="h-6 w-6 text-white" />
+                              <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </motion.div>
                           </motion.div>
                         )}
-                        <div className="flex-1">
-                          <p className={`font-medium text-lg ${verificationResult.isConsistent
+                        <div className="flex-1 text-center sm:text-left">
+                          <p className={`font-medium text-base sm:text-lg ${verificationResult.isConsistent
                             ? 'text-[#0066FF] dark:text-[#0A84FF]'
                             : 'text-[#FF3B30] dark:text-[#FF453A]'
                             }`}>
@@ -498,35 +498,35 @@ export function SystemVerification() {
                           </p>
 
                           {verificationResult.isConsistent && (
-                            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1 font-light">
+                            <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mt-1 font-light">
                               All profile balances match the hub's circulating supply. The system is in perfect balance.
                             </p>
                           )}
 
                           <div className="mt-4 space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                            <div className="text-sm text-neutral-700 dark:text-neutral-300">
-                              <div className="flex justify-between items-center">
+                            <div className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                                 <span className="font-light">Hub circulating:</span>
                                 <span className="font-medium">{verificationResult.hubCirculatingSupply.toLocaleString()} MyPts</span>
                               </div>
                             </div>
-                            <div className="text-sm text-neutral-700 dark:text-neutral-300">
-                              <div className="flex justify-between items-center">
+                            <div className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                                 <span className="font-light">Actual circulating:</span>
                                 <span className="font-medium">{verificationResult.actualCirculatingSupply.toLocaleString()} MyPts</span>
                               </div>
                             </div>
 
                             {verificationResult.isConsistent ? (
-                              <div className="text-sm text-[#34C759] dark:text-[#30D158] mt-2">
-                                <div className="flex justify-between items-center">
+                              <div className="text-xs sm:text-sm text-[#34C759] dark:text-[#30D158] mt-2">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                                   <span className="font-light">Difference:</span>
                                   <span className="font-medium">0 MyPts</span>
                                 </div>
                               </div>
                             ) : (
-                              <div className="text-sm text-[#FF3B30] dark:text-[#FF453A] mt-2">
-                                <div className="flex justify-between items-center">
+                              <div className="text-xs sm:text-sm text-[#FF3B30] dark:text-[#FF453A] mt-2">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                                   <span className="font-light">Difference:</span>
                                   <span className="font-medium">
                                     {Math.abs(verificationResult.difference).toLocaleString()} MyPts
@@ -559,7 +559,7 @@ export function SystemVerification() {
               {verificationResult && !verificationResult.isConsistent && (
                 <motion.div
                   variants={itemVariants}
-                  className="space-y-5 pt-6 border-t border-neutral-100 dark:border-neutral-800"
+                  className="space-y-4 sm:space-y-5 pt-4 sm:pt-6 border-t border-neutral-100 dark:border-neutral-800"
                 >
                   <div>
                     <h3 className="text-sm font-medium text-black dark:text-white">Reconcile System</h3>
@@ -587,12 +587,12 @@ export function SystemVerification() {
                     </p>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-center sm:justify-end">
                     <Button
                       variant="default"
                       onClick={handleReconcile}
                       disabled={isReconciling || !reconcileReason.trim()}
-                      className="bg-[#0066FF] hover:bg-[#0055DD] text-white dark:bg-[#0A84FF] dark:hover:bg-[#0A74EE] disabled:opacity-50 disabled:pointer-events-none"
+                      className="w-full sm:w-auto bg-[#0066FF] hover:bg-[#0055DD] text-white dark:bg-[#0A84FF] dark:hover:bg-[#0A74EE] disabled:opacity-50 disabled:pointer-events-none"
                     >
                       {isReconciling ? (
                         <>

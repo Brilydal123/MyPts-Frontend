@@ -131,7 +131,7 @@ export function NotificationCenter() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center justify-center">
       {/* Notification Bell Button */}
       <TooltipProvider>
         <Tooltip>
@@ -139,7 +139,7 @@ export function NotificationCenter() {
             <Button
               variant="outline"
               size="icon"
-              className="relative h-9 w-9 rounded-full border-muted-foreground/20 hover:bg-accent/10 hover:text-accent-foreground"
+              className="relative h-9 w-9 rounded-full border-muted-foreground/20 hover:bg-accent/10 hover:text-accent-foreground flex items-center justify-center"
               onClick={() => setIsOpen(!isOpen)}
             >
               <Bell className="h-[18px] w-[18px]" />
@@ -167,11 +167,11 @@ export function NotificationCenter() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right backdrop-blur-md bg-white/75 dark:bg-neutral-900/75 border border-neutral-200/70 dark:border-neutral-800/70 rounded-2xl shadow-lg dark:shadow-2xl shadow-neutral-400/20 dark:shadow-black/30 z-50 overflow-hidden"
+            className="fixed left-[50%] -translate-x-[50%] w-[calc(100%-32px)] max-w-[360px] top-16 sm:translate-x-0 sm:fixed sm:left-auto sm:right-4 sm:top-16 md:absolute md:right-0 md:top-auto md:mt-2 sm:w-80 md:w-96 backdrop-blur-md bg-white/75 dark:bg-neutral-900/75 border border-neutral-200/70 dark:border-neutral-800/70 rounded-2xl shadow-lg dark:shadow-2xl shadow-neutral-400/20 dark:shadow-black/30 z-50 overflow-hidden"
           >
-            <div className="p-3 sm:p-4 border-b border-neutral-200/70 dark:border-neutral-800/70">
+            <div className="p-3 sm:p-4 border-b border-neutral-200/70 dark:border-neutral-800/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
               <h3 className="font-semibold text-sm sm:text-base">Notifications</h3>
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center justify-end gap-1 sm:gap-2">
                 <Button
                   variant="outline"
                   size="icon"

@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
 import { NotificationCenter } from "@/components/shared/notification-center";
+import { GlobalSearch } from "@/components/shared/global-search";
 import {
   Search,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Menu as MenuIcon,
   X as CloseIcon,
+  Command,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -30,6 +32,7 @@ export function Navbar({
 }: NavbarProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <div
@@ -74,14 +77,23 @@ export function Navbar({
           {/* Search section */}
           <div className="flex-1 max-w-xl">
             <div className="relative w-full">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search..."
-                className={`w-full pl-9 bg-background/50 rounded-full border ${isSearchFocused ? "ring-1 ring-ring" : ""
-                  }`}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
+              <Button
+                variant="outline"
+                className="w-full justify-between pl-3 pr-2 py-5 bg-background/50 rounded-full border text-muted-foreground hover:bg-background/80"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <div className="flex items-center">
+                  <Search className="h-4 w-4 mr-2" />
+                  <span className="text-sm">Search...</span>
+                </div>
+                <div className="flex items-center border rounded px-1.5 py-0.5 text-xs text-muted-foreground">
+                  <Command className="h-3 w-3 mr-1" />
+                  <span>K</span>
+                </div>
+              </Button>
+              <GlobalSearch
+                defaultOpen={isSearchOpen}
+                onOpenChange={setIsSearchOpen}
               />
             </div>
           </div>

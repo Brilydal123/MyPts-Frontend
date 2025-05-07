@@ -350,11 +350,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </aside>
 
+          {/* Mobile sidebar overlay */}
+          {isMobileSidebarOpen && (
+            <div
+              className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+              onClick={toggleMobileSidebar}
+            ></div>
+          )}
+
+          {/* Mobile sidebar */}
           <aside
-            className={`fixed inset-0 z-40 flex lg:hidden transition-transform duration-300 ease-in-out ${isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+            className={`fixed inset-y-0 left-0 z-40 w-64 lg:hidden transition-transform duration-300 ease-in-out ${isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
               }`}
           >
-            <div className="w-64 bg-black border-r border-neutral-800 p-4 pt-20 flex flex-col">
+            <div className="h-full bg-black border-r border-neutral-800 p-4 pt-20 flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <Link href="/admin" className="flex items-center space-x-2">
                   <Image
@@ -381,7 +390,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <Button
                       variant={isActive(item.href, item.exact) ? "secondary" : "ghost"}
                       className="w-full flex items-center justify-start text-sm font-medium rounded-md group p-2"
-                      onClick={() => isMobileSidebarOpen && toggleMobileSidebar()}
+                      onClick={() => setIsMobileSidebarOpen(false)}
                     >
                       <div className={`transition-colors duration-200 ${isActive(item.href, item.exact) ? "text-primary" : "text-neutral-400 group-hover:text-white"}`}>
                         {item.icon}
@@ -423,12 +432,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Button>
               </div>
             </div>
-            {isMobileSidebarOpen && (
-              <div
-                className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-                onClick={toggleMobileSidebar}
-              ></div>
-            )}
           </aside>
 
           <main
