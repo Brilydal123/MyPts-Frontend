@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { CountrySelector } from "@/components/ui/country-selector";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker } from "@/components/ui/responsive-date-picker";
 import {
   Form,
   FormControl,
@@ -24,7 +24,21 @@ const formSchema = z.object({
   accountType: z.enum(["MYSELF", "SOMEONE_ELSE"]),
   dateOfBirth: z.date({
     required_error: "Date of birth is required",
-  }),
+  }).refine((date) => {
+    // Calculate age
+    const today = new Date();
+    const birthDate = new Date(date);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    // Adjust age if birthday hasn't occurred yet this year
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    // Validate age is at least 18
+    return age >= 18;
+  }, { message: "You must be at least 18 years old to register" }),
   countryOfResidence: z.string().min(1, "Country of residence is required"),
   accountCategory: z.enum(["PRIMARY_ACCOUNT", "SECONDARY_ACCOUNT"]),
 });
@@ -153,6 +167,7 @@ export function EligibilityStep({
                     placeholder="Select Date of Birth"
                     value={field.value}
                     onChange={field.onChange}
+                    minAge={18} // Enforce minimum age of 18
                     disabled={field.value && field.value > new Date()}
                   />
                 </FormControl>

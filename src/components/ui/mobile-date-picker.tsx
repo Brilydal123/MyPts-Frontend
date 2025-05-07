@@ -6,20 +6,10 @@ import { Calendar as CalendarIcon, X as CloseIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetClose
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface DatePickerProps {
+interface MobileDatePickerProps {
   value: Date | undefined;
   onChange: (date: Date | undefined) => void;
   placeholder?: string;
@@ -28,14 +18,14 @@ interface DatePickerProps {
   minAge?: number;
 }
 
-export function DatePicker({
+export function MobileDatePicker({
   value,
   onChange,
   placeholder = "Select date",
   className,
   disabled = false,
   minAge = 0,
-}: DatePickerProps) {
+}: MobileDatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [view, setView] = React.useState<'calendar' | 'year' | 'month'>('calendar');
   const [yearInput, setYearInput] = React.useState('');
@@ -195,9 +185,9 @@ export function DatePicker({
 
   // Animation variants
   const containerVariants = {
-    hidden: { opacity: 0, y: -5 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
-    exit: { opacity: 0, y: -5, transition: { duration: 0.2 } }
+    hidden: { opacity: 0, y: 100 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    exit: { opacity: 0, y: 100, transition: { duration: 0.2 } }
   };
 
   const slideVariants = {
@@ -206,17 +196,29 @@ export function DatePicker({
     exit: { opacity: 0, x: -20, transition: { duration: 0.3 } }
   };
 
+  // Memoize the button content
+  const buttonContent = React.useMemo(() => (
+    <>
+      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+      {value ? (
+        <span className="font-medium">{format(value, 'MMMM d, yyyy')}</span>
+      ) : (
+        <span className="text-gray-500">{placeholder}</span>
+      )}
+    </>
+  ), [value, placeholder]);
+
   // Year grid for selection
   const YearGrid = React.useCallback(() => (
     <motion.div
-      className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-3 max-h-[40vh] overflow-y-auto"
+      className="grid grid-cols-3 gap-2 p-3 max-h-[40vh] overflow-y-auto"
       variants={slideVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
     >
       <button
-        className="col-span-3 sm:col-span-4 text-sm font-medium text-blue-500 hover:text-blue-700 mb-2"
+        className="col-span-3 text-sm font-medium text-blue-500 hover:text-blue-700 mb-2"
         onClick={() => setView('calendar')}
         type="button"
       >
@@ -276,7 +278,7 @@ export function DatePicker({
 
   // Direct input component
   const DirectInput = React.useCallback(() => (
-    <div className="flex flex-col sm:flex-row items-center gap-2 p-3 border-t">
+    <div className="flex flex-col items-center gap-2 p-3 border-t">
       <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-2 w-full">
         <input
           type="text"
@@ -311,7 +313,7 @@ export function DatePicker({
       <Button
         size="sm"
         variant="ghost"
-        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full px-3 w-full sm:w-auto mt-2 sm:mt-0"
+        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full px-3 w-full mt-2"
         onClick={applyInputDate}
         type="button"
       >
@@ -341,30 +343,10 @@ export function DatePicker({
     />
   ), [value, currentDate, handleSelect, setCurrentDate, today, minAge, minDate]);
 
-  // Memoize the button content
-  const buttonContent = React.useMemo(() => (
-    <>
-      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
-      {value ? (
-        <span className="font-medium">{format(value, 'MMMM d, yyyy')}</span>
-      ) : (
-        <span className="text-gray-500">{placeholder}</span>
-      )}
-    </>
-  ), [value, placeholder]);
-
-  // Function to handle opening the date picker
-  const handleOpenChange = React.useCallback((isOpen: boolean) => {
-    if (isOpen) {
-      setView('calendar');
-    }
-    setOpen(isOpen);
-  }, []);
-
   return (
     <div className={cn('grid gap-2', className)}>
-      <Popover open={open} onOpenChange={handleOpenChange}>
-        <PopoverTrigger asChild>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
           <Button
             id="date"
             variant={'outline'}
@@ -378,74 +360,89 @@ export function DatePicker({
           >
             {buttonContent}
           </Button>
-        </PopoverTrigger>
-        {open && (
-          <PopoverContent
-            className="w-auto p-0 rounded-xl border border-gray-200 shadow-lg max-h-[90vh] overflow-auto"
-            align="center"
-            side="bottom"
-            sideOffset={5}
-            collisionPadding={10}
-            avoidCollisions={false}
-            onInteractOutside={() => setOpen(false)}
-            onEscapeKeyDown={() => setOpen(false)}
-            style={{
-              width: 'min(calc(100vw - 20px), 340px)',
-              position: 'relative',
-              zIndex: 50,
-              marginTop: '8px'
-            }}
+        </SheetTrigger>
+        <SheetContent
+          side="bottom"
+          className="h-[90vh] p-0 rounded-t-3xl border-t-0 shadow-2xl"
+        >
+          <div className="flex justify-center items-center p-4 border-b relative">
+            <div className="w-12 h-1 bg-gray-300 rounded-full absolute -top-6" />
+            <h3 className="font-semibold text-lg">Select Date</h3>
+          </div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden"
           >
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="overflow-hidden"
-            >
-              <div className="flex items-center justify-between p-3 border-b">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
-                  onClick={() => setView('year')}
-                  type="button"
+            <div className="flex items-center justify-between p-3 border-b">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
+                onClick={() => setView('year')}
+                type="button"
+              >
+                {getYear(currentDate)}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
+                onClick={() => setView('month')}
+                type="button"
+              >
+                {months[getMonth(currentDate)]}
+              </Button>
+            </div>
+
+            <AnimatePresence mode="wait">
+              {view === 'calendar' && (
+                <motion.div
+                  key="calendar"
+                  variants={slideVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                 >
-                  {getYear(currentDate)}
-                </Button>
+                  {calendarComponent}
+                </motion.div>
+              )}
+
+              {view === 'year' && <YearGrid />}
+              {view === 'month' && <MonthGrid />}
+            </AnimatePresence>
+
+            <DirectInput />
+
+            <div className="p-4 border-t space-y-3">
+              <Button
+                className="w-full rounded-full h-12 text-base font-medium"
+                onClick={() => {
+                  if (value) {
+                    handleSelect(value);
+                  } else if (currentDate) {
+                    handleSelect(currentDate);
+                  }
+                }}
+              >
+                Confirm
+              </Button>
+
+              <SheetClose asChild>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
-                  onClick={() => setView('month')}
-                  type="button"
+                  variant="outline"
+                  className="w-full rounded-full h-12 text-base font-medium"
                 >
-                  {months[getMonth(currentDate)]}
+                  Cancel
                 </Button>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {view === 'calendar' && (
-                  <motion.div
-                    key="calendar"
-                    variants={slideVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                  >
-                    {calendarComponent}
-                  </motion.div>
-                )}
-
-                {view === 'year' && <YearGrid />}
-                {view === 'month' && <MonthGrid />}
-              </AnimatePresence>
-
-              <DirectInput />
-            </motion.div>
-          </PopoverContent>
-        )}
-      </Popover>
+              </SheetClose>
+            </div>
+          </motion.div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
