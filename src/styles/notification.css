@@ -1,14 +1,28 @@
 /* Notification panel styles */
 .notification-panel {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  position: fixed;
+  z-index: 100;
 }
 
+/* Mobile styles */
 @media (max-width: 640px) {
   .notification-panel {
-    width: 95% !important;
+    width: calc(100% - 2rem) !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
     max-height: calc(100vh - 5rem) !important;
+    top: 4rem !important;
+  }
+}
+
+/* Ensure notification panel is properly positioned on all screen sizes */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .notification-panel {
+    right: 1rem !important;
+    max-width: 360px !important;
+    transform: none !important;
+    left: auto !important;
   }
 }
 
