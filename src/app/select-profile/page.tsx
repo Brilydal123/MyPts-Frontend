@@ -53,33 +53,26 @@ export default function SelectProfilePage() {
       return;
     }
 
-    // Check if we already have a profile ID in localStorage
+    // Always clear any stored profile ID to ensure the user must explicitly select a profile
     if (typeof window !== 'undefined') {
+      // Check if we already have a profile ID in localStorage before clearing it (for logging purposes)
       const storedProfileId = localStorage.getItem('selectedProfileId');
       console.log('Select profile page - stored profile ID check:', { hasStoredProfileId: !!storedProfileId, profileId: storedProfileId });
 
-      // If we have a stored profile ID, redirect to dashboard
-      if (storedProfileId) {
-        console.log('Profile ID found in localStorage, redirecting to dashboard');
-        // Reset redirect attempts counter
-        localStorage.setItem('redirectAttempts', '0');
-        router.push('/dashboard');
-        return;
-      }
-
-      // Otherwise, clear any profile selection data to ensure a fresh selection
-      console.log('No stored profile ID, staying on profile selection page');
+      // Clear profile selection data to force explicit selection
+      console.log('Clearing stored profile data to ensure explicit profile selection');
+      localStorage.removeItem('selectedProfileId');
       localStorage.removeItem('selectedProfileToken');
 
       // Also clear any default profile from the user data if it exists
       if (userData && userData.defaultProfile) {
-        console.log('Removing defaultProfile from user data to prevent auto-redirection');
+        console.log('Removing defaultProfile from user data to prevent auto-selection');
         delete userData.defaultProfile;
         localStorage.setItem('user', JSON.stringify(userData));
       }
     }
 
-    console.log('Staying on profile selection page to let user explicitly click Continue');
+    console.log('Staying on profile selection page to let user explicitly select a profile');
   }, [session, status, router]);
 
   // Show loading state while checking session

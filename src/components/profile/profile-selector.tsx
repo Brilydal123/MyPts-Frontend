@@ -167,19 +167,11 @@ export function ProfileSelector() {
 
           setProfiles(mappedProfiles);
 
-          // Auto-select if there's only one profile
-          if (mappedProfiles.length === 1) {
-            setSelectedProfileId(mappedProfiles[0].id);
-            console.log(
-              "Auto-selecting the only profile from localStorage:",
-              mappedProfiles[0].id
-            );
-          } else {
-            console.log(
-              "Found multiple profiles from localStorage:",
-              mappedProfiles.map((p: { id: any; }) => p.id)
-            );
-          }
+          // Don't auto-select profiles, even if there's only one
+          console.log(
+            "Found profiles from localStorage:",
+            mappedProfiles.length > 0 ? mappedProfiles.map(p => p.id) : "none"
+          );
 
           // Try to fetch full profile details for each profile
           mappedProfiles.forEach(async (profile: { id: string }) => {
@@ -278,25 +270,20 @@ export function ProfileSelector() {
 
           setProfiles(mappedProfiles);
 
-          // Auto-select if there's only one profile
-          if (mappedProfiles.length === 1) {
-            setSelectedProfileId(mappedProfiles[0].id);
-            console.log(
-              "Auto-selecting the only profile from user API:",
-              mappedProfiles[0].id
-            );
-          } else {
-            console.log(
-              "Found multiple profiles from user API:",
-              mappedProfiles.map((p: { id: any; }) => p.id)
-            );
+          // Don't auto-select profiles, even if there's only one
+          console.log(
+            "Found profiles from user API:",
+            mappedProfiles.length > 0 ? mappedProfiles.map(p => p.id) : "none"
+          );
 
-            // Clear any stored profile ID to ensure the user can select a profile
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("selectedProfileId");
-              localStorage.removeItem("selectedProfileToken");
-            }
+          // Clear any stored profile ID to ensure the user can select a profile
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("selectedProfileId");
+            localStorage.removeItem("selectedProfileToken");
           }
+
+          // Don't auto-select profiles from session either
+          console.log("Not auto-selecting profile from session");
 
           setLoading(false);
           return;
@@ -415,25 +402,20 @@ export function ProfileSelector() {
 
         setProfiles(allProfiles);
 
-        // Auto-select if there's only one profile
-        if (allProfiles.length === 1) {
-          setSelectedProfileId(allProfiles[0].id);
-          console.log(
-            "Auto-selecting the only profile from profile API:",
-            allProfiles[0].id
-          );
-        } else {
-          console.log(
-            "Found multiple profiles from profile API:",
-            allProfiles.map(p => p.id)
-          );
+        // Don't auto-select profiles, even if there's only one
+        console.log(
+          "Found profiles from profile API:",
+          allProfiles.length > 0 ? allProfiles.map(p => p.id) : "none"
+        );
 
-          // Clear any stored profile ID to ensure the user can select a profile
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("selectedProfileId");
-            localStorage.removeItem("selectedProfileToken");
-          }
+        // Clear any stored profile ID to ensure the user can select a profile
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("selectedProfileId");
+          localStorage.removeItem("selectedProfileToken");
         }
+
+        // Don't auto-select profiles from session either
+        console.log("Not auto-selecting profile from session");
       } catch (error) {
         console.error("Error loading profiles:", error);
         toast.error("Failed to load profiles");
