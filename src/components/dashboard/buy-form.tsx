@@ -37,13 +37,14 @@ import { AnimatedButton } from "../ui/animated-button";
 // No longer need dialog for invoice
 import { InvoicePreview } from "./invoice-preview";
 import { DEFAULT_MYPTS_VALUE } from "@/lib/constants";
+import { PaymentMethodSelector } from "../payment/payment-method-selector";
 
 // Define form validation schema
 const formSchema = z.object({
   amount: z.coerce.number().positive({
     message: "Amount must be greater than 0",
   }),
-  paymentMethod: z.enum(["credit", "debit", "paypal"], {
+  paymentMethod: z.enum(["credit", "debit"], {
     required_error: "Please select a payment method",
   }),
 });
@@ -273,22 +274,33 @@ export function BuyForm({ onSuccess }: BuyFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Payment Method</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a payment method" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="credit">Credit Card</SelectItem>
-                          <SelectItem value="debit">Debit Card</SelectItem>
-                          <SelectItem value="paypal">PayPal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
+                      <FormControl>
+                        <PaymentMethodSelector
+                          value={field.value}
+                          onChange={field.onChange}
+                          options={[
+                            {
+                              id: "credit",
+                              name: "Credit Card",
+                              icon: "/images/payment/visa.svg",
+                              description: "Visa, Mastercard, Amex"
+                            },
+                            {
+                              id: "debit",
+                              name: "Debit Card",
+                              icon: "/images/payment/mastercard.svg",
+                              description: "Direct from your bank"
+                            },
+                            {
+                              id: "paypal-disabled",
+                              name: "PayPal",
+                              icon: "/images/payment/paypal.svg",
+                              description: "Coming Soon"
+                            }
+                          ]}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-[10px] mt-1">
                         Select your preferred payment method.
                       </FormDescription>
                       <FormMessage />

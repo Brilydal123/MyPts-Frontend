@@ -3,6 +3,7 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface InvoicePreviewProps {
   myPtsAmount: number;
@@ -92,7 +93,21 @@ export function InvoicePreview({
                 </td>
               </tr>
               {/* <tr className="border-b bg-muted/30">
-                <td className="p-2 sm:p-3 text-xs sm:text-sm">
+                <td className="p-2 sm:p-3 text-xs sm:text-sm flex items-center">
+                  <div className="relative h-4 w-6 mr-1.5">
+                    <Image
+                      src={
+                        paymentMethod === "paypal"
+                          ? "/images/payment/paypal.svg"
+                          : paymentMethod === "debit"
+                            ? "/images/payment/mastercard.svg"
+                            : "/images/payment/visa.svg"
+                      }
+                      alt={paymentMethod}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                   {paymentMethod === "paypal"
                     ? "PayPal Fee (2.9%)"
                     : "Stripe Fee (2.9%)"}
