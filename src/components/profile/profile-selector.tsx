@@ -65,6 +65,8 @@ export function ProfileSelector() {
         console.error("Error parsing user data from localStorage:", e);
       }
 
+      console.log("userDataFromStorage", userDataFromStorage);
+
       console.log(
         "Access token in localStorage:",
         accessTokenFromStorage ? "Present" : "Not found"

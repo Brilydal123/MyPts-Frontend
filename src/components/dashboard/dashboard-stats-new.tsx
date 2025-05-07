@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, UserPlus, RefreshCw } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  TrendingUp,
+  DollarSign,
+  UserPlus,
+  RefreshCw,
+} from "lucide-react";
 import { MyPtsBalance, MyPtsValue } from "@/types/mypts";
 import { DashboardStatsCard } from "./dashboard-stats-card";
 import { ReferralStatsCard } from "./referral-stats-card";
@@ -32,8 +39,8 @@ export function DashboardStats({
   const {
     data: exchangeRates,
     isLoading: isLoadingRates,
-    refetch: refetchRates
-  } = useExchangeRates('USD');
+    refetch: refetchRates,
+  } = useExchangeRates("USD");
 
   // State to track if we're using API rates or fallback rates
   const [usingFallbackRates, setUsingFallbackRates] = useState(false);
@@ -59,7 +66,7 @@ export function DashboardStats({
       const baseValueInUsd = 0.024;
 
       // If the selected currency is USD, use the base value
-      if (currency === 'USD') {
+      if (currency === "USD") {
         newValue = baseValueInUsd;
       } else {
         // Check if we have a direct conversion value first (preferred method)
@@ -109,7 +116,8 @@ export function DashboardStats({
     }
 
     const currentValue = value.valuePerPts || value.valuePerMyPt || 0;
-    const change = ((currentValue - value.previousValue) / value.previousValue) * 100;
+    const change =
+      ((currentValue - value.previousValue) / value.previousValue) * 100;
     return {
       percentage: Math.abs(change),
       isPositive: change >= 0,
@@ -129,11 +137,17 @@ export function DashboardStats({
           iconBgColor="bg-[#f5f5f7] dark:bg-[#2c2c2e]"
           value={valuePerMyPt.toFixed(6)}
           unit={currency}
-          subtitle={`${formatCurrency(valuePerMyPt, currency)} per MyPt ${isLoadingRates ? '(Loading rates...)' : usingFallbackRates ? '(Fallback rates)' : '(Live rates)'}`}
+          subtitle={`${formatCurrency(valuePerMyPt, currency)} per MyPt ${
+            isLoadingRates
+              ? "(Loading rates...)"
+              : usingFallbackRates
+              ? "(Fallback rates)"
+              : "(Live rates)"
+          }`}
           trend={{
             value: `${change.percentage.toFixed(2)}%`,
             isPositive: change.isPositive,
-            label: "from previous"
+            label: "from previous",
           }}
           isLoading={isLoading}
         />
@@ -146,7 +160,10 @@ export function DashboardStats({
           iconBgColor="bg-[#f2f7f2] dark:bg-[#1c2b1f]"
           value={balance.balance.toLocaleString()}
           unit="MyPts"
-          subtitle={`${formatCurrency(balance.balance * valuePerMyPt, currency)} • ${formatCurrency(valuePerMyPt, currency)} per MyPt`}
+          subtitle={`${formatCurrency(
+            balance.balance * valuePerMyPt,
+            currency
+          )} • ${formatCurrency(valuePerMyPt, currency)} per MyPt`}
           isLoading={isLoading}
         />
 
@@ -158,11 +175,13 @@ export function DashboardStats({
           iconBgColor="bg-[#f2f7f2] dark:bg-[#1c2b1f]"
           value={balance.lifetimeEarned.toLocaleString()}
           unit="MyPts"
-          subtitle={formatCurrency(balance.lifetimeEarned * valuePerMyPt, currency)}
+          subtitle={formatCurrency(
+            balance.lifetimeEarned * valuePerMyPt,
+            currency
+          )}
           isLoading={isLoading}
         />
 
-        {/* Lifetime Spent Card */}
         <DashboardStatsCard
           title="Lifetime Spent"
           icon={<ArrowDownRight className="h-5 w-5" />}
@@ -170,7 +189,10 @@ export function DashboardStats({
           iconBgColor="bg-[#f8f1f0] dark:bg-[#2f1a19]"
           value={balance.lifetimeSpent.toLocaleString()}
           unit="MyPts"
-          subtitle={formatCurrency(balance.lifetimeSpent * valuePerMyPt, currency)}
+          subtitle={formatCurrency(
+            balance.lifetimeSpent * valuePerMyPt,
+            currency
+          )}
           isLoading={isLoading}
         />
 

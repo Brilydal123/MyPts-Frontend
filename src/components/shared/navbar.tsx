@@ -33,10 +33,11 @@ export function Navbar({
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 lg:right-0 z-20 ${sidebarOpen ? "lg:left-64" : "lg:left-20"
-        } transition-all duration-300`}
+      className={`fixed top-0 left-0 right-0 lg:right-0 z-20 ${
+        sidebarOpen ? "lg:left-64" : "lg:left-20"
+      } transition-all duration-300`}
     >
-      <div className="bg-background/80 backdrop-blur-sm border-b">
+      <div className="h-16 bg-white border-b">
         <div className="h-16 flex items-center justify-between gap-4 relative w-full">
           {/* Toggle buttons */}
           <div className="flex items-center px-4">
@@ -78,8 +79,9 @@ export function Navbar({
               <Input
                 type="search"
                 placeholder="Search..."
-                className={`w-full pl-9 bg-background/50 rounded-full border ${isSearchFocused ? "ring-1 ring-ring" : ""
-                  }`}
+                className={`w-full pl-9 bg-background/50 rounded-full border ${
+                  isSearchFocused ? "ring-1 ring-ring" : ""
+                }`}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setIsSearchFocused(false)}
               />

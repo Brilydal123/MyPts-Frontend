@@ -314,3 +314,9 @@
 .gradient {
   @apply !bg-gradient-to-b !from-white/30 !to-transparent bg-black;
 }
+
+.rounded-shadow {
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0px 4px 32px 0px rgba(0, 0, 0, 0.15);
+}
