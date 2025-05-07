@@ -582,10 +582,10 @@ export function BasicInfoStep({
                           label="Enter Referral Code"
                           {...field}
                           className={`rounded-md ${isValidatingReferralCode ? 'checking' : ''} ${referralCode
-                              ? form.formState.errors.referralCode
-                                ? "border-red-300"
-                                : "border-green-300"
-                              : ""
+                            ? form.formState.errors.referralCode
+                              ? "border-red-300"
+                              : "border-green-300"
+                            : ""
                             }`}
                         />
                       </FormControl>
@@ -597,7 +597,7 @@ export function BasicInfoStep({
             )}
           </AnimatePresence>
 
-          <div className="flex justify-between pt-4">
+          {/* <div className="flex justify-between pt-4">
             <Button onClick={onPrev} variant="ghost">
               <ArrowLeft className="size-4" /> Back
             </Button>
@@ -608,6 +608,18 @@ export function BasicInfoStep({
                 disabled={isLoading || !isFormValid || !isFormComplete}
               >
                 {isFormComplete ? "Continue" : "Complete Form"}
+              </Button>
+            </div>
+          </div> */}
+          <div className="flex  pt-4 mb-8 justify-between  mx-auto">
+            <BackButton onClick={onPrev} className="" />
+            <div className="">
+              <Button
+                type="submit"
+                className="px-16 max-md:px-5"
+                disabled={isLoading || !form.formState.isValid}
+              >
+                Continue
               </Button>
             </div>
           </div>

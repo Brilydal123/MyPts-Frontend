@@ -4,6 +4,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 import {
   Form,
   FormControl,
@@ -13,8 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { BackButton } from "@/components/ui/back-button";
-import { AnimatedButton } from "@/components/ui/animated-button";
-import { PhoneInput } from "@/components/ui/phone-input-v2";
+import { EnhancedPhoneInput } from "@/components/ui/enhanced-phone-input";
 import { RegistrationData } from "../registration-flow";
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +26,21 @@ const formSchema = z.object({
     .refine((val) => {
       // Basic validation - should start with + and have at least 8 digits
       return /^\+[0-9]/.test(val) && val.replace(/[^0-9]/g, "").length >= 8;
-    }, "Please enter a valid international phone number with country code"),
+    }, "Please enter a valid international phone number with country code")
+    .refine(
+      (val) => {
+        try {
+          // Use libphonenumber-js to validate the phone number
+          const phoneNumber = parsePhoneNumberFromString(val);
+          return phoneNumber ? phoneNumber.isValid() : false;
+        } catch (error) {
+          return false;
+        }
+      },
+      {
+        message: "Please enter a valid phone number for the selected country",
+      }
+    ),
 });
 
 interface SetupStepProps {
@@ -110,11 +124,22 @@ export function SetupStep({
                   Phone Number
                 </FormLabel>
                 <FormControl>
-                  <PhoneInput
+                  <EnhancedPhoneInput
                     value={field.value}
                     onChange={field.onChange}
                     placeholder="(XXX) XXX-XXXX (required)"
                     initialCountry={registrationData.countryOfResidence}
+                    onValidityChange={(isValid) => {
+                      if (isValid) {
+                        form.clearErrors("phoneNumber");
+                      } else {
+                        // Set a generic error message that will be overridden by the component's specific message
+                        form.setError("phoneNumber", {
+                          type: "manual",
+                          message: " " // Space to ensure the error container is rendered
+                        });
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
