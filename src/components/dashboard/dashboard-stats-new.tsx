@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/currency";
 import { MyPtsBalance, MyPtsValue } from "@/types/mypts";
 import { ArrowDownRight, ArrowUpRight, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Icons } from "../ui/icons";
+import { Icons } from "@/components/ui/icons";
 import { DashboardStatsCard } from "./dashboard-stats-card";
 import { ReferralStatsCard } from "./referral-stats-card";
 import LifeTimeStats from "./life-time-stats";

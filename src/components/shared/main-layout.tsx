@@ -12,13 +12,15 @@ import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { Icons } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { useLogoutModal } from "@/hooks/use-logout";
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
+  const { setIsOpen } = useLogoutModal();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -57,9 +59,8 @@ export function MainLayout({ children }: MainLayoutProps) {
       : []),
   ];
 
-  const handleLogout = async () => {
-    await logout();
-    window.location.href = "/login";
+  const handleLogout = () => {
+    setIsOpen(true);
   };
 
   return (
@@ -128,7 +129,6 @@ export function MainLayout({ children }: MainLayoutProps) {
 
               {/* User info, settings, and logout at the bottom */}
               <div className="mt-auto pt-4">
-                <div className="border- my-4"></div>
                 <div className="space-y-2">
                   <Link
                     href="/settings"
@@ -146,22 +146,6 @@ export function MainLayout({ children }: MainLayoutProps) {
                     <LogOutIcon className="mr-3 h-5 w-5" />
                     <span>Log out</span>
                   </Button>
-
-                  {/* User profile at the very bottom */}
-                  <div className="flex items-center p-3 mt-2">
-                    <GoogleAvatar
-                      profileImageUrl={user?.profileImage || ""}
-                      fallbackText={user?.fullName || user?.name || "User"}
-                      size={32}
-                      className="mr-3"
-                    />
-                    <div className="text-sm text-white">
-                      <p className="font-medium">
-                        {user?.fullName || user?.name || "User"}
-                      </p>
-                      <p className="text-white text-xs">{user?.email}</p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -241,7 +225,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
           {/* User info, settings, and logout at the bottom */}
           <div className="mt-auto pt-4">
-            <div className="border-t my-4"></div>
+            <div className="border-t my-4 border-white/10"></div>
             <div className="space-y-2">
               <Link
                 href="/settings"
@@ -271,33 +255,6 @@ export function MainLayout({ children }: MainLayoutProps) {
                 </span>
                 {sidebarOpen && <span>Log out</span>}
               </Button>
-
-              {/* User profile at the very bottom */}
-              {sidebarOpen && (
-                <div className="flex items-center p-3 mt-2">
-                  <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
-                    size={32}
-                    className="mr-3"
-                  />
-                  <div className="text-sm">
-                    <p className="font-medium text-white">
-                      {user?.fullName || user?.name || "User"}
-                    </p>
-                    <p className="text-white text-xs truncate">{user?.email}</p>
-                  </div>
-                </div>
-              )}
-              {!sidebarOpen && (
-                <div className="flex justify-center p-2 mt-2">
-                  <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
-                    size={32}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>

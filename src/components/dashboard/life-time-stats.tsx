@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import LoadingCardsStats from "../shared/loading-cards-stats";
-import { Icons } from "../ui/icons";
+import { Icons } from "@/components/ui/icons";
 
 interface LifeTimeStatsProps {
   balance: {
