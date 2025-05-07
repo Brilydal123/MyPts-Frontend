@@ -304,7 +304,7 @@ export function GlobalSearch({ defaultOpen = false, onOpenChange }: GlobalSearch
                   window.location.href = page.path;
                   setOpen(false);
                 }}
-                className="flex items-center py-2 px-2 cursor-pointer transition-colors"
+                className="flex items-center py-2 px-2 cursor-pointer transition-colors hover:bg-slate-500"
               >
                 <div className="bg-muted/50 p-1.5 rounded-md mr-3">
                   <page.icon className="h-4 w-4" />

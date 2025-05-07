@@ -54,70 +54,32 @@ export default function SelectProfilePage() {
     }
 
     // Check if we already have a profile ID in localStorage
-    const storedProfileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
-    console.log('Select profile page - stored profile ID check:', { hasStoredProfileId: !!storedProfileId, profileId: storedProfileId });
+    if (typeof window !== 'undefined') {
+      const storedProfileId = localStorage.getItem('selectedProfileId');
+      console.log('Select profile page - stored profile ID check:', { hasStoredProfileId: !!storedProfileId, profileId: storedProfileId });
 
-    // If we have a profile ID in localStorage, redirect to dashboard
-    if (storedProfileId) {
-      console.log('Profile ID found in localStorage, redirecting to dashboard');
-      // Reset redirect attempts counter
-      localStorage.setItem('redirectAttempts', '0');
-      router.push('/dashboard');
-      return;
-    }
-
-    // If authenticated and already has a profile selected in the session, check if we should redirect
-    if (status === 'authenticated') {
-      // Check if the user has multiple profiles
-      const hasMultipleProfiles = (session?.user as any)?.hasMultipleProfiles;
-      console.log('Select profile page - hasMultipleProfiles check:', hasMultipleProfiles);
-
-      // If the user has a profile ID in the session and doesn't have multiple profiles, redirect to dashboard
-      if (session?.profileId && !hasMultipleProfiles) {
-        console.log('Profile found in session and user has only one profile, redirecting to dashboard');
-        // Store the profile ID from session in localStorage
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('selectedProfileId', session.profileId);
-          localStorage.setItem('redirectAttempts', '0');
-
-          // Request a profile-specific token from the backend
-          fetch(`/api/profiles/${session.profileId}/token`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${session.accessToken || localStorage.getItem('accessToken')}`,
-              'Content-Type': 'application/json'
-            }
-          })
-            .then(response => {
-              if (response.ok) {
-                return response.json();
-              }
-              throw new Error('Failed to get profile token');
-            })
-            .then(data => {
-              if (data.success && data.profileToken) {
-                localStorage.setItem('selectedProfileToken', data.profileToken);
-                console.log('Profile token stored successfully');
-              }
-            })
-            .catch(error => {
-              console.error('Error getting profile token:', error);
-              // If we have a profile token in the session, use it as a fallback
-              if (session?.profileToken) {
-                localStorage.setItem('selectedProfileToken', session.profileToken);
-              }
-            });
-        }
+      // If we have a stored profile ID, redirect to dashboard
+      if (storedProfileId) {
+        console.log('Profile ID found in localStorage, redirecting to dashboard');
+        // Reset redirect attempts counter
+        localStorage.setItem('redirectAttempts', '0');
         router.push('/dashboard');
-      } else if (hasMultipleProfiles) {
-        console.log('User has multiple profiles, staying on profile selection page');
-        // Clear any stored profile ID to ensure the user can select a profile
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('selectedProfileId');
-          localStorage.removeItem('selectedProfileToken');
-        }
+        return;
+      }
+
+      // Otherwise, clear any profile selection data to ensure a fresh selection
+      console.log('No stored profile ID, staying on profile selection page');
+      localStorage.removeItem('selectedProfileToken');
+
+      // Also clear any default profile from the user data if it exists
+      if (userData && userData.defaultProfile) {
+        console.log('Removing defaultProfile from user data to prevent auto-redirection');
+        delete userData.defaultProfile;
+        localStorage.setItem('user', JSON.stringify(userData));
       }
     }
+
+    console.log('Staying on profile selection page to let user explicitly click Continue');
   }, [session, status, router]);
 
   // Show loading state while checking session
