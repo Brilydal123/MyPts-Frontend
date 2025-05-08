@@ -13,6 +13,7 @@ interface CVCInputProps {
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
+  className?: string;
 }
 
 export function CVCInput({
@@ -22,7 +23,8 @@ export function CVCInput({
   name,
   placeholder = '123',
   disabled = false,
-  error = false
+  error = false,
+  className = ''
 }: CVCInputProps) {
   const [displayValue, setDisplayValue] = useState('');
 
@@ -34,10 +36,10 @@ export function CVCInput({
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
-    
+
     // Only allow digits
     const digits = input.replace(/\D/g, '');
-    
+
     setDisplayValue(digits);
     onChange(digits);
   };
@@ -45,7 +47,7 @@ export function CVCInput({
   // Validate CVC
   const isValidCVC = (value: string) => {
     const cleanValue = value.replace(/\D/g, '');
-    
+
     // CVC should be 3 or 4 digits
     return cleanValue.length >= 3 && cleanValue.length <= 4;
   };
@@ -64,7 +66,7 @@ export function CVCInput({
           onBlur={onBlur}
           placeholder={placeholder}
           disabled={disabled}
-          className={`pl-10 ${error ? 'border-red-500' : ''} ${isValid && displayValue ? 'border-green-500' : ''}`}
+          className={`pl-10 ${error ? 'border-red-500' : ''} ${isValid && displayValue ? 'border-green-500' : ''} ${className}`}
           maxLength={4}
         />
       </FormControl>

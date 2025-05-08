@@ -58,14 +58,26 @@ export function useAuth() {
   const logout = async () => {
     try {
       if (typeof window !== 'undefined') {
-        // Clear localStorage
+        console.log('Starting logout process...');
+
+        // Store tokens before clearing for API calls
+        const accessToken = localStorage.getItem('accessToken') || session?.accessToken;
+
+        // 1. Clear localStorage immediately
+        console.log('Clearing localStorage...');
         localStorage.clear();
 
-        // Clear cookies
+        // 2. Clear sessionStorage
+        console.log('Clearing sessionStorage...');
+        sessionStorage.clear();
+
+        // 3. Clear cookies with multiple approaches
+        console.log('Clearing cookies...');
         const cookiesToClear = document.cookie.split(';');
-        const paths = ['/', '/api', ''];
+        const paths = ['/', '/api', '/dashboard', '/login', ''];
         const domains = [window.location.hostname, `.${window.location.hostname}`, ''];
 
+        // Clear all cookies found
         cookiesToClear.forEach(cookie => {
           const [name] = cookie.trim().split('=');
           if (!name) return;
@@ -85,45 +97,54 @@ export function useAuth() {
           document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=none;`;
         });
 
-        // Clear specific auth cookies
-        ['next-auth.session-token', 'next-auth.callback-url', 'next-auth.csrf-token',
-         '__Secure-next-auth.session-token', 'accesstoken', 'refreshtoken'].forEach(cookieName => {
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;`;
+        // 4. Specifically target auth-related cookies
+        console.log('Targeting specific auth cookies...');
+        [
+          'next-auth.session-token', 'next-auth.callback-url', 'next-auth.csrf-token',
+          '__Secure-next-auth.session-token', '__Host-next-auth.csrf-token',
+          'accesstoken', 'refreshtoken', 'accessToken', 'refreshToken',
+          'profileId', 'profileToken', 'selectedProfileId', 'selectedProfileToken'
+        ].forEach(cookieName => {
+          paths.forEach(path => {
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path};`;
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}; secure;`;
+          });
         });
-      }
 
-      // Call API endpoints
-      try {
+        // 5. Call API endpoints in the background (don't await)
+        console.log('Calling logout API endpoints...');
         const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
-        if (session?.accessToken) {
-          await fetch(`${BACKEND_URL}/auth/logout`, {
+        // Don't await these calls to ensure immediate redirect
+        if (accessToken) {
+          fetch(`${BACKEND_URL}/auth/logout`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${session.accessToken}`,
+              'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json'
             },
             credentials: 'include'
-          });
+          }).catch(error => console.error('Error during backend logout:', error));
         }
 
-        await fetch('/api/auth/logout', {
+        fetch('/api/auth/logout', {
           method: 'POST',
           credentials: 'include'
-        });
-      } catch (error) {
-        console.error('Error during API logout:', error);
+        }).catch(error => console.error('Error during API logout:', error));
+
+        // 6. Sign out from NextAuth (don't await)
+        console.log('Signing out from NextAuth...');
+        signOut({ redirect: false }).catch(error => console.error('Error during NextAuth signOut:', error));
+
+        // 7. Immediately redirect to login with cache-busting parameter
+        console.log('Redirecting to login page...');
+        window.location.href = `/login?logout=true&t=${Date.now()}`;
+        return;
       }
-
-      // Sign out from NextAuth
-      await signOut({ redirect: false });
-
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      // Force redirect to login
-      window.location.href = '/login';
+      // Still redirect even if there's an error
+      window.location.href = `/login?logout=true&error=1&t=${Date.now()}`;
     }
   };
 

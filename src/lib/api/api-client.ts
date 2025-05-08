@@ -42,7 +42,7 @@ apiClientInstance.interceptors.request.use(
         // Add profile ID as a query parameter if available and not an admin route
         const profileId = localStorage.getItem('selectedProfileId');
         const isAdminRoute = config.url && (config.url.includes('/admin/') || config.url.startsWith('/admin'));
-        
+
         // Skip adding profileId for admin routes since admins don't have profiles
         if (profileId && config.url && !config.url.includes('profileId=') && !isAdminRoute) {
           const separator = config.url.includes('?') ? '&' : '?';
@@ -84,29 +84,81 @@ apiClientInstance.interceptors.response.use(
           const isRetry = error.config._isRetry;
 
           if (!isRetry && !error.config.url.includes('/auth/')) {
+            error.config._isRetry = true;
+
             // This is not a retry and not an auth endpoint, so try to refresh the token
-            try {
-              // Clear any expired tokens
-              localStorage.removeItem('accessToken');
+            return new Promise((resolve, reject) => {
+              (async () => {
+                try {
+                  // Get the refresh token
+                  const refreshToken = localStorage.getItem('refreshToken') ||
+                                      document.cookie.match(/refreshtoken=([^;]+)/)?.[1];
 
-              // Store the current profile ID to use after login
-              const profileId = localStorage.getItem('selectedProfileId');
-              if (profileId) {
-                localStorage.setItem('lastProfileId', profileId);
-              }
+                  if (refreshToken) {
+                    console.log('Found refresh token, attempting to refresh access token');
 
-              // Only redirect if we're not already on the login page
-              if (!window.location.pathname.includes('/login')) {
-                // Store the current location to redirect back after login
-                localStorage.setItem('redirectAfterLogin', window.location.pathname);
+                    // Call the refresh token endpoint
+                    const response = await fetch('/api/auth/refresh-token', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ refreshToken }),
+                      credentials: 'include'
+                    });
 
-                // Redirect to login page
-                console.log('Token refresh failed, redirecting to login');
-                // window.location.href = '/login';
-              }
-            } catch (refreshError) {
-              console.error('Error handling 401:', refreshError);
-            }
+                    const data = await response.json();
+
+                    if (data.success && data.tokens) {
+                      console.log('Token refresh successful, retrying original request');
+
+                      // Store the new tokens
+                      localStorage.setItem('accessToken', data.tokens.accessToken);
+
+                      // Update the Authorization header for the failed request
+                      error.config.headers.Authorization = `Bearer ${data.tokens.accessToken}`;
+
+                      // Retry the original request
+                      try {
+                        const retryResponse = await axios(error.config);
+                        resolve(retryResponse);
+                        return;
+                      } catch (retryError) {
+                        console.error('Retry after token refresh failed:', retryError);
+                        reject(retryError);
+                        return;
+                      }
+                    } else {
+                      console.error('Token refresh failed:', data);
+                    }
+                  }
+
+                  // If we get here, token refresh failed
+                  console.log('Token refresh failed or no refresh token found');
+
+                  // Store the current profile ID to use after login
+                  const profileId = localStorage.getItem('selectedProfileId');
+                  if (profileId) {
+                    localStorage.setItem('lastProfileId', profileId);
+                  }
+
+                  // Only redirect if we're not already on the login page
+                  if (!window.location.pathname.includes('/login')) {
+                    // Store the current location to redirect back after login
+                    localStorage.setItem('redirectAfterLogin', window.location.pathname);
+
+                    // Redirect to login page
+                    console.log('Redirecting to login page');
+                    window.location.href = '/login';
+                  }
+
+                  reject(error);
+                } catch (refreshError) {
+                  console.error('Error during token refresh:', refreshError);
+                  reject(error);
+                }
+              })();
+            });
           }
         }
       }

@@ -146,58 +146,42 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     console.log("Logging out from admin page...");
 
     try {
-      localStorage.clear();
-
-      sessionStorage.clear();
-
-      const cookiesToClear = document.cookie.split(";");
-      const paths = ["/", "/api", ""];
-      const domains = [
-        window.location.hostname,
-        `.${window.location.hostname}`,
-        "",
-      ];
-
-      cookiesToClear.forEach((cookie) => {
-        const [name] = cookie.trim().split("=");
-        if (!name) return;
-
-        paths.forEach((path) => {
-          domains.forEach((domain) => {
-            if (domain) {
-              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}; domain=${domain};`;
-            } else {
-              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path};`;
-            }
-          });
-        });
-
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;`;
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=none;`;
-      });
-
-      [
-        "next-auth.session-token",
-        "next-auth.callback-url",
-        "next-auth.csrf-token",
-        "__Secure-next-auth.session-token",
-        "accesstoken",
-        "refreshtoken",
-      ].forEach((cookieName) => {
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;`;
-      });
-
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      await signOut({ redirect: false });
+      // Import the enhanced logout function
+      const { logout: enhancedLogout } = await import('@/lib/logout');
+      await enhancedLogout();
+      // The enhanced logout function handles redirection with proper parameters
     } catch (error) {
       console.error("Logout error:", error);
-    } finally {
-      window.location.href = "/login";
+
+      // Fallback to basic logout if enhanced version fails
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // Clear cookies
+        const cookiesToClear = document.cookie.split(";");
+        cookiesToClear.forEach((cookie) => {
+          const [name] = cookie.trim().split("=");
+          if (name) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          }
+        });
+
+        // Call logout API
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+
+        // Sign out from NextAuth
+        await signOut({ redirect: false });
+
+        // Redirect with cache-busting parameter
+        window.location.href = `/login?logout=true&t=${Date.now()}`;
+      } catch (fallbackError) {
+        console.error("Fallback logout error:", fallbackError);
+        window.location.href = `/login?logout=true&error=1&t=${Date.now()}`;
+      }
     }
   };
 

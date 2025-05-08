@@ -255,7 +255,7 @@ export function BalanceCard({
                     {formattedTotalValue}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    {formatCurrency(valuePerMyPt, currency)} per MyPt
+                    {formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt
                   </p>
                 </div>
               </motion.div>

@@ -1,66 +1,163 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { exchangeRateApi, ExchangeRates, CurrencyConversion } from '@/lib/api/exchange-rate-api';
+import { useCachedExchangeRates } from './use-cached-exchange-rates';
+import { useState, useEffect } from 'react';
 
 /**
  * Hook for fetching the latest exchange rates
+ * This is a wrapper around useCachedExchangeRates that provides a simpler interface
+ * and ensures we're not making duplicate API calls
+ *
  * @param baseCurrency The base currency code (e.g., 'USD', 'EUR')
  * @returns Query result with exchange rates data
  */
 export function useExchangeRates(baseCurrency: string = 'USD') {
-  return useQuery({
-    queryKey: ['exchangeRates', baseCurrency],
-    queryFn: async () => {
-      const response = await exchangeRateApi.getLatestRates(baseCurrency);
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch exchange rates');
+  // Use the cached exchange rates hook
+  const {
+    exchangeRates: cachedRates,
+    isLoading: isCachedLoading,
+    isError: isCachedError,
+    error: cachedError,
+    forceRefresh,
+    lastFetchTime
+  } = useCachedExchangeRates();
+
+  // State to track if we need to convert the rates
+  const [needsConversion, setNeedsConversion] = useState(baseCurrency !== 'USD');
+
+  // State for the converted rates
+  const [convertedRates, setConvertedRates] = useState<ExchangeRates | null>(null);
+
+  // Convert the rates if needed
+  useEffect(() => {
+    if (!cachedRates || !needsConversion) return;
+
+    // If the base currency is already what we want, no conversion needed
+    if (cachedRates.baseCurrency === baseCurrency) {
+      setConvertedRates(cachedRates);
+      return;
+    }
+
+    // Convert the rates to the requested base currency
+    try {
+      // Get the rate for the requested base currency
+      const baseRate = cachedRates.rates[baseCurrency];
+
+      if (!baseRate) {
+        console.error(`[EXCHANGE] Base currency ${baseCurrency} not found in rates`);
+        setConvertedRates(null);
+        return;
       }
-      return response.data;
-    },
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours to conserve API quota
-  });
+
+      // Create new rates object with the requested base currency
+      const newRates: Record<string, number> = {};
+
+      // Convert each rate
+      Object.entries(cachedRates.rates).forEach(([currency, rate]) => {
+        newRates[currency] = rate / baseRate;
+      });
+
+      // Set the converted rates
+      setConvertedRates({
+        baseCurrency,
+        rates: newRates,
+        lastUpdated: cachedRates.lastUpdated,
+        nextUpdate: cachedRates.nextUpdate
+      });
+    } catch (error) {
+      console.error('[EXCHANGE] Error converting rates:', error);
+      setConvertedRates(null);
+    }
+  }, [cachedRates, baseCurrency, needsConversion]);
+
+  // Return the appropriate rates
+  return {
+    data: needsConversion ? convertedRates : cachedRates,
+    isLoading: isCachedLoading,
+    isError: isCachedError,
+    error: cachedError,
+    refetch: forceRefresh,
+    lastFetchTime
+  };
 }
 
 /**
  * Hook for converting between currencies
+ * This hook uses the cached exchange rates to perform conversions
+ * without making additional API calls
+ *
  * @param fromCurrency The source currency code
  * @param toCurrency The target currency code
  * @returns Query result with conversion data
  */
 export function useCurrencyConversion(fromCurrency: string, toCurrency: string) {
-  return useQuery({
-    queryKey: ['currencyConversion', fromCurrency, toCurrency],
-    queryFn: async () => {
-      const response = await exchangeRateApi.convertCurrency(fromCurrency, toCurrency);
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to convert currency');
-      }
-      return response.data;
-    },
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours to conserve API quota
-  });
+  // Use the cached exchange rates
+  const {
+    exchangeRates,
+    isLoading,
+    isError,
+    error,
+    getExchangeRate
+  } = useCachedExchangeRates();
+
+  // Get the conversion rate
+  const rate = getExchangeRate(fromCurrency, toCurrency);
+
+  // Create a conversion result
+  const conversionResult: CurrencyConversion = {
+    fromCurrency,
+    toCurrency,
+    rate: rate || 0,
+  };
+
+  return {
+    data: conversionResult,
+    isLoading,
+    isError,
+    error
+  };
 }
 
 /**
  * Hook for converting a specific amount between currencies
+ * This hook uses the cached exchange rates to perform conversions
+ * without making additional API calls
+ *
  * @param fromCurrency The source currency code
  * @param toCurrency The target currency code
  * @param amount The amount to convert
  * @returns Query result with conversion data including the converted amount
  */
 export function useAmountConversion(fromCurrency: string, toCurrency: string, amount: number) {
-  return useQuery({
-    queryKey: ['amountConversion', fromCurrency, toCurrency, amount],
-    queryFn: async () => {
-      const response = await exchangeRateApi.convertCurrency(fromCurrency, toCurrency, amount);
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to convert amount');
-      }
-      return response.data;
-    },
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours to conserve API quota
-    // Only run the query if amount is valid
-    enabled: !isNaN(amount) && amount > 0,
-  });
+  // Use the cached exchange rates
+  const {
+    exchangeRates,
+    isLoading,
+    isError,
+    error,
+    convertAmount
+  } = useCachedExchangeRates();
+
+  // Get the converted amount
+  const convertedAmount = convertAmount(amount, fromCurrency, toCurrency);
+
+  // Create a conversion result
+  const conversionResult: CurrencyConversion = {
+    fromCurrency,
+    toCurrency,
+    rate: convertAmount(1, fromCurrency, toCurrency) || 0,
+    fromAmount: amount,
+    toAmount: convertedAmount || 0
+  };
+
+  return {
+    data: conversionResult,
+    isLoading,
+    isError,
+    error,
+    // Only consider it valid if we have a converted amount
+    isValid: convertedAmount !== null
+  };
 }
 
 /**

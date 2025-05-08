@@ -44,21 +44,44 @@ export function getCurrencySymbol(currencyCode: string): string {
  * Format a currency value with the appropriate symbol and decimal places
  * @param amount The amount to format
  * @param currencyCode The currency code (e.g., 'USD', 'EUR')
+ * @param options Optional formatting options
  * @returns Formatted currency string (e.g., '$100.00', '€50.50')
  */
-export function formatCurrency(amount: number, currencyCode: string): string {
+export function formatCurrency(
+  amount: number,
+  currencyCode: string,
+  options: {
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+    preserveFullPrecision?: boolean;
+  } = {}
+): string {
+  // Default options
+  const {
+    minimumFractionDigits = 2,
+    maximumFractionDigits = 2,
+    preserveFullPrecision = false
+  } = options;
+
+  // For MyPts value display, preserve full precision if requested
+  if (preserveFullPrecision) {
+    const symbol = getCurrencySymbol(currencyCode);
+    return `${symbol}${amount}`;
+  }
+
+  // Special handling for certain currencies
   if (currencyCode === "XAF") {
-    return `FCFA ${amount.toFixed(2)}`;
+    return `FCFA ${amount.toFixed(minimumFractionDigits)}`;
   } else if (currencyCode === "NGN") {
-    return `₦${amount.toFixed(2)}`;
+    return `₦${amount.toFixed(minimumFractionDigits)}`;
   } else if (currencyCode === "PKR") {
-    return `₨${amount.toFixed(2)}`;
+    return `₨${amount.toFixed(minimumFractionDigits)}`;
   } else {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits,
+      maximumFractionDigits,
     }).format(amount);
   }
 }

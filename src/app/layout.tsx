@@ -1,6 +1,8 @@
 import { ReactQueryProvider } from "@/components/providers/query-provider";
 import { NextAuthProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { TokenRefreshProvider } from "@/components/providers/token-refresh-provider";
+// import { ExchangeRateProvider } from "@/contexts/exchange-rate-context";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
@@ -29,35 +31,14 @@ export default function RootLayout({
         <NextAuthProvider>
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-              <div className="font-manrope">
-                {/* <nav className="shadow-sm text-white px-6 py-6 flex items-center justify-between">
-                  <Link href="/" className="flex items-center">
-                    <Image
-                      src="/profilewhite.png"
-                      alt="MyPts"
-                      width={32}
-                      height={32}
-                      className="h-8 w-8 object-contain"
-                    />
-                  </Link>
-                  <div className="hidden md:flex space-x-4">
-                    <Link href="/dashboard" className="hover:underline">
-                      Dashboard
-                    </Link>
-                    <Link href="/buy" className="hover:underline">
-                      Buy
-                    </Link>
-                    <Link href="/sell" className="hover:underline">
-                      Sell
-                    </Link>
-                    <Link href="/transactions" className="hover:underline">
-                      Transactions
-                    </Link>
-                  </div>
-                </nav> */}
-                {children}
-              </div>
-              <Toaster position="top-right" richColors />
+              <TokenRefreshProvider>
+                {/* <ExchangeRateProvider baseCurrency="USD"> */}
+                <div className="font-manrope">
+                  {children}
+                </div>
+                <Toaster position="top-right" richColors />
+                {/* </ExchangeRateProvider> */}
+              </TokenRefreshProvider>
             </ThemeProvider>
           </ReactQueryProvider>
         </NextAuthProvider>

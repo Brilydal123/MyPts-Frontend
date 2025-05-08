@@ -12,6 +12,7 @@ import { myPtsApi, myPtsValueApi } from '@/lib/api/mypts-api';
 import { toast } from 'sonner';
 import { MyPtsBalance, TransactionStatus } from '@/types/mypts';
 import { TransactionStatus as TransactionStatusUI } from '@/components/dashboard/transaction-status';
+import { SellPaymentMethodSelector } from '@/components/payment/sell-payment-method-selector';
 
 const formSchema = z.object({
   amount: z.number().min(1, 'Amount must be at least 1'),
@@ -105,7 +106,7 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
       try {
         const response = await myPtsValueApi.getCurrentValue();
         if (response.success && response.data) {
-          const value:any = response.data;
+          const value: any = response.data;
           let rate = value.baseValue; // Default USD rate
 
           // Find the exchange rate for the selected currency
@@ -429,112 +430,103 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                   />
                 </div>
 
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field: { onChange, ...fieldProps } }) => (
-                      <FormItem>
-                        <FormLabel>Amount in MyPts</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            max={balance.balance}
-                            step="1"
-                            onChange={(e) => handleMyPtsAmountChange(e.target.value)}
-                            placeholder="0"
-                            {...fieldProps}
-                            value={myPtsAmount > 0 ? myPtsAmount : ''}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Available balance: {balance.balance.toLocaleString()} MyPts
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <FormLabel>Amount in {currency}</FormLabel>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      {getCurrencySymbol(currency)}
-                    </span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="pl-8"
-                      value={currencyAmount > 0 ? currencyAmount.toFixed(2) : ''}
-                      onChange={(e) => handleCurrencyAmountChange(e.target.value)}
-                      placeholder="0.00"
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field: { onChange, ...fieldProps } }) => (
+                        <FormItem>
+                          <FormLabel>Amount in MyPts</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              max={balance.balance}
+                              step="1"
+                              onChange={(e) => handleMyPtsAmountChange(e.target.value)}
+                              placeholder="0"
+                              {...fieldProps}
+                              value={myPtsAmount > 0 ? myPtsAmount : ''}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Available balance: {balance.balance.toLocaleString()} MyPts
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                  <FormDescription>
-                    You will receive this amount in {currency}
-                  </FormDescription>
+
+                  <div className="grid gap-2">
+                    <FormLabel>Amount in {currency}</FormLabel>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        {getCurrencySymbol(currency)}
+                      </span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="pl-8"
+                        value={currencyAmount > 0 ? currencyAmount.toFixed(2) : ''}
+                        onChange={(e) => handleCurrencyAmountChange(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <FormDescription>
+                      You will receive this amount in {currency}
+                    </FormDescription>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Method</FormLabel>
+                      <FormControl>
+                        <SellPaymentMethodSelector
+                          value={field.value}
+                          onChange={handlePaymentMethodChange}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-[10px] mt-1">
+                        Choose how you want to receive your payment
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Account Details</h3>
+                  {renderAccountDetailsFields()}
                 </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
-                    <Select
-                      onValueChange={handlePaymentMethodChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment method" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="paypal">PayPal</SelectItem>
-                        <SelectItem value="crypto">Cryptocurrency</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Choose how you want to receive your payment
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="bg-muted p-4 rounded-lg">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-muted-foreground">Rate:</span>
+                  <span>1 MyPt = {getCurrencySymbol(currency)}{conversionRate.toFixed(6)}</span>
+                </div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-muted-foreground">MyPts to sell:</span>
+                  <span>{myPtsAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-medium border-t pt-2 mt-2">
+                  <span>You will receive:</span>
+                  <span>{getCurrencySymbol(currency)}{currencyAmount.toFixed(2)}</span>
+                </div>
+              </div>
 
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Account Details</h3>
-                {renderAccountDetailsFields()}
-              </div>
-            </div>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-muted-foreground">Rate:</span>
-                <span>1 MyPt = {getCurrencySymbol(currency)}{conversionRate.toFixed(6)}</span>
-              </div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-muted-foreground">MyPts to sell:</span>
-                <span>{myPtsAmount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between font-medium border-t pt-2 mt-2">
-                <span>You will receive:</span>
-                <span>{getCurrencySymbol(currency)}{currencyAmount.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading || amount <= 0}>
-              {isLoading ? 'Processing...' : 'Sell MyPts'}
-            </Button>
-          </form>
-        </Form>
+              <Button type="submit" className="w-full" disabled={isLoading || amount <= 0}>
+                {isLoading ? 'Processing...' : 'Sell MyPts'}
+              </Button>
+            </form>
+          </Form>
         ) : (
           <div className="space-y-6">
             {transactionId && (

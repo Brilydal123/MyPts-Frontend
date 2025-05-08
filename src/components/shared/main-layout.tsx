@@ -57,8 +57,17 @@ export function MainLayout({ children }: MainLayoutProps) {
   ];
 
   const handleLogout = async () => {
-    await logout();
-    window.location.href = "/login";
+    try {
+      // Import the enhanced logout function
+      const { logout: enhancedLogout } = await import('@/lib/logout');
+      await enhancedLogout();
+      // The enhanced logout function handles redirection with proper parameters
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Fallback to basic logout if enhanced version fails
+      await logout();
+      window.location.href = "/login?logout=true&t=" + Date.now();
+    }
   };
 
   return (

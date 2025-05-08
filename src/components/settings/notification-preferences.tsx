@@ -150,7 +150,15 @@ export function NotificationPreferences() {
   // Update local preferences when API data changes
   React.useEffect(() => {
     if (preferencesData?.data) {
-      setLocalPreferences(processPreferencesData(preferencesData.data));
+      const processedData = processPreferencesData(preferencesData.data);
+      setLocalPreferences(processedData);
+
+      // Store in localStorage for other components to access
+      try {
+        localStorage.setItem('notification_preferences', JSON.stringify(processedData));
+      } catch (error) {
+        console.error('Error storing notification preferences in localStorage:', error);
+      }
     }
   }, [preferencesData]);
 
@@ -175,6 +183,13 @@ export function NotificationPreferences() {
           telegramId: prefsToSave.telegram.username
         }
       };
+    }
+
+    // Update localStorage
+    try {
+      localStorage.setItem('notification_preferences', JSON.stringify(prefsToSave));
+    } catch (error) {
+      console.error('Error storing notification preferences in localStorage:', error);
     }
 
     // Save using the mutation
@@ -488,7 +503,7 @@ export function NotificationPreferences() {
                       </div>
                       <Switch
                         id="email-transaction-updates"
-                        checked={preferences.email.transactionUpdates}
+                        checked={localPreferences.email.transactionUpdates}
                         onCheckedChange={() => handleEmailPrefChange('transactionUpdates')}
                       />
                     </div>
@@ -502,7 +517,7 @@ export function NotificationPreferences() {
                       </div>
                       <Switch
                         id="email-purchase-confirmations"
-                        checked={preferences.email.purchaseConfirmations}
+                        checked={localPreferences.email.purchaseConfirmations}
                         onCheckedChange={() => handleEmailPrefChange('purchaseConfirmations')}
                       />
                     </div>
@@ -516,7 +531,7 @@ export function NotificationPreferences() {
                       </div>
                       <Switch
                         id="email-sale-confirmations"
-                        checked={preferences.email.saleConfirmations}
+                        checked={localPreferences.email.saleConfirmations}
                         onCheckedChange={() => handleEmailPrefChange('saleConfirmations')}
                       />
                     </div>
@@ -532,7 +547,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="email-security"
-                    checked={preferences.email.security}
+                    checked={localPreferences.email.security}
                     onCheckedChange={() => handleEmailPrefChange('security')}
                   />
                 </div>
@@ -602,7 +617,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="email-account-updates"
-                    checked={preferences.email.accountUpdates}
+                    checked={localPreferences.email.accountUpdates}
                     onCheckedChange={() => handleEmailPrefChange('accountUpdates')}
                   />
                 </div>
@@ -616,7 +631,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="email-marketing"
-                    checked={preferences.email.marketing}
+                    checked={localPreferences.email.marketing}
                     onCheckedChange={() => handleEmailPrefChange('marketing')}
                   />
                 </div>
@@ -665,12 +680,12 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="push-transactions"
-                    checked={preferences.push.transactions}
+                    checked={localPreferences.push.transactions}
                     onCheckedChange={() => handlePushPrefChange('transactions')}
                   />
                 </div>
 
-                {preferences.push.transactions && (
+                {localPreferences.push.transactions && (
                   <div className="ml-6 space-y-4 border-l-2 pl-4 border-muted">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
@@ -681,7 +696,7 @@ export function NotificationPreferences() {
                       </div>
                       <Switch
                         id="push-transaction-updates"
-                        checked={preferences.push.transactionUpdates}
+                        checked={localPreferences.push.transactionUpdates}
                         onCheckedChange={() => handlePushPrefChange('transactionUpdates')}
                       />
                     </div>
@@ -695,7 +710,7 @@ export function NotificationPreferences() {
                       </div>
                       <Switch
                         id="push-purchase-confirmations"
-                        checked={preferences.push.purchaseConfirmations}
+                        checked={localPreferences.push.purchaseConfirmations}
                         onCheckedChange={() => handlePushPrefChange('purchaseConfirmations')}
                       />
                     </div>
@@ -709,7 +724,7 @@ export function NotificationPreferences() {
                       </div>
                       <Switch
                         id="push-sale-confirmations"
-                        checked={preferences.push.saleConfirmations}
+                        checked={localPreferences.push.saleConfirmations}
                         onCheckedChange={() => handlePushPrefChange('saleConfirmations')}
                       />
                     </div>
@@ -725,7 +740,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="push-security"
-                    checked={preferences.push.security}
+                    checked={localPreferences.push.security}
                     onCheckedChange={() => handlePushPrefChange('security')}
                   />
                 </div>
@@ -739,7 +754,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="push-profile-views"
-                    checked={preferences.push.profileViews}
+                    checked={localPreferences.push.profileViews}
                     onCheckedChange={() => handlePushPrefChange('profileViews')}
                   />
                 </div>
@@ -753,7 +768,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="push-connection-requests"
-                    checked={preferences.push.connectionRequests}
+                    checked={localPreferences.push.connectionRequests}
                     onCheckedChange={() => handlePushPrefChange('connectionRequests')}
                   />
                 </div>
@@ -767,7 +782,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="push-messages"
-                    checked={preferences.push.messages}
+                    checked={localPreferences.push.messages}
                     onCheckedChange={() => handlePushPrefChange('messages')}
                   />
                 </div>
@@ -781,7 +796,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="push-endorsements"
-                    checked={preferences.push.endorsements}
+                    checked={localPreferences.push.endorsements}
                     onCheckedChange={() => handlePushPrefChange('endorsements')}
                   />
                 </div>
@@ -795,7 +810,7 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="push-account-updates"
-                    checked={preferences.push.accountUpdates}
+                    checked={localPreferences.push.accountUpdates}
                     onCheckedChange={() => handlePushPrefChange('accountUpdates')}
                   />
                 </div>
@@ -820,20 +835,20 @@ export function NotificationPreferences() {
                   </div>
                   <Switch
                     id="telegram-enabled"
-                    checked={preferences.telegram.enabled}
+                    checked={localPreferences.telegram.enabled}
                     onCheckedChange={() => handleTelegramPrefChange('enabled')}
                   />
                 </div>
 
-                {preferences.telegram.enabled && (
+                {localPreferences.telegram.enabled && (
                   <>
                     <div className="space-y-4">
                       <div className="mb-2">
                         <Label>Telegram Connection</Label>
                         <div className="mt-2">
                           <TelegramUserInfo
-                            telegramId={preferences.telegram.telegramId}
-                            username={preferences.telegram.username}
+                            telegramId={localPreferences.telegram.telegramId}
+                            username={localPreferences.telegram.username}
                             onUpdate={handleTelegramUsernameChange}
                           />
                         </div>
@@ -850,7 +865,7 @@ export function NotificationPreferences() {
                         </Button>
                       </div>
 
-                      {!preferences.telegram.telegramId && !(/^\d+$/.test(preferences.telegram.username || '')) && (
+                      {!localPreferences.telegram.telegramId && !(/^\d+$/.test(localPreferences.telegram.username || '')) && (
                         <div className="mt-2">
                           <p className="text-xs text-yellow-600">
                             <strong>Note:</strong> Please verify your Telegram connection to receive notifications.
@@ -955,12 +970,12 @@ export function NotificationPreferences() {
                         </div>
                         <Switch
                           id="telegram-transactions"
-                          checked={preferences.telegram.transactions}
+                          checked={localPreferences.telegram.transactions}
                           onCheckedChange={() => handleTelegramPrefChange('transactions')}
                         />
                       </div>
 
-                      {preferences.telegram.transactions && (
+                      {localPreferences.telegram.transactions && (
                         <div className="ml-6 space-y-4 border-l-2 pl-4 border-muted">
                           <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
@@ -971,7 +986,7 @@ export function NotificationPreferences() {
                             </div>
                             <Switch
                               id="telegram-transaction-updates"
-                              checked={preferences.telegram.transactionUpdates}
+                              checked={localPreferences.telegram.transactionUpdates}
                               onCheckedChange={() => handleTelegramPrefChange('transactionUpdates')}
                             />
                           </div>
@@ -985,7 +1000,7 @@ export function NotificationPreferences() {
                             </div>
                             <Switch
                               id="telegram-purchase-confirmations"
-                              checked={preferences.telegram.purchaseConfirmations}
+                              checked={localPreferences.telegram.purchaseConfirmations}
                               onCheckedChange={() => handleTelegramPrefChange('purchaseConfirmations')}
                             />
                           </div>
@@ -999,7 +1014,7 @@ export function NotificationPreferences() {
                             </div>
                             <Switch
                               id="telegram-sale-confirmations"
-                              checked={preferences.telegram.saleConfirmations}
+                              checked={localPreferences.telegram.saleConfirmations}
                               onCheckedChange={() => handleTelegramPrefChange('saleConfirmations')}
                             />
                           </div>
@@ -1015,7 +1030,7 @@ export function NotificationPreferences() {
                         </div>
                         <Switch
                           id="telegram-security"
-                          checked={preferences.telegram.security}
+                          checked={localPreferences.telegram.security}
                           onCheckedChange={() => handleTelegramPrefChange('security')}
                         />
                       </div>
@@ -1029,7 +1044,7 @@ export function NotificationPreferences() {
                         </div>
                         <Switch
                           id="telegram-connection-requests"
-                          checked={preferences.telegram.connectionRequests}
+                          checked={localPreferences.telegram.connectionRequests}
                           onCheckedChange={() => handleTelegramPrefChange('connectionRequests')}
                         />
                       </div>
@@ -1043,7 +1058,7 @@ export function NotificationPreferences() {
                         </div>
                         <Switch
                           id="telegram-messages"
-                          checked={preferences.telegram.messages}
+                          checked={localPreferences.telegram.messages}
                           onCheckedChange={() => handleTelegramPrefChange('messages')}
                         />
                       </div>

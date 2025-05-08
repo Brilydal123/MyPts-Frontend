@@ -28,6 +28,7 @@ export function PushNotificationSettings() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
 
   useEffect(() => {
     console.log('PushNotificationSettings component mounted or user changed');
@@ -44,6 +45,23 @@ export function PushNotificationSettings() {
       console.log('Push notifications supported:', supported);
       setIsSupported(supported);
       return supported;
+    };
+
+    // Check if push notifications are enabled in user preferences
+    const checkPushEnabled = () => {
+      // Try to get from localStorage first for immediate UI update
+      const cachedPreferences = localStorage.getItem('notification_preferences');
+      if (cachedPreferences) {
+        try {
+          const preferences = JSON.parse(cachedPreferences);
+          if (preferences && preferences.push && preferences.push.transactions !== undefined) {
+            console.log('Using cached push notification preference:', preferences.push.transactions);
+            setIsPushEnabled(preferences.push.transactions);
+          }
+        } catch (error) {
+          console.error('Error parsing cached notification preferences:', error);
+        }
+      }
     };
 
     // Load devices
@@ -68,6 +86,12 @@ export function PushNotificationSettings() {
             const parsedDevices = JSON.parse(cachedDevices);
             console.log(`Found ${parsedDevices.length} cached devices`);
             setDevices(parsedDevices);
+
+            // If we have devices, push notifications should be enabled
+            if (parsedDevices.length > 0) {
+              setIsPushEnabled(true);
+            }
+
             setIsLoading(false);
             return;
           } else {
@@ -88,6 +112,11 @@ export function PushNotificationSettings() {
         localStorage.setItem('push_notification_devices_timestamp', Date.now().toString());
         console.log('Devices cached in localStorage');
 
+        // If we have devices, push notifications should be enabled
+        if (deviceList.length > 0) {
+          setIsPushEnabled(true);
+        }
+
         setDevices(deviceList);
       } catch (error) {
         console.error('Error loading devices:', error);
@@ -100,6 +129,9 @@ export function PushNotificationSettings() {
         clearTimeout(safetyTimeout);
       }
     };
+
+    // Initialize state
+    checkPushEnabled();
 
     // Only load devices if push notifications are supported and user is logged in
     if (checkSupport() && user) {
@@ -186,7 +218,7 @@ export function PushNotificationSettings() {
 
       // Determine if we're in production or development
       const isProduction = window.location.hostname !== 'localhost' &&
-                           window.location.hostname !== '127.0.0.1';
+        window.location.hostname !== '127.0.0.1';
 
       console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
 
@@ -429,13 +461,13 @@ export function PushNotificationSettings() {
       // Remove the device from the list
       setDevices(devices.filter(device => device.id !== deviceId));
 
-      toast.success("Success",{
+      toast.success("Success", {
         // title: 'Success',
         description: 'Device registered for push notifications',
       });
     } catch (error) {
       console.error('Error unregistering device:', error);
-      toast.error("Error",{
+      toast.error("Error", {
         // title: 'Error',
         description: 'Failed to register device for push notifications',
         // variant: 'destructive'
@@ -770,7 +802,7 @@ export function PushNotificationSettings() {
                           console.error('Error with promise-based permission request:', permError);
 
                           // Try the callback-based API for older browsers
-                          Notification.requestPermission(function(permission) {
+                          Notification.requestPermission(function (permission) {
                             console.log('Permission from callback:', permission);
 
                             if (permission === 'granted') {
@@ -813,7 +845,38 @@ export function PushNotificationSettings() {
 
         <div className="flex flex-col sm:flex-row justify-between w-full gap-4 sm:gap-0">
           <div className="flex items-center space-x-2">
-            <Switch id="push-enabled" />
+            <Switch
+              id="push-enabled"
+              checked={isPushEnabled}
+              onCheckedChange={(checked) => {
+                setIsPushEnabled(checked);
+                if (checked) {
+                  // If enabling, prompt to register device
+                  toast.info("Register Device", {
+                    description: "Please register your device to receive push notifications",
+                  });
+                } else {
+                  // If disabling, show a message about how to disable
+                  toast.info("Disable Push Notifications", {
+                    description: "To completely disable push notifications, you'll need to unregister your devices",
+                  });
+
+                  // Update localStorage to reflect the change
+                  try {
+                    const cachedPreferences = localStorage.getItem('notification_preferences');
+                    if (cachedPreferences) {
+                      const preferences = JSON.parse(cachedPreferences);
+                      if (preferences && preferences.push) {
+                        preferences.push.transactions = false;
+                        localStorage.setItem('notification_preferences', JSON.stringify(preferences));
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error updating cached preferences:', error);
+                  }
+                }
+              }}
+            />
             <Label htmlFor="push-enabled">Enable push notifications</Label>
           </div>
           <Button

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useCachedExchangeRates } from '@/hooks/use-cached-exchange-rates';
 import {
   Card,
   CardContent,
@@ -104,6 +105,13 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
   const [activeTab, setActiveTab] = useState('bank_transfer');
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
+  // Use cached exchange rates to ensure consistency with other components
+  const {
+    exchangeRates,
+    isLoading: isLoadingRates,
+    getValuePerMyPt
+  } = useCachedExchangeRates();
+
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -116,10 +124,16 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
 
   // Update conversion rate when currency changes
   useEffect(() => {
-    if (balance?.value) {
-      setConversionRate(balance.value.valuePerMyPt);
-    }
-  }, [balance, currency]);
+    // Use the getValuePerMyPt function from useCachedExchangeRates
+    // This ensures consistency with other components
+    const newRate = getValuePerMyPt(currency);
+    setConversionRate(newRate);
+  }, [currency, getValuePerMyPt]);
+
+  // Update currency amount when conversion rate changes or MyPts amount changes
+  useEffect(() => {
+    setCurrencyAmount(myPtsAmount * conversionRate);
+  }, [myPtsAmount, conversionRate]);
 
   // Handle MyPts amount change
   const handleMyPtsAmountChange = (value: string) => {
@@ -378,7 +392,10 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Conversion rate: 1 MyPt = {getCurrencySymbol(currency)}{conversionRate.toFixed(4)}</p>
+                              <p>Conversion rate: 1 MyPt = {getCurrencySymbol(currency)}{conversionRate.toFixed(8)}</p>
+                              <p className="text-xs mt-1 opacity-70">
+                                {isLoadingRates ? 'Loading rates...' : exchangeRates ? 'Using live rates from ExchangeRate-API' : 'Using fallback rates'}
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -395,29 +412,122 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                 <motion.div variants={itemVariants} className="space-y-4">
                   <FormLabel className="text-base font-medium">Payment Method</FormLabel>
                   <Tabs value={activeTab} onValueChange={handlePaymentMethodChange} className="w-full">
-                    <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full gap-1 p-1 rounded-xl bg-muted/50">
-                      <TabsTrigger value="bank_transfer" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
-                        <Bank className="h-4 w-4" />
-                        <span className="hidden sm:inline">Bank Transfer</span>
-                        <span className="sm:hidden">Bank</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="paypal" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
-                        <span>PayPal</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="stripe" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        <span>Card</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="crypto" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
-                        <Bitcoin className="h-4 w-4" />
-                        <span>Crypto</span>
-                      </TabsTrigger>
+                    <div className="mb-4">
+                      <h3 className="text-base font-medium mb-2 text-gray-700 dark:text-gray-300">Select Payment Method</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {/* Bank Transfer Option */}
+                        <div
+                          className={`relative cursor-pointer transition-all duration-300 ${activeTab === 'bank_transfer'
+                            ? 'ring-2 ring-primary ring-offset-2 scale-[1.02]'
+                            : 'hover:scale-[1.02] hover:shadow-md'
+                            }`}
+                          onClick={() => handlePaymentMethodChange('bank_transfer')}
+                        >
+                          <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 p-3 flex flex-col items-center justify-center h-full">
+                            <img
+                              src="/images/payment/bank-transfer.svg"
+                              alt="Bank Transfer"
+                              className="w-12 h-12 mb-2"
+                            />
+                            <span className="text-sm font-medium text-center">Bank Transfer</span>
+                          </div>
+                          {activeTab === 'bank_transfer' && (
+                            <div className="absolute -top-1 -right-1 bg-primary text-white rounded-full p-1 shadow-md">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* PayPal Option */}
+                        <div
+                          className={`relative cursor-pointer transition-all duration-300 ${activeTab === 'paypal'
+                            ? 'ring-2 ring-primary ring-offset-2 scale-[1.02]'
+                            : 'hover:scale-[1.02] hover:shadow-md'
+                            }`}
+                          onClick={() => handlePaymentMethodChange('paypal')}
+                        >
+                          <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 p-3 flex flex-col items-center justify-center h-full">
+                            <img
+                              src="/images/payment/paypal.svg"
+                              alt="PayPal"
+                              className="w-12 h-12 mb-2"
+                            />
+                            <span className="text-sm font-medium text-center">PayPal</span>
+                          </div>
+                          {activeTab === 'paypal' && (
+                            <div className="absolute -top-1 -right-1 bg-primary text-white rounded-full p-1 shadow-md">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Credit Card Option */}
+                        <div
+                          className={`relative cursor-pointer transition-all duration-300 ${activeTab === 'stripe'
+                            ? 'ring-2 ring-primary ring-offset-2 scale-[1.02]'
+                            : 'hover:scale-[1.02] hover:shadow-md'
+                            }`}
+                          onClick={() => handlePaymentMethodChange('stripe')}
+                        >
+                          <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 p-3 flex flex-col items-center justify-center h-full">
+                            <img
+                              src="/images/payment/stripe.svg"
+                              alt="Credit Card"
+                              className="w-12 h-12 mb-2"
+                            />
+                            <span className="text-sm font-medium text-center">Credit Card</span>
+                          </div>
+                          {activeTab === 'stripe' && (
+                            <div className="absolute -top-1 -right-1 bg-primary text-white rounded-full p-1 shadow-md">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Crypto Option */}
+                        <div
+                          className={`relative cursor-pointer transition-all duration-300 ${activeTab === 'crypto'
+                            ? 'ring-2 ring-primary ring-offset-2 scale-[1.02]'
+                            : 'hover:scale-[1.02] hover:shadow-md'
+                            }`}
+                          onClick={() => handlePaymentMethodChange('crypto')}
+                        >
+                          <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 p-3 flex flex-col items-center justify-center h-full">
+                            <img
+                              src="/images/payment/crypto.svg"
+                              alt="Cryptocurrency"
+                              className="w-12 h-12 mb-2"
+                            />
+                            <span className="text-sm font-medium text-center">Cryptocurrency</span>
+                          </div>
+                          {activeTab === 'crypto' && (
+                            <div className="absolute -top-1 -right-1 bg-primary text-white rounded-full p-1 shadow-md">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hidden TabsList for functionality */}
+                    <TabsList className="hidden">
+                      <TabsTrigger value="bank_transfer">Bank Transfer</TabsTrigger>
+                      <TabsTrigger value="paypal">PayPal</TabsTrigger>
+                      <TabsTrigger value="stripe">Card</TabsTrigger>
+                      <TabsTrigger value="crypto">Crypto</TabsTrigger>
                     </TabsList>
 
                     {/* Bank Transfer Tab */}
                     <TabsContent value="bank_transfer" className="space-y-4 mt-4">
-                      <motion.div variants={tabContentVariants} className="space-y-4">
+                      <motion.div variants={tabContentVariants} className="space-y-6">
                         <FormField
                           control={form.control}
                           name="paymentMethod"
@@ -430,43 +540,80 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="accountDetails.accountName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Account Holder Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="John Doe" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 space-y-5">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Bank Account Details</h3>
+                            <img src="/images/payment/bank-transfer.svg" alt="Bank Transfer" className="h-8" />
+                          </div>
 
-                        <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
-                            name="accountDetails.accountNumber"
+                            name="accountDetails.accountName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Account Number</FormLabel>
+                                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Account Holder Name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="123456789" {...field} />
+                                  <Input
+                                    placeholder="John Doe"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
 
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="accountDetails.accountNumber"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Account Number</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="123456789"
+                                      {...field}
+                                      className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="accountDetails.routingNumber"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Routing Number</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="987654321"
+                                      {...field}
+                                      className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
                           <FormField
                             control={form.control}
-                            name="accountDetails.routingNumber"
+                            name="accountDetails.bankName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Routing Number</FormLabel>
+                                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Bank Name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="987654321" {...field} />
+                                  <Input
+                                    placeholder="Bank of America"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -474,25 +621,20 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                           />
                         </div>
 
-                        <FormField
-                          control={form.control}
-                          name="accountDetails.bankName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Bank Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Bank of America" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Your banking information is secure and encrypted</span>
+                          </div>
+                        </div>
                       </motion.div>
                     </TabsContent>
 
                     {/* PayPal Tab */}
                     <TabsContent value="paypal" className="space-y-4 mt-4">
-                      <motion.div variants={tabContentVariants} className="space-y-4">
+                      <motion.div variants={tabContentVariants} className="space-y-6">
                         <FormField
                           control={form.control}
                           name="paymentMethod"
@@ -505,32 +647,60 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="accountDetails.email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>PayPal Email</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="email"
-                                  placeholder="your-email@example.com"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Make sure this is the email associated with your PayPal account
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 space-y-5">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">PayPal Account</h3>
+                            <img src="/images/payment/paypal.svg" alt="PayPal" className="h-8" />
+                          </div>
+
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4">
+                            <div className="flex items-start">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <p className="text-sm text-blue-700 dark:text-blue-300">
+                                You'll be redirected to PayPal to complete your payment once your sell request is approved.
+                              </p>
+                            </div>
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">PayPal Email</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="email"
+                                    placeholder="your-email@example.com"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
+                                  />
+                                </FormControl>
+                                <FormDescription className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Make sure this is the email associated with your PayPal account
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Your payment information is secure and encrypted</span>
+                          </div>
+                        </div>
                       </motion.div>
                     </TabsContent>
 
                     {/* Stripe/Card Tab */}
                     <TabsContent value="stripe" className="space-y-4 mt-4">
-                      <motion.div variants={tabContentVariants} className="space-y-4">
+                      <motion.div variants={tabContentVariants} className="space-y-6">
                         <FormField
                           control={form.control}
                           name="paymentMethod"
@@ -544,65 +714,47 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                         />
 
                         {/* Card Preview */}
-                        <div className="mb-6">
-                          <CardPreview
-                            cardNumber={form.watch('accountDetails.cardNumber') || ''}
-                            cardholderName={form.watch('accountDetails.cardholderName') || ''}
-                            expiryDate={form.watch('accountDetails.expiryDate') || ''}
-                            cvc={form.watch('accountDetails.cvc') || ''}
-                            flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
-                          />
+                        <div className="mb-6 perspective-1000">
+                          <motion.div
+                            initial={{ rotateY: 0 }}
+                            animate={{
+                              rotateY: !!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc) ? 180 : 0
+                            }}
+                            transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 20 }}
+                            className="relative w-full h-52 preserve-3d"
+                          >
+                            <CardPreview
+                              cardNumber={form.watch('accountDetails.cardNumber') || ''}
+                              cardholderName={form.watch('accountDetails.cardholderName') || ''}
+                              expiryDate={form.watch('accountDetails.expiryDate') || ''}
+                              cvc={form.watch('accountDetails.cvc') || ''}
+                              flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
+                            />
+                          </motion.div>
                         </div>
 
-                        <FormField
-                          control={form.control}
-                          name="accountDetails.cardholderName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Cardholder Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="John Doe" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 space-y-5">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Card Information</h3>
+                            <div className="flex items-center space-x-2">
+                              <img src="/images/payment/visa.svg" alt="Visa" className="h-6" />
+                              <img src="/images/payment/mastercard.svg" alt="Mastercard" className="h-6" />
+                            </div>
+                          </div>
 
-                        <FormField
-                          control={form.control}
-                          name="accountDetails.cardNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Card Number</FormLabel>
-                              <CreditCardInput
-                                value={field.value || ''}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                error={!!form.formState.errors.accountDetails?.cardNumber}
-                              />
-                              <FormDescription>
-                                For testing, use 4242 4242 4242 4242
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
-                            name="accountDetails.expiryDate"
+                            name="accountDetails.cardholderName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Expiry Date</FormLabel>
-                                <ExpiryDateInput
-                                  value={field.value || ''}
-                                  onChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  error={!!form.formState.errors.accountDetails?.expiryDate}
-                                />
+                                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Cardholder Name</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="John Doe"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
+                                  />
+                                </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -610,28 +762,96 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
 
                           <FormField
                             control={form.control}
-                            name="accountDetails.cvc"
+                            name="accountDetails.cardNumber"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>CVC</FormLabel>
-                                <CVCInput
+                                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Card Number</FormLabel>
+                                <CreditCardInput
                                   value={field.value || ''}
                                   onChange={field.onChange}
                                   onBlur={field.onBlur}
                                   name={field.name}
-                                  error={!!form.formState.errors.accountDetails?.cvc}
+                                  error={!!form.formState.errors.accountDetails?.cardNumber}
+                                  className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
                                 />
+                                <FormDescription className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  For testing, use 4242 4242 4242 4242
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="accountDetails.expiryDate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Expiry Date</FormLabel>
+                                  <ExpiryDateInput
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    name={field.name}
+                                    error={!!form.formState.errors.accountDetails?.expiryDate}
+                                  />
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="accountDetails.cvc"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    <div className="flex items-center">
+                                      <span>CVC</span>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-4 w-4 ml-1">
+                                              <HelpCircle className="h-3 w-3" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p className="text-xs">3-4 digit code on the back of your card</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
+                                  </FormLabel>
+                                  <CVCInput
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    name={field.name}
+                                    error={!!form.formState.errors.accountDetails?.cvc}
+                                    className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
+                                  />
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Your payment information is secure and encrypted</span>
+                          </div>
                         </div>
                       </motion.div>
                     </TabsContent>
 
                     {/* Crypto Tab */}
                     <TabsContent value="crypto" className="space-y-4 mt-4">
-                      <motion.div variants={tabContentVariants} className="space-y-4">
+                      <motion.div variants={tabContentVariants} className="space-y-6">
                         <FormField
                           control={form.control}
                           name="paymentMethod"
@@ -644,52 +864,102 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="accountDetails.cryptoType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Cryptocurrency</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select cryptocurrency" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="btc">Bitcoin (BTC)</SelectItem>
-                                  <SelectItem value="eth">Ethereum (ETH)</SelectItem>
-                                  <SelectItem value="usdt">Tether (USDT)</SelectItem>
-                                  <SelectItem value="usdc">USD Coin (USDC)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 space-y-5">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Cryptocurrency Wallet</h3>
+                            <img src="/images/payment/crypto.svg" alt="Cryptocurrency" className="h-8" />
+                          </div>
 
-                        <FormField
-                          control={form.control}
-                          name="accountDetails.walletAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Wallet Address</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Your cryptocurrency wallet address"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Double-check your wallet address to avoid loss of funds
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                          <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg mb-4">
+                            <div className="flex items-start">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                              <p className="text-sm text-amber-700 dark:text-amber-300">
+                                Double-check your wallet address before submitting. Cryptocurrency transactions cannot be reversed.
+                              </p>
+                            </div>
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.cryptoType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Cryptocurrency</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200">
+                                      <SelectValue placeholder="Select cryptocurrency" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <div className="p-2">
+                                      <SelectItem value="btc" className="flex items-center gap-2 rounded-lg p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-6 h-6 rounded-full bg-[#F7931A] flex items-center justify-center text-white font-bold text-xs">₿</div>
+                                          <span>Bitcoin (BTC)</span>
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="eth" className="flex items-center gap-2 rounded-lg p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-6 h-6 rounded-full bg-[#627EEA] flex items-center justify-center text-white font-bold text-xs">Ξ</div>
+                                          <span>Ethereum (ETH)</span>
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="usdt" className="flex items-center gap-2 rounded-lg p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-6 h-6 rounded-full bg-[#26A17B] flex items-center justify-center text-white font-bold text-xs">₮</div>
+                                          <span>Tether (USDT)</span>
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="usdc" className="flex items-center gap-2 rounded-lg p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-6 h-6 rounded-full bg-[#2775CA] flex items-center justify-center text-white font-bold text-xs">$</div>
+                                          <span>USD Coin (USDC)</span>
+                                        </div>
+                                      </SelectItem>
+                                    </div>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.walletAddress"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Wallet Address</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Your cryptocurrency wallet address"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200 font-mono text-sm"
+                                  />
+                                </FormControl>
+                                <FormDescription className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Double-check your wallet address to avoid loss of funds
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">Your wallet information is secure and encrypted</span>
+                          </div>
+                        </div>
                       </motion.div>
                     </TabsContent>
                   </Tabs>

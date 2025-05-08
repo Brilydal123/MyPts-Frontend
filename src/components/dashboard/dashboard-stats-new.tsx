@@ -108,9 +108,9 @@ export function DashboardStats({
           icon={<TrendingUp className="h-5 w-5" />}
           iconColor="text-[#007AFF] dark:text-[#0A84FF]"
           iconBgColor="bg-[#f5f5f7] dark:bg-[#2c2c2e]"
-          value={valuePerMyPt.toFixed(6)}
+          value={valuePerMyPt.toString()}
           unit={currency}
-          subtitle={`${formatCurrency(valuePerMyPt, currency)} per MyPt ${isLoadingRates ? '(Loading rates...)' : usingFallbackRates ? '(Fallback rates)' : '(Live rates)'}`}
+          subtitle={`${formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt ${isLoadingRates ? '(Loading rates...)' : usingFallbackRates ? '(Fallback rates)' : '(Live rates)'}`}
           trend={{
             value: `${change.percentage.toFixed(2)}%`,
             isPositive: change.isPositive,
