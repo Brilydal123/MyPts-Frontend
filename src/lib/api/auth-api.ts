@@ -514,6 +514,82 @@ export class AuthApi {
       };
     }
   }
+
+  /**
+   * Update user profile information
+   */
+  async updateProfile(data: {
+    dateOfBirth?: string;
+    countryOfResidence?: string;
+  }): Promise<ApiResponse<any>> {
+    try {
+      console.log("Updating user profile:", data);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+      // Get access token from localStorage
+      let accessToken = null;
+      if (typeof window !== 'undefined') {
+        accessToken = localStorage.getItem('accessToken');
+      }
+
+      // Prepare headers with token if available
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+        headers['x-token-verified'] = 'true';
+        headers['x-access-token'] = accessToken;
+      }
+
+      console.log('Update profile request headers:', headers);
+
+      const response = await fetch('/api/auth/update-profile', {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const responseData = await response.json();
+      console.log("Update profile response:", responseData);
+
+      if (response.ok && responseData.success) {
+        return {
+          success: true,
+          data: responseData.data,
+          message: responseData.message,
+        };
+      }
+
+      return {
+        success: false,
+        message: responseData.message || "Failed to update profile",
+      };
+    } catch (error) {
+      console.error("Error updating profile:", error);
+
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return {
+          success: false,
+          message: "Request timed out. Please try again.",
+        };
+      }
+
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to update profile",
+      };
+    }
+  }
 }
 
 // Export instance

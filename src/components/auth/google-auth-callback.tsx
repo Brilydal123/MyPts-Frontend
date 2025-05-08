@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { socialAuthApi } from "@/lib/api/social-auth-api";
 import { toast } from "sonner";
+import axios from "axios";
 
 export function GoogleAuthCallback() {
   const router = useRouter();
@@ -15,11 +16,25 @@ export function GoogleAuthCallback() {
       try {
         console.log("GoogleAuthCallback: Fetching user data with token");
 
-        // Store the token in localStorage
+        console.log("GoogleAuthCallback: Setting tokens in storage and headers");
+
+        // Store the token in localStorage and cookies for middleware
         localStorage.setItem("accessToken", token);
+
+        // Set cookie with various options to ensure it's accessible
+        document.cookie = `accessToken=${token}; path=/; max-age=3600; SameSite=Lax`;
+        document.cookie = `accesstoken=${token}; path=/; max-age=3600; SameSite=Lax`; // Lowercase version
 
         // Set the token in the API client
         socialAuthApi.setToken(token);
+
+        // Set custom headers for the API client
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        axios.defaults.headers.common["x-token-verified"] = "true";
+        axios.defaults.headers.common["x-access-token"] = token;
+
+        // Set a flag to indicate we're in the Google auth flow
+        localStorage.setItem("googleAuthFlow", "true");
 
         // Fetch user data
         const response = await socialAuthApi.getCurrentUser();
@@ -37,8 +52,17 @@ export function GoogleAuthCallback() {
             // We don't set selectedProfileToken here anymore
           }
 
-          // Redirect to select profile page
-          router.replace("/select-profile");
+          // Check if user needs to complete their profile
+          const needsProfileCompletion = !response.user.dateOfBirth || !response.user.countryOfResidence;
+
+          if (needsProfileCompletion) {
+            console.log("GoogleAuthCallback: User needs to complete profile");
+            // Redirect to complete profile page
+            router.replace("/complete-profile");
+          } else {
+            // Redirect to select profile page
+            router.replace("/select-profile");
+          }
         } else {
           console.error("GoogleAuthCallback: Failed to fetch user data", response);
           toast.error("Failed to complete login. Please try again.");

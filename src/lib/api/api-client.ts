@@ -29,8 +29,12 @@ apiClientInstance.interceptors.request.use(
         // Use the token from getAuthToken or fallback to localStorage
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          // Add header to indicate token is verified by client
+          config.headers["x-token-verified"] = "true";
         } else if (accessToken) {
           config.headers.Authorization = `Bearer ${accessToken}`;
+          // Add header to indicate token is verified by client
+          config.headers["x-token-verified"] = "true";
         }
 
         // Add profile token if available

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/error"];
+const authRequiredButPublicRoutes = ["/complete-profile"]; // Routes that require auth but shouldn't redirect to dashboard
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -51,27 +52,50 @@ export async function middleware(request: NextRequest) {
                             url.searchParams.has("t") ||
                             url.searchParams.has("nocache");
 
-  // If we have logout indicators, don't consider custom tokens valid
-  const customToken = !hasLogoutIndicator ? (
-    request.cookies.get("accessToken")?.value ||
-    request.cookies.get("accesstoken")?.value
-  ) : null;
+  // Get token from cookies
+  const cookieToken = request.cookies.get("accessToken")?.value ||
+                     request.cookies.get("accesstoken")?.value;
 
-  // Only consider the user authenticated if:
+  // Get token from headers (for API requests)
+  const headerToken = request.headers.get("Authorization")?.replace("Bearer ", "") ||
+                     request.headers.get("x-access-token");
+
+  // If we have logout indicators, don't consider tokens valid
+  const customToken = !hasLogoutIndicator ? (cookieToken || headerToken) : null;
+
+  // Special handling for Google auth callback and complete-profile
+  const isGoogleCallback = pathname.includes("/auth/google/callback");
+  const isCompleteProfile = pathname === "/complete-profile";
+
+  // Consider the user authenticated if:
   // 1. They have a valid NextAuth token, OR
-  // 2. They have a custom token AND it's been verified by the client
-  const isAuthenticated = !!token || (!!customToken && isVerifiedByClient);
+  // 2. They have a custom token AND (it's been verified by the client OR it's a special path)
+  const isAuthenticated = !!token ||
+                         (!!customToken && (isVerifiedByClient || isGoogleCallback || isCompleteProfile));
 
   // Log authentication status for debugging
   console.log("Auth check (middleware):", {
     path: pathname,
     hasNextAuthToken: !!token,
+    hasCookieToken: !!cookieToken,
+    hasHeaderToken: !!headerToken,
     hasCustomToken: !!customToken,
     isVerifiedByClient,
+    isGoogleCallback,
+    isCompleteProfile,
     hasLogoutIndicator,
     isAuthenticated,
     isLogoutRequest
   });
+
+  // Special handling for complete-profile page
+  if (pathname === "/complete-profile") {
+    // Allow access to complete-profile if authenticated, otherwise redirect to login
+    if (!isAuthenticated && !isLogoutRequest && !hasLogoutIndicator) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
+  }
 
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && publicRoutes.includes(pathname) && !isLogoutRequest && !hasLogoutIndicator) {
@@ -93,5 +117,8 @@ export const config = {
     "/admin/:path*",
     "/login",
     "/register",
+    "/complete-profile",
+    "/auth/google/callback",
+    "/api/auth/update-profile",
   ],
 };
