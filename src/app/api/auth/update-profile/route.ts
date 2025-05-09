@@ -69,11 +69,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    // Create the response
+    const jsonResponse = NextResponse.json({
       success: true,
       message: 'Profile updated successfully',
-      data: data.user
+      data: data.user,
+      tokens: data.tokens // Pass through the tokens from the backend
     });
+
+    // Set cookies if tokens are provided
+    if (data.tokens?.accessToken) {
+      jsonResponse.cookies.set('accessToken', data.tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 60 * 60 // 1 hour
+      });
+    }
+
+    if (data.tokens?.refreshToken) {
+      jsonResponse.cookies.set('refreshToken', data.tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60 // 30 days
+      });
+    }
+
+    return jsonResponse;
   } catch (error) {
     console.error('Error updating profile:', error);
     return NextResponse.json(
