@@ -2,9 +2,8 @@ import { getSession } from 'next-auth/react';
 
 /**
  * Get the authentication token from various sources
- * 1. Try to get it from the NextAuth session
- * 2. Try to get it from localStorage
- * 3. Try to get it from window.__NEXT_DATA__
+ * 1. Try to get it from the NextAuth session (primary source)
+ * 2. Fallback to localStorage only if NextAuth session is unavailable
  */
 export const getAuthToken = async (): Promise<string | null> => {
   // Only run in browser environment
@@ -12,28 +11,55 @@ export const getAuthToken = async (): Promise<string | null> => {
     return null;
   }
 
-  // Try to get token from NextAuth session
+  // Try to get token from NextAuth session - this is the primary source
+  // This will trigger the NextAuth.js jwt callback which handles token refresh
   try {
+    console.log('Getting auth token from NextAuth session...');
     const session = await getSession();
+    
+    // Check for session errors first (from our token refresh logic)
+    if (session?.error) {
+      console.error(`NextAuth session error: ${session.error}`);
+      // Don't return null here - we'll check other sources first
+    } 
+    
+    // If we have a valid accessToken in the session, use it
     if (session?.accessToken) {
+      console.log('Found valid accessToken in NextAuth session');
       return session.accessToken;
     }
   } catch (error) {
-    console.error('Error getting session:', error);
+    console.error('Error getting NextAuth session:', error);
   }
 
-  // Try to get token from localStorage
-  const localStorageToken = localStorage.getItem('auth_token');
+  // FALLBACK ONLY: Try to get token from localStorage
+  // This should only be used if NextAuth session is completely unavailable
+  const localStorageToken = localStorage.getItem('accessToken');
   if (localStorageToken) {
+    console.log('Using fallback token from localStorage');
     return localStorageToken;
   }
 
-  // Try to get token from window.__NEXT_DATA__
-  if (window.__NEXT_DATA__?.props?.pageProps?.session?.accessToken) {
-    return window.__NEXT_DATA__.props.pageProps.session.accessToken;
-  }
-
+  console.log('No auth token found in any source');
   return null;
+};
+
+/**
+ * Check if the current session has errors (e.g., refresh token errors)
+ * Returns the error message if present, or null if no errors
+ */
+export const checkSessionErrors = async (): Promise<string | null> => {
+  try {
+    const session = await getSession();
+    if (session?.error) {
+      console.error(`Session error detected: ${session.error}`);
+      return session.error;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error checking session errors:', error);
+    return 'Failed to check session';
+  }
 };
 
 /**
@@ -80,7 +106,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
     console.error('Error checking admin status from user data:', error);
   }
 
-  // Try to get admin status from NextAuth session
+  // Try to get admin status from NextAuth session FIRST
   try {
     const session = await getSession();
     if (session?.user) {
