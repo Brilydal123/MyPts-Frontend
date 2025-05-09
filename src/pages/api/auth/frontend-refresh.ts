@@ -26,9 +26,9 @@ export default async function handler(
 
     // 2. Forward the refresh token to your actual backend API
     const backendApiUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'; // Ensure this is your backend URL
-    const backendRefreshUrl: string = `${backendApiUrl.replace(//$/, '')}/auth/refresh-token`;
+    const backendRefreshUrl: string = `${backendApiUrl.replace(/\/$/, '')}/auth/refresh-token`;
 
-    console.log(`[Frontend Refresh API] Forwarding refresh request to: ${backendRefreshUrl}`);
+    // console.log(`[Frontend Refresh API] Forwarding refresh request to: ${backendRefreshUrl}`);
 
     const backendResponse = await fetch(backendRefreshUrl, {
       method: 'POST',
@@ -37,7 +37,7 @@ export default async function handler(
         // Forward any other necessary headers from the original client request if needed
       },
       body: JSON.stringify({ refreshToken: clientRefreshToken }),
-      credentials: 'omit', 
+      credentials: 'omit',
     });
 
     const data = await backendResponse.json();
