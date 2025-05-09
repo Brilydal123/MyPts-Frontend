@@ -130,6 +130,9 @@ export const authOptions: NextAuthOptions = {
         token.accessToken = user.token;
         token.profileId = user.profileId;
         token.profileToken = user.profileToken;
+        if (user.refreshToken) { 
+          token.refreshToken = user.refreshToken;
+        }
         token.hasMultipleProfiles = user.hasMultipleProfiles || false;
         console.log('Setting hasMultipleProfiles in JWT:', token.hasMultipleProfiles);
       }
@@ -141,6 +144,9 @@ export const authOptions: NextAuthOptions = {
         session.user.isAdmin = token.isAdmin as boolean;
         session.user.role = token.role as string;
         session.accessToken = token.accessToken as string;
+        if (token.refreshToken) { 
+          session.refreshToken = token.refreshToken as string;
+        }
         session.profileId = token.profileId as string;
         session.profileToken = token.profileToken as string;
         (session.user as any).hasMultipleProfiles = token.hasMultipleProfiles as boolean;
@@ -150,6 +156,8 @@ export const authOptions: NextAuthOptions = {
           userId: session.user.id,
           profileId: session.profileId,
           hasProfileToken: !!session.profileToken,
+          hasAccessToken: !!session.accessToken,
+          hasRefreshToken: !!session.refreshToken,
           isAdmin: session.user.isAdmin,
           role: session.user.role,
           hasMultipleProfiles: (session.user as any).hasMultipleProfiles

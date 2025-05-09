@@ -10,15 +10,17 @@ declare module "next-auth" {
       hasMultipleProfiles?: boolean; // Add flag for multiple profiles
     } & DefaultSession["user"];
     accessToken: string;
+    refreshToken?: string; // Added for Session
     profileId: string;
     profileToken: string;
-    emailVerified: strings
+    emailVerified?: string; // Corrected typo and made optional
   }
 
   interface User extends DefaultUser {
     isAdmin: boolean;
     role?: string; // Add role property
     token: string;
+    refreshToken?: string; // Added for User
     profileId: string;
     profileToken: string;
     hasMultipleProfiles?: boolean; // Add flag for multiple profiles
@@ -31,6 +33,7 @@ declare module "next-auth/jwt" {
     isAdmin: boolean;
     role?: string; // Add role property
     accessToken: string;
+    refreshToken?: string; // Added for JWT
     profileId: string;
     profileToken: string;
     hasMultipleProfiles?: boolean; // Add flag for multiple profiles

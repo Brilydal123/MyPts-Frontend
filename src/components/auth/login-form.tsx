@@ -131,47 +131,51 @@ export function LoginForm() {
           // Store the access token in localStorage
           if (session?.accessToken) {
             localStorage.setItem("accessToken", session.accessToken);
-            console.log("Access token stored in localStorage");
+          }
+          if (session?.refreshToken) {
+            localStorage.setItem("refreshToken", session.refreshToken);
+          }
 
-            // Also store the token in a cookie for better compatibility
+          // Also store the token in a cookie for better compatibility
+          if (session?.accessToken) {
             document.cookie = `accesstoken=${session.accessToken}; path=/; max-age=2592000`; // 30 days
-            console.log("Access token also stored in cookie");
+          }
+          console.log("Access token also stored in cookie");
+
+          // Check if user is admin
+          let isAdmin = false;
+          try {
+            const sessionResponse = await fetch("/api/auth/session");
+            const sessionData = await sessionResponse.json();
+
+            // Check if user is admin from session data
+            isAdmin = sessionData?.user?.role === 'admin' || sessionData?.user?.isAdmin === true;
+
+            console.log("Admin check during login:", { isAdmin, userData: sessionData?.user });
+
+            // Store admin status in localStorage if admin
+            if (isAdmin && typeof window !== 'undefined') {
+              localStorage.setItem('isAdmin', 'true');
+              console.log("Admin status stored in localStorage");
+            }
+          } catch (error) {
+            console.error("Error checking admin status:", error);
+          }
+
+          // Redirect based on admin status
+          if (isAdmin) {
+            toast.success("Admin login successful", {
+              description: "Redirecting to admin dashboard...",
+            });
+            router.push('/admin');
+          } else {
+            toast.success("Login successful", {
+              description: "Redirecting to profile selection...",
+            });
+            router.push(callbackUrl);
           }
         } catch (sessionError) {
           console.error("Error getting session:", sessionError);
-        }
-
-        // Check if user is admin
-        let isAdmin = false;
-        try {
-          const sessionResponse = await fetch("/api/auth/session");
-          const sessionData = await sessionResponse.json();
-
-          // Check if user is admin from session data
-          isAdmin = sessionData?.user?.role === 'admin' || sessionData?.user?.isAdmin === true;
-
-          console.log("Admin check during login:", { isAdmin, userData: sessionData?.user });
-
-          // Store admin status in localStorage if admin
-          if (isAdmin && typeof window !== 'undefined') {
-            localStorage.setItem('isAdmin', 'true');
-            console.log("Admin status stored in localStorage");
-          }
-        } catch (error) {
-          console.error("Error checking admin status:", error);
-        }
-
-        // Redirect based on admin status
-        if (isAdmin) {
-          toast.success("Admin login successful", {
-            description: "Redirecting to admin dashboard...",
-          });
-          router.push('/admin');
-        } else {
-          toast.success("Login successful", {
-            description: "Redirecting to profile selection...",
-          });
-          router.push(callbackUrl);
         }
       }
     } catch (error) {

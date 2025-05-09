@@ -81,7 +81,11 @@ export function useTokenRefreshManager() {
 
         if (data.success && data.tokens) {
           localStorage.setItem('accessToken', data.tokens.accessToken);
-          console.log('Token refreshed proactively');
+          if (data.tokens.refreshToken) { // Check if a new refresh token was sent
+            localStorage.setItem('refreshToken', data.tokens.refreshToken);
+            console.log('Refresh token updated proactively');
+          }
+          console.log('Token refreshed proactively'); // Corrected: Access token was refreshed
         } else {
           console.error('Failed to refresh token:', data);
 

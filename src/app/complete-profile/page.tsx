@@ -375,6 +375,23 @@ export default function CompleteProfilePage() {
             }
             localStorage.setItem("user", JSON.stringify(parsedUser));
           }
+
+          // Store tokens in localStorage if provided
+          if (response.data?.tokens?.accessToken) {
+            console.log("Storing new access token from API client response");
+            localStorage.setItem("accessToken", response.data.tokens.accessToken);
+
+            // Also set in cookie for better compatibility
+            document.cookie = `accesstoken=${response.data.tokens.accessToken}; path=/; max-age=3600`; // 1 hour
+          }
+
+          if (response.data?.tokens?.refreshToken) {
+            console.log("Storing new refresh token from API client response");
+            localStorage.setItem("refreshToken", response.data.tokens.refreshToken);
+
+            // Also set in cookie for better compatibility
+            document.cookie = `refreshtoken=${response.data.tokens.refreshToken}; path=/; max-age=2592000`; // 30 days
+          }
         }
 
         // Redirect to select profile page
