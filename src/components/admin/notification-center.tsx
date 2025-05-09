@@ -50,6 +50,16 @@ export function AdminNotificationCenter() {
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
+
+      // Ensure we have the access token in the request
+      if (typeof window !== 'undefined') {
+        const accessToken = localStorage.getItem('accessToken');
+        if (accessToken) {
+          // Make sure the token is set in the API client
+          adminApi.setToken?.(accessToken);
+        }
+      }
+
       const response = await adminApi.getNotifications();
       if (response.success) {
         setNotifications(response.data.notifications);
@@ -61,7 +71,14 @@ export function AdminNotificationCenter() {
 
       // Don't show toast for 401 errors (expected for non-admin users)
       if (error?.response?.status !== 401) {
-        toast.error('Failed to load notifications');
+        // For network errors, show a more specific message
+        if (error.message === 'Network Error') {
+          console.log('Network error when fetching notifications - this might be a CORS issue');
+          // Set empty notifications to avoid showing loading state forever
+          setNotifications([]);
+        } else {
+          toast.error('Failed to load notifications');
+        }
       }
     } finally {
       setIsLoading(false);
@@ -84,10 +101,47 @@ export function AdminNotificationCenter() {
 
   useEffect(() => {
     const checkAdminAndFetch = async () => {
+      console.log('AdminNotificationCenter: Initial admin check for fetching...');
+
+      // First check localStorage and cookies directly for faster response
+      const storedIsAdmin = typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true';
+      const storedUserRole = typeof window !== 'undefined' && localStorage?.getItem('userRole') === 'admin';
+      const cookieIsAdmin = typeof document !== 'undefined' && document.cookie.includes('isAdmin=true');
+      const cookieUserRole = typeof document !== 'undefined' && document.cookie.includes('X-User-Role=admin');
+
+      // Check user data in localStorage
+      let userDataIsAdmin = false;
+      if (typeof window !== 'undefined') {
+        try {
+          const userDataStr = localStorage.getItem('user');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            userDataIsAdmin = userData?.role === 'admin' || userData?.isAdmin === true;
+          }
+        } catch (error) {
+          console.error('Error checking admin status from user data:', error);
+        }
+      }
+
+      // If any direct check passes, fetch notifications immediately
+      const directAdminCheck = storedIsAdmin || storedUserRole || cookieIsAdmin || cookieUserRole || userDataIsAdmin;
+
+      if (directAdminCheck) {
+        console.log('AdminNotificationCenter: Admin status found in direct checks, fetching notifications');
+        fetchNotifications();
+
+        // Set up polling for unread count
+        const interval = setInterval(fetchUnreadCount, 60000); // Check every minute
+        return () => clearInterval(interval);
+      }
+
+      // If direct checks fail, check session and use isUserAdmin helper
       if (session?.user) {
         try {
           // Check if user is admin before fetching notifications
           const admin = await isUserAdmin();
+
+          console.log('AdminNotificationCenter: Admin status from isUserAdmin for fetching:', admin);
 
           if (admin) {
             fetchNotifications();
@@ -167,15 +221,56 @@ export function AdminNotificationCenter() {
   // Check if user is admin - we'll use the state from the useEffect hook
   const [isAdminUser, setIsAdminUser] = useState(false);
 
-  // Check admin status when session changes
+  // Check admin status when session changes or component mounts
   useEffect(() => {
     const checkAdmin = async () => {
-      if (session?.user) {
-        const admin = await isUserAdmin();
-        setIsAdminUser(admin);
-      } else {
-        setIsAdminUser(false);
+      console.log('AdminNotificationCenter: Checking admin status...');
+
+      // First check localStorage and cookies directly for faster response
+      const storedIsAdmin = typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true';
+      const storedUserRole = typeof window !== 'undefined' && localStorage?.getItem('userRole') === 'admin';
+      const cookieIsAdmin = typeof document !== 'undefined' && document.cookie.includes('isAdmin=true');
+      const cookieUserRole = typeof document !== 'undefined' && document.cookie.includes('X-User-Role=admin');
+
+      // Check user data in localStorage
+      let userDataIsAdmin = false;
+      if (typeof window !== 'undefined') {
+        try {
+          const userDataStr = localStorage.getItem('user');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            userDataIsAdmin = userData?.role === 'admin' || userData?.isAdmin === true;
+          }
+        } catch (error) {
+          console.error('Error checking admin status from user data:', error);
+        }
       }
+
+      // If any direct check passes, set admin status immediately
+      if (storedIsAdmin || storedUserRole || cookieIsAdmin || cookieUserRole || userDataIsAdmin) {
+        console.log('AdminNotificationCenter: Admin status found in direct checks');
+        setIsAdminUser(true);
+        return;
+      }
+
+      // If direct checks fail, use the isUserAdmin helper
+      const admin = await isUserAdmin();
+      console.log('AdminNotificationCenter: Admin status from isUserAdmin:', admin);
+      setIsAdminUser(admin);
+
+      // Log all admin status sources for debugging
+      console.log('AdminNotificationCenter: Admin status check:', {
+        storedIsAdmin,
+        storedUserRole,
+        cookieIsAdmin,
+        cookieUserRole,
+        userDataIsAdmin,
+        sessionUser: session?.user ? {
+          role: session.user.role,
+          isAdmin: session.user.isAdmin
+        } : null,
+        finalStatus: admin
+      });
     };
 
     checkAdmin();

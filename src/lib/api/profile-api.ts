@@ -10,6 +10,9 @@ console.log('Profile API using URL:', API_URL);
  */
 export class ProfileApi {
   private token: string | null = null;
+  private profileCache: Map<string, any> = new Map(); // Cache for individual profiles
+  private userProfilesCache: { data: any; timestamp: number } | null = null; // Cache for user profiles with timestamp
+  private cacheExpiry = 60000; // Cache expiry time in ms (1 minute)
 
   /**
    * Set the token to use for API requests
@@ -17,6 +20,29 @@ export class ProfileApi {
   setToken(token: string) {
     this.token = token;
     console.log('Token set in ProfileApi');
+  }
+
+  /**
+   * Clear the cache
+   */
+  clearCache() {
+    this.profileCache.clear();
+    this.userProfilesCache = null;
+    console.log('Profile cache cleared');
+  }
+
+  /**
+   * Get a profile from cache or fetch it
+   */
+  private getCachedProfile(profileId: string): any | null {
+    return this.profileCache.get(profileId) || null;
+  }
+
+  /**
+   * Store a profile in cache
+   */
+  private cacheProfile(profileId: string, profile: any): void {
+    this.profileCache.set(profileId, profile);
   }
 
   /**
@@ -80,40 +106,58 @@ export class ProfileApi {
   /**
    * Get user profiles
    */
-  async getUserProfiles(): Promise<ApiResponse<any>> {
+  async getUserProfiles(forceRefresh = false): Promise<ApiResponse<any>> {
     try {
+      // Check cache first if not forcing refresh
+      if (!forceRefresh && this.userProfilesCache &&
+          (Date.now() - this.userProfilesCache.timestamp < this.cacheExpiry)) {
+        console.log('Returning user profiles from cache');
+        return {
+          success: true,
+          data: this.userProfilesCache.data,
+          fromCache: true
+        };
+      }
+
+      // Check for authentication from NextAuth session or social auth
       const session = await getSession();
-      if (!session?.user?.id) {
+      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const userDataString = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      const isSocialAuthenticated = !!accessToken && !!userDataString;
+
+      console.log('Authentication check in getUserProfiles:', {
+        hasSession: !!session,
+        hasSessionUser: !!session?.user,
+        hasSessionUserId: !!session?.user?.id,
+        isSocialAuthenticated,
+        hasAccessToken: !!accessToken,
+        hasUserData: !!userDataString
+      });
+
+      // If not authenticated via NextAuth or social auth, return error
+      if (!session?.user?.id && !isSocialAuthenticated) {
         return {
           success: false,
-          message: 'No user found in session'
+          message: 'No user found in session or social authentication'
         };
       }
 
       // Even if accessToken is empty, we'll proceed because the backend might be using cookies
-
       const headers = await this.getHeaders();
-      console.log(`Making GET request to ${API_URL}/profiles/user-profiles`, { headers });
+      console.log(`Making GET request to ${API_URL}/profiles/p`, { headers });
 
-      // The correct endpoint is /api/profiles/user-profiles
-      console.log('Full headers being sent:', JSON.stringify(headers));
-
-      const response = await fetch(`${API_URL}/profiles/user-profiles`, {
+      const response = await fetch(`${API_URL}/profiles/p`, {
         method: 'GET',
         headers,
         credentials: 'include', // Include cookies in the request
       });
 
-      console.log(`Response from /profiles/user-profiles:`, {
+      console.log(`Response from /profiles/p:`, {
         status: response.status,
         statusText: response.statusText
       });
 
       const data = await response.json();
-      console.log('===== PROFILE API RESPONSE =====');
-      console.log('Raw response data:', JSON.stringify(data, null, 2));
-      console.log('Response status:', response.status);
-      console.log('Response headers:', JSON.stringify(Object.fromEntries([...response.headers.entries()]), null, 2));
 
       if (!response.ok) {
         return {
@@ -128,9 +172,53 @@ export class ProfileApi {
       // Or it could be { success: true, data: { profiles: {...} } }
       const profiles = data.profiles || (data.data && data.data.profiles) || [];
 
+      console.log('Raw profiles data:', JSON.stringify(profiles, null, 2));
+
+      // No default profile creation - handled by the backend
+
+      // Process profiles to ensure they have proper names and structure
+      const processedProfiles = Array.isArray(profiles) ? profiles.map(profile => {
+        // Ensure profile has a proper name
+        if (profile.name === 'Untitled Profile' && profile.username) {
+          profile.name = profile.username;
+        }
+
+        // Format the profile name with the profile type
+        // Extract profile type for display
+        const profileType = profile.profileType
+          ? profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)
+          : profile.type?.subtype
+            ? profile.type.subtype.charAt(0).toUpperCase() + profile.type.subtype.slice(1)
+            : 'Personal';
+
+        // Get the base name (either username or name)
+        let baseName = profile.name;
+
+        // Capitalize the first letter of the name
+        if (baseName && typeof baseName === 'string' && baseName.length > 0) {
+          baseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+        }
+
+        // Format the name as "Name ProfileType Profile"
+        profile.formattedName = `${baseName} ${profileType} Profile`;
+
+        // Cache individual profiles
+        if (profile._id) {
+          this.cacheProfile(profile._id, profile);
+        }
+
+        return profile;
+      }) : profiles;
+
+      // Update cache
+      this.userProfilesCache = {
+        data: processedProfiles,
+        timestamp: Date.now()
+      };
+
       return {
         success: true,
-        data: profiles,
+        data: processedProfiles,
       };
     } catch (error) {
       console.error(`Error in getUserProfiles:`, error);
@@ -144,10 +232,24 @@ export class ProfileApi {
   /**
    * Get profile details
    */
-  async getProfileDetails(profileId: string, profileToken?: string): Promise<ApiResponse<any>> {
+  async getProfileDetails(profileId: string, profileToken?: string, forceRefresh = false): Promise<ApiResponse<any>> {
     try {
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedProfile = this.getCachedProfile(profileId);
+        if (cachedProfile) {
+          console.log(`Returning profile ${profileId} from cache`);
+          return {
+            success: true,
+            data: cachedProfile,
+            fromCache: true
+          };
+        }
+      }
+
+      // If profile is not in cache or we're forcing refresh, fetch it
       const headers: Record<string, string> = await this.getHeaders(profileToken) as Record<string, string>;
-      console.log(`Making GET request to ${API_URL}/profiles/${profileId}`, { headers });
+      console.log(`Making GET request to ${API_URL}/profiles/p/${profileId}`, { headers });
 
       // For social auth users, we need to include the access token in the Authorization header
       // Get the access token from localStorage if available
@@ -159,13 +261,13 @@ export class ProfileApi {
         }
       }
 
-      const response = await fetch(`${API_URL}/profiles/${profileId}`, {
+      const response = await fetch(`${API_URL}/profiles/p/${profileId}`, {
         method: 'GET',
         headers,
         credentials: 'include', // Include cookies in the request
       });
 
-      console.log(`Response from /profiles/${profileId}:`, {
+      console.log(`Response from /profiles/p/${profileId}:`, {
         status: response.status,
         statusText: response.statusText
       });
@@ -180,9 +282,40 @@ export class ProfileApi {
         };
       }
 
+      // Process profile to ensure it has a proper name
+      const profile = data.profile;
+      if (profile) {
+        // Ensure profile has a proper name
+        if (profile.name === 'Untitled Profile' && profile.username) {
+          profile.name = profile.username;
+        }
+
+        // Format the profile name with the profile type
+        // Extract profile type for display
+        const profileType = profile.profileType
+          ? profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)
+          : profile.type?.subtype
+            ? profile.type.subtype.charAt(0).toUpperCase() + profile.type.subtype.slice(1)
+            : 'Personal';
+
+        // Get the base name (either username or name)
+        let baseName = profile.name;
+
+        // Capitalize the first letter of the name
+        if (baseName && typeof baseName === 'string' && baseName.length > 0) {
+          baseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+        }
+
+        // Format the name as "Name ProfileType Profile"
+        profile.formattedName = `${baseName} ${profileType} Profile`;
+
+        // Cache the profile
+        this.cacheProfile(profileId, profile);
+      }
+
       return {
         success: true,
-        data: data.profile,
+        data: profile,
       };
     } catch (error) {
       console.error(`Error in getProfileDetails:`, error);
@@ -196,8 +329,8 @@ export class ProfileApi {
   /**
    * Get profile by ID (alias for getProfileDetails)
    */
-  async getProfileById(profileId: string): Promise<ApiResponse<any>> {
-    return this.getProfileDetails(profileId);
+  async getProfileById(profileId: string, forceRefresh = false): Promise<ApiResponse<any>> {
+    return this.getProfileDetails(profileId, undefined, forceRefresh);
   }
 
   /**
@@ -212,9 +345,9 @@ export class ProfileApi {
       params.append('name', query); // Search by name
       params.append('limit', '10'); // Limit results
 
-      console.log(`Making GET request to /api/admin/profiles?${params.toString()}`);
+      console.log(`Making GET request to ${API_URL}/admin/profiles?${params.toString()}`);
 
-      const response = await fetch(`/api/admin/profiles?${params.toString()}`, {
+      const response = await fetch(`${API_URL}/admin/profiles?${params.toString()}`, {
         method: 'GET',
         headers,
         credentials: 'include',
@@ -274,9 +407,9 @@ export class ProfileApi {
         params.append('sortOrder', options.sortOrder);
       }
 
-      console.log(`Making GET request to /api/admin/profiles?${params.toString()}`);
+      console.log(`Making GET request to ${API_URL}/admin/profiles?${params.toString()}`);
 
-      const response = await fetch(`/api/admin/profiles?${params.toString()}`, {
+      const response = await fetch(`${API_URL}/admin/profiles?${params.toString()}`, {
         method: 'GET',
         headers,
         credentials: 'include',
@@ -326,7 +459,7 @@ export class ProfileApi {
       // Third try: Use the all profiles endpoint and filter client-side
       console.log(`Third attempt: Fetching all profiles and filtering client-side`);
 
-      const allProfilesResponse = await fetch(`/api/admin/profiles?limit=100`, {
+      const allProfilesResponse = await fetch(`${API_URL}/admin/profiles?limit=100`, {
         method: 'GET',
         headers,
         credentials: 'include',

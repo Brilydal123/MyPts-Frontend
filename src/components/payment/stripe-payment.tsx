@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { AnimatedButton } from "../ui/animated-button";
+import { useRefreshBalance } from "@/hooks/use-mypts-data";
 
 interface CheckoutFormProps {
   clientSecret: string;
@@ -42,6 +43,7 @@ function CheckoutForm({
   const [isStripeLoading, setIsStripeLoading] = useState(true);
   const [isFormComplete, setIsFormComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const refreshBalance = useRefreshBalance();
 
   // Check when Stripe is ready
   useEffect(() => {
@@ -131,7 +133,17 @@ function CheckoutForm({
             "There was an issue processing your payment. Please try again.",
         });
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        // Call onSuccess first to refresh the balance before showing the toast
+        // First refresh the balance from the backend
+        try {
+          console.log("Payment succeeded, refreshing balance from backend...");
+          await refreshBalance.mutateAsync(currency);
+          console.log("Balance refreshed successfully");
+        } catch (refreshError) {
+          console.error("Error refreshing balance:", refreshError);
+          // Continue even if refresh fails
+        }
+
+        // Then call onSuccess to update the UI
         onSuccess();
 
         toast.success("Payment successful", {
@@ -208,9 +220,8 @@ function CheckoutForm({
         <div className="max-w-[14rem] w-full">
           <AnimatedButton
             type="submit"
-            className={`auth-button ${
-              !isStripeLoading && !isLoading && isFormComplete ? "active" : ""
-            } px-[4rem] h-12 relative`}
+            className={`auth-button ${!isStripeLoading && !isLoading && isFormComplete ? "active" : ""
+              } px-[4rem] h-12 relative`}
             disabled={
               !isStripeReady || isLoading || isStripeLoading || !isFormComplete
             }

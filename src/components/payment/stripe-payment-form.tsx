@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { toast } from "sonner";
 import { AnimatedButton } from "../ui/animated-button";
 import { myPtsApi } from "@/lib/api/mypts-api";
+import { useRefreshBalance } from "@/hooks/use-mypts-data";
 
 // Props for the payment form
 interface StripePaymentFormProps {
@@ -33,6 +34,7 @@ function PaymentForm({
   const [isFormComplete, setIsFormComplete] = useState(false);
   const stripe = useStripe();
   const elements = useElements();
+  const refreshBalance = useRefreshBalance();
 
   // Handle form submission - this is where we create the payment intent
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -104,7 +106,17 @@ function PaymentForm({
           description: error.message || "There was an issue processing your payment. Please try again.",
         });
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        // Call onSuccess first to refresh the balance before showing the toast
+        // First refresh the balance from the backend
+        try {
+          console.log("Payment succeeded, refreshing balance from backend...");
+          await refreshBalance.mutateAsync(currency);
+          console.log("Balance refreshed successfully");
+        } catch (refreshError) {
+          console.error("Error refreshing balance:", refreshError);
+          // Continue even if refresh fails
+        }
+
+        // Then call onSuccess to update the UI
         onSuccess();
 
         toast.success("Payment successful", {

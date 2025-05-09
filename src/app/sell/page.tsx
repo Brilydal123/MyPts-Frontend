@@ -59,14 +59,14 @@ export default function SellPage() {
   return (
     <MainLayout>
       <motion.div
-        className="space-y-8 mx-auto px-4 sm:px-6 g"
+        className="space-y-4 sm:space-y-6 md:space-y-8 mx-auto px-1 sm:px-2 md:px-4 lg:px-6 w-full max-w-full"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
         {/* Header with gradient background */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Sell MyPts</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+          <h1 className="text-2xl sm:text-3xl font-bold">Sell MyPts</h1>
           <Button
             onClick={refreshData}
             variant="outline"
@@ -79,8 +79,8 @@ export default function SellPage() {
           </Button>
         </div>
         {/* Main content */}
-        <div className="grid gap-8 lg:grid-cols-2 md:grid-cols-1">
-          <motion.div variants={itemVariants} className="h-full">
+        <div className="grid gap-4 sm:gap-6 md:gap-8 grid-cols-1 lg:grid-cols-2 w-full">
+          <motion.div variants={itemVariants} className="w-full">
             {balance ? (
               <BalanceCard
                 balance={balance}
@@ -93,7 +93,7 @@ export default function SellPage() {
             )}
           </motion.div>
 
-          <motion.div variants={itemVariants} className="h-full">
+          <motion.div variants={itemVariants} className="w-full">
             {balance ? (
               <RobustSellForm
                 balance={balance}
@@ -102,7 +102,7 @@ export default function SellPage() {
                 onCurrencyChange={handleCurrencyChange}
               />
             ) : (
-              <div className="h-full bg-muted rounded-xl shadow-sm animate-pulse "></div>
+              <div className="h-full min-h-[400px] bg-muted rounded-xl shadow-sm animate-pulse"></div>
             )}
           </motion.div>
         </div>

@@ -72,9 +72,9 @@ export default function TransactionsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Transaction History</h1>
+      <div className="space-y-4 sm:space-y-6 w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+          <h1 className="text-2xl sm:text-3xl font-bold">Transaction History</h1>
           <Button
             onClick={refreshData}
             variant="outline"
@@ -87,22 +87,22 @@ export default function TransactionsPage() {
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>My Transactions</CardTitle>
-            <CardDescription>View your transaction history</CardDescription>
+        <Card className="w-full border-0 shadow-md">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg md:text-xl">My Transactions</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">View your transaction history</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-4 md:p-6">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-              <div className="flex justify-between items-center">
-                <TabsList>
-                  <TabsTrigger value="all">All Transactions</TabsTrigger>
-                  <TabsTrigger value="type">By Type</TabsTrigger>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+                <TabsList className="mb-3 sm:mb-0">
+                  <TabsTrigger value="all" className="text-xs sm:text-sm">All Transactions</TabsTrigger>
+                  <TabsTrigger value="type" className="text-xs sm:text-sm">By Type</TabsTrigger>
                 </TabsList>
 
                 {activeTab === 'type' && (
                   <Select value={selectedType || ''} onValueChange={handleTypeChange}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full sm:w-[200px] text-xs sm:text-sm">
                       <SelectValue placeholder="Select transaction type" />
                     </SelectTrigger>
                     <SelectContent>

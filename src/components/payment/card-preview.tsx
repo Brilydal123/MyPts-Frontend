@@ -83,7 +83,7 @@ export function CardPreview({
 
   return (
     <div
-      className="w-full h-56 relative perspective-1000 cursor-pointer"
+      className="w-full max-w-[400px] sm:max-w-full mx-auto h-44 sm:h-52 md:h-56 relative perspective-1000 cursor-pointer"
       onClick={() => setIsFlipped(!isFlipped)}
     >
       <motion.div
@@ -93,15 +93,14 @@ export function CardPreview({
       >
         {/* Front of card */}
         <div
-          className="absolute w-full h-full backface-hidden rounded-xl p-6 shadow-lg overflow-hidden"
+          className="absolute w-full h-full backface-hidden rounded-xl p-3 sm:p-4 md:p-6 shadow-lg overflow-hidden"
           style={{
-            backgroundImage: `url('/images/cards/${
-              cardType === 'visa' ? 'visa-bg.jpg' :
+            backgroundImage: `url('/images/cards/${cardType === 'visa' ? 'visa-bg.jpg' :
               cardType === 'mastercard' ? 'mastercard-bg.jpg' :
-              cardType === 'amex' ? 'amex-bg.jpg' :
-              cardType === 'discover' ? 'discover-bg.jpg' :
-              'default-card-bg.jpg'
-            }')`,
+                cardType === 'amex' ? 'amex-bg.jpg' :
+                  cardType === 'discover' ? 'discover-bg.jpg' :
+                    'default-card-bg.jpg'
+              }')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -111,39 +110,39 @@ export function CardPreview({
           <div className="flex flex-col h-full justify-between relative z-10">
             <div className="flex justify-between items-start">
               {/* EMV Chip */}
-              <div className="w-12 h-9 rounded-md bg-yellow-500/80 flex items-center justify-center overflow-hidden shadow-md">
+              <div className="w-8 h-6 sm:w-10 sm:h-8 md:w-12 md:h-9 rounded-md bg-yellow-500/80 flex items-center justify-center overflow-hidden shadow-md">
                 <div className="w-full h-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex flex-col justify-center">
-                  <div className="h-1 bg-gray-800/30 my-0.5"></div>
-                  <div className="h-1 bg-gray-800/30 my-0.5"></div>
-                  <div className="h-1 bg-gray-800/30 my-0.5"></div>
+                  <div className="h-0.5 sm:h-1 bg-gray-800/30 my-0.5"></div>
+                  <div className="h-0.5 sm:h-1 bg-gray-800/30 my-0.5"></div>
+                  <div className="h-0.5 sm:h-1 bg-gray-800/30 my-0.5"></div>
                 </div>
               </div>
 
               {/* Card Brand Logo */}
               <div className="text-white font-bold">
                 {cardType === 'visa' && (
-                  <div className="text-2xl font-italic tracking-tighter text-white">
+                  <div className="text-lg sm:text-xl md:text-2xl font-italic tracking-tighter text-white">
                     <span className="italic font-extrabold">VISA</span>
                   </div>
                 )}
                 {cardType === 'mastercard' && (
                   <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-red-500 opacity-80 mr-1"></div>
-                    <div className="w-8 h-8 rounded-full bg-yellow-500 opacity-80 -ml-4"></div>
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-red-500 opacity-80 mr-1"></div>
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 opacity-80 -ml-3 sm:-ml-4"></div>
                   </div>
                 )}
                 {cardType === 'amex' && (
-                  <div className="text-lg font-bold text-white">
+                  <div className="text-sm sm:text-base md:text-lg font-bold text-white">
                     AMERICAN<br />EXPRESS
                   </div>
                 )}
                 {cardType === 'discover' && (
-                  <div className="text-xl font-bold text-white">
+                  <div className="text-base sm:text-lg md:text-xl font-bold text-white">
                     DISCOVER
                   </div>
                 )}
                 {cardType === 'unknown' && (
-                  <div className="text-xl font-bold text-white">
+                  <div className="text-base sm:text-lg md:text-xl font-bold text-white">
                     CARD
                   </div>
                 )}
@@ -151,20 +150,20 @@ export function CardPreview({
             </div>
 
             {/* Card Number */}
-            <div className="text-white text-xl font-mono tracking-wider mt-4 drop-shadow-md font-bold">
-              <div className="bg-black/20 backdrop-blur-sm py-2 px-3 rounded-md inline-block">
+            <div className="text-white text-sm sm:text-base md:text-xl font-mono tracking-wider mt-2 sm:mt-3 md:mt-4 drop-shadow-md font-bold">
+              <div className="bg-black/20 backdrop-blur-sm py-1 sm:py-1.5 md:py-2 px-2 sm:px-2.5 md:px-3 rounded-md inline-block">
                 {formatCardNumber(cardNumber)}
               </div>
             </div>
 
             {/* Card Details */}
-            <div className="flex justify-between mt-2">
-              <div className="text-white text-sm bg-black/20 backdrop-blur-sm p-2 rounded-md">
-                <div className="uppercase text-xs mb-1 font-medium">Card Holder</div>
-                <div className="font-medium uppercase tracking-wide">{cardholderName || 'YOUR NAME'}</div>
+            <div className="flex justify-between mt-1 sm:mt-2 gap-1 sm:gap-2">
+              <div className="text-white text-xs sm:text-sm bg-black/20 backdrop-blur-sm p-1 sm:p-2 rounded-md">
+                <div className="uppercase text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">Card Holder</div>
+                <div className="font-medium uppercase tracking-wide text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[150px] md:max-w-none">{cardholderName || 'YOUR NAME'}</div>
               </div>
-              <div className="text-white text-sm bg-black/20 backdrop-blur-sm p-2 rounded-md">
-                <div className="uppercase text-xs mb-1 font-medium">Expires</div>
+              <div className="text-white text-xs sm:text-sm bg-black/20 backdrop-blur-sm p-1 sm:p-2 rounded-md">
+                <div className="uppercase text-[10px] sm:text-xs mb-0.5 sm:mb-1 font-medium">Expires</div>
                 <div className="font-medium tracking-wide">{formatExpiryDate(expiryDate)}</div>
               </div>
             </div>
@@ -190,51 +189,50 @@ export function CardPreview({
         <div
           className="absolute w-full h-full backface-hidden rounded-xl shadow-lg rotate-y-180 overflow-hidden"
           style={{
-            backgroundImage: `url('/images/cards/${
-              cardType === 'visa' ? 'visa-bg.jpg' :
+            backgroundImage: `url('/images/cards/${cardType === 'visa' ? 'visa-bg.jpg' :
               cardType === 'mastercard' ? 'mastercard-bg.jpg' :
-              cardType === 'amex' ? 'amex-bg.jpg' :
-              cardType === 'discover' ? 'discover-bg.jpg' :
-              'default-card-bg.jpg'
-            }')`,
+                cardType === 'amex' ? 'amex-bg.jpg' :
+                  cardType === 'discover' ? 'discover-bg.jpg' :
+                    'default-card-bg.jpg'
+              }')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
         >
           {/* Overlay to ensure text readability */}
           <div className="absolute inset-0 bg-black/50"></div>
-          <div className="relative w-full h-14 bg-black/60 mt-5 z-10"></div>
-          <div className="px-6 mt-6 relative z-10">
+          <div className="relative w-full h-8 sm:h-10 md:h-14 bg-black/60 mt-3 sm:mt-4 md:mt-5 z-10"></div>
+          <div className="px-3 sm:px-4 md:px-6 mt-3 sm:mt-4 md:mt-6 relative z-10">
             {/* CVC strip */}
-            <div className="bg-white/90 h-12 flex items-center justify-end px-4 rounded-md shadow-md">
-              <div className="font-mono text-gray-800 tracking-wider font-bold text-lg">
+            <div className="bg-white/90 h-8 sm:h-10 md:h-12 flex items-center justify-end px-2 sm:px-3 md:px-4 rounded-md shadow-md">
+              <div className="font-mono text-gray-800 tracking-wider font-bold text-sm sm:text-base md:text-lg">
                 <span>{cvc || '•••'}</span>
               </div>
             </div>
 
             {/* Signature strip */}
-            <div className="mt-6 h-10 bg-white/30 backdrop-blur-sm rounded-sm flex items-center px-3 shadow-sm">
-              <div className="text-xs text-white font-mono tracking-widest">
+            <div className="mt-3 sm:mt-4 md:mt-6 h-6 sm:h-8 md:h-10 bg-white/30 backdrop-blur-sm rounded-sm flex items-center px-2 sm:px-3 shadow-sm">
+              <div className="text-[10px] sm:text-xs text-white font-mono tracking-widest truncate">
                 {cardholderName ? cardholderName.substring(0, 20) : 'AUTHORIZED SIGNATURE'}
               </div>
             </div>
 
-            <div className="mt-8 text-xs text-white text-center bg-black/30 backdrop-blur-sm p-2 rounded-md">
+            <div className="mt-3 sm:mt-5 md:mt-8 text-[10px] sm:text-xs text-white text-center bg-black/30 backdrop-blur-sm p-1 sm:p-2 rounded-md">
               <p>This card is for demonstration purposes only.</p>
-              <p className="mt-2 font-medium">Tap card to flip</p>
+              <p className="mt-1 sm:mt-2 font-medium">Tap card to flip</p>
             </div>
 
             {/* Card Network Logo */}
-            <div className="absolute bottom-4 right-4">
+            <div className="absolute bottom-2 sm:bottom-3 md:bottom-4 right-2 sm:right-3 md:right-4">
               {cardType === 'visa' && (
-                <div className="text-xl font-italic tracking-tighter text-white/90">
+                <div className="text-base sm:text-lg md:text-xl font-italic tracking-tighter text-white/90">
                   <span className="italic font-extrabold">VISA</span>
                 </div>
               )}
               {cardType === 'mastercard' && (
-                <div className="flex items-center scale-75">
-                  <div className="w-8 h-8 rounded-full bg-red-500 opacity-80 mr-1"></div>
-                  <div className="w-8 h-8 rounded-full bg-yellow-500 opacity-80 -ml-4"></div>
+                <div className="flex items-center scale-50 sm:scale-65 md:scale-75">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-red-500 opacity-80 mr-1"></div>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 opacity-80 -ml-3 sm:-ml-4"></div>
                 </div>
               )}
             </div>

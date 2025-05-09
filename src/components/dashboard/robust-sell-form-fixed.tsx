@@ -307,19 +307,19 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="w-full"
+      className="h-full"
     >
-      <Card className="w-full border-0 shadow-md rounded-md from-card to-background p-0">
-        <CardHeader className="bg-primary text-primary-foreground rounded-t-xl p-3 sm:p-4 md:p-6">
+      <Card className="w-full h-full border-0 shadow-md rounded-md from-card to-background">
+        <CardHeader className="bg-primary text-primary-foreground rounded-t-xl p-6">
           <div className="flex items-center gap-2">
-            <ArrowRightLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            <CardTitle className="text-base sm:text-lg md:text-xl">Sell MyPts</CardTitle>
+            <ArrowRightLeft className="h-5 w-5" />
+            <CardTitle>Sell MyPts</CardTitle>
           </div>
-          <CardDescription className="text-primary-foreground/90 bg-primary text-xs sm:text-sm">
+          <CardDescription className="text-primary-foreground/90 bg-primary">
             Convert your MyPts to real currency with secure payment methods
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-2 sm:p-3 md:p-4 lg:p-6">
+        <CardContent className="p-6">
           {showForm ? (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -334,16 +334,16 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                 </motion.div>
 
                 <motion.div variants={itemVariants} className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex items-center justify-between">
                     <FormLabel className="text-base font-medium">Currency</FormLabel>
                     <CurrencySelector
                       value={currency}
                       onChange={onCurrencyChange}
-                      className="w-full sm:w-[140px]"
+                      className="w-[140px]"
                     />
                   </div>
 
-                  <div className="grid gap-4 sm:gap-6 p-3 sm:p-4 bg-muted/30 rounded-xl border border-muted">
+                  <div className="grid gap-6 p-4 bg-muted/30 rounded-xl border border-muted">
                     <motion.div variants={itemVariants} className="grid gap-2">
                       <FormField
                         control={form.control}
@@ -410,7 +410,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
 
                 <Separator className="my-6" />
 
-                <motion.div variants={itemVariants} className="space-y-4 w-full">
+                <motion.div variants={itemVariants} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="paymentMethod"
@@ -418,43 +418,39 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                       <FormItem>
                         <FormLabel className="text-base font-medium">Payment Method</FormLabel>
                         <FormControl>
-                          <div className="w-full overflow-x-auto pb-2">
-                            <div className="min-w-[300px]">
-                              <PaymentMethodSelector
-                                value={activeTab}
-                                onChange={handlePaymentMethodChange}
-                                options={[
-                                  {
-                                    id: "stripe",
-                                    name: "Credit Card",
-                                    icon: "/images/payment/stripe.svg",
-                                    description: "Visa, Mastercard, Amex"
-                                  },
-                                  {
-                                    id: "bank_transfer-disabled",
-                                    name: "Bank Transfer",
-                                    icon: "/images/payment/bank-transfer.svg",
-                                    description: "Coming Soon",
-                                    disabled: true
-                                  },
-                                  {
-                                    id: "paypal-disabled",
-                                    name: "PayPal",
-                                    icon: "/images/payment/paypal.svg",
-                                    description: "Coming Soon",
-                                    disabled: true
-                                  },
-                                  {
-                                    id: "crypto-disabled",
-                                    name: "Cryptocurrency",
-                                    icon: "/images/payment/crypto.svg",
-                                    description: "Coming Soon",
-                                    disabled: true
-                                  }
-                                ]}
-                              />
-                            </div>
-                          </div>
+                          <PaymentMethodSelector
+                            value={activeTab}
+                            onChange={handlePaymentMethodChange}
+                            options={[
+                              {
+                                id: "stripe",
+                                name: "Credit Card",
+                                icon: "/images/payment/stripe.svg",
+                                description: "Visa, Mastercard, Amex"
+                              },
+                              {
+                                id: "bank_transfer-disabled",
+                                name: "Bank Transfer",
+                                icon: "/images/payment/bank-transfer.svg",
+                                description: "Coming Soon",
+                                disabled: true
+                              },
+                              {
+                                id: "paypal-disabled",
+                                name: "PayPal",
+                                icon: "/images/payment/paypal.svg",
+                                description: "Coming Soon",
+                                disabled: true
+                              },
+                              {
+                                id: "crypto-disabled",
+                                name: "Cryptocurrency",
+                                icon: "/images/payment/crypto.svg",
+                                description: "Coming Soon",
+                                disabled: true
+                              }
+                            ]}
+                          />
                         </FormControl>
                         <FormDescription className="text-xs mt-1">
                           Currently, only credit card payments are available. More options coming soon.
@@ -464,14 +460,15 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                     )}
                   />
 
+                  {/* Hidden TabsList for functionality */}
+                  <TabsList className="hidden">
+                    <TabsTrigger value="bank_transfer">Bank Transfer</TabsTrigger>
+                    <TabsTrigger value="paypal">PayPal</TabsTrigger>
+                    <TabsTrigger value="stripe">Credit Card</TabsTrigger>
+                    <TabsTrigger value="crypto">Cryptocurrency</TabsTrigger>
+                  </TabsList>
+
                   <Tabs value={activeTab} onValueChange={handlePaymentMethodChange} className="w-full">
-                    {/* Hidden TabsList for functionality */}
-                    <TabsList className="hidden">
-                      <TabsTrigger value="bank_transfer">Bank Transfer</TabsTrigger>
-                      <TabsTrigger value="paypal">PayPal</TabsTrigger>
-                      <TabsTrigger value="stripe">Credit Card</TabsTrigger>
-                      <TabsTrigger value="crypto">Cryptocurrency</TabsTrigger>
-                    </TabsList>
                     <TabsContent value="stripe" className="mt-4">
                       <motion.div
                         variants={tabContentVariants}
@@ -479,18 +476,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                         animate="visible"
                         className="space-y-4"
                       >
-                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                          {/* Card Preview for small screens - shown at top */}
-                          <div className="md:hidden mb-2 mx-auto w-full max-w-[400px]">
-                            <CardPreview
-                              cardNumber={form.watch('accountDetails.cardNumber') || ''}
-                              cardholderName={form.watch('accountDetails.cardholderName') || ''}
-                              expiryDate={form.watch('accountDetails.expiryDate') || ''}
-                              cvc={form.watch('accountDetails.cvc') || ''}
-                              flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
-                            />
-                          </div>
-
+                        <div className="grid gap-4 md:grid-cols-2">
                           <FormField
                             control={form.control}
                             name="accountDetails.cardholderName"
@@ -512,15 +498,12 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                             )}
                           />
 
-                          {/* Card Preview for medium screens and up - shown on the right */}
-                          <div className="hidden md:block md:row-span-3">
-                            <CardPreview
+                          <div className="md:row-span-3">
+                            {/* <CardPreview
                               cardNumber={form.watch('accountDetails.cardNumber') || ''}
                               cardholderName={form.watch('accountDetails.cardholderName') || ''}
                               expiryDate={form.watch('accountDetails.expiryDate') || ''}
-                              cvc={form.watch('accountDetails.cvc') || ''}
-                              flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
-                            />
+                            /> */}
                           </div>
 
                           <FormField
@@ -543,7 +526,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                             )}
                           />
 
-                          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                          <div className="grid grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="accountDetails.expiryDate"
@@ -631,12 +614,12 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                     variants={itemVariants}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="mt-6 sm:mt-8 mb-2 sm:mb-4 relative z-10"
+                    className="mt-8 mb-4 relative z-10"
                   >
                     <Button
                       type="submit"
                       variant="default"
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-base sm:text-lg py-4 sm:py-6 h-auto shadow-md hover:shadow-lg transition-all duration-300 rounded-xl"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6 h-auto shadow-md hover:shadow-lg transition-all duration-300 rounded-xl"
                       disabled={isLoading || myPtsAmount <= 0}
                       onClick={(e) => {
                         if (!validatePaymentMethod()) {
@@ -654,7 +637,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                         </span>
                       ) : (
                         <span className="flex items-center justify-center gap-2">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" /> Sell {myPtsAmount > 0 ? myPtsAmount.toLocaleString() : '0'} MyPts
+                          <CreditCard className="h-5 w-5" /> Sell {myPtsAmount > 0 ? myPtsAmount.toLocaleString() : '0'} MyPts
                         </span>
                       )}
                     </Button>
@@ -664,22 +647,22 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
             </Form>
           ) : (
             <motion.div
-              className="space-y-4 sm:space-y-6"
+              className="space-y-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 100, damping: 15 }}
             >
-              <div className="text-center p-3 sm:p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+              <div className="text-center p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-                  className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4"
+                  className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
                 >
-                  <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+                  <CreditCard className="h-8 w-8 text-green-600" />
                 </motion.div>
-                <h3 className="text-lg sm:text-xl font-bold text-green-800 mb-1 sm:mb-2">Request Submitted!</h3>
-                <p className="text-sm sm:text-base text-green-700 mb-2 sm:mb-4">
+                <h3 className="text-xl font-bold text-green-800 mb-2">Request Submitted!</h3>
+                <p className="text-green-700 mb-4">
                   Your sell request has been submitted successfully and is awaiting admin approval.
                 </p>
               </div>
@@ -689,7 +672,6 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="w-full"
                 >
                   <TransactionStatus
                     transactionId={transactionId}
@@ -701,11 +683,10 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full"
               >
                 <Button
                   variant="outline"
-                  className="w-full mt-2 sm:mt-4 py-4 sm:py-6 text-base sm:text-lg border-primary text-primary hover:bg-primary/5"
+                  className="w-full mt-4 py-6 text-lg border-primary text-primary hover:bg-primary/5"
                   onClick={handleReset}
                 >
                   Sell More MyPts

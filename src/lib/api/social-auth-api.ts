@@ -18,9 +18,10 @@ export const socialAuthApi = {
    * Get the Google OAuth URL
    * @param frontendCallbackUrl The frontend URL to redirect to after authentication
    * @param state Optional state parameter for CSRF protection
+   * @param referralCode Optional referral code to include in the authentication flow
    * @returns The Google OAuth URL
    */
-  getGoogleAuthUrl: (frontendCallbackUrl: string, state?: string): string => {
+  getGoogleAuthUrl: (frontendCallbackUrl: string, state?: string, referralCode?: string): string => {
     // Use the new endpoint for initiating Google login
     const baseUrl = `${API_BASE_URL}/auth/social/google`;
     const params = new URLSearchParams();
@@ -32,6 +33,11 @@ export const socialAuthApi = {
 
     if (state) {
       params.append('state', state);
+    }
+
+    // Include referral code if provided
+    if (referralCode) {
+      params.append('ref', referralCode);
     }
 
     return `${baseUrl}?${params.toString()}`;

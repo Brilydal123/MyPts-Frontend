@@ -29,7 +29,7 @@ export function PaymentMethodSelector({
   };
 
   return (
-    <div className="grid grid-cols-3 gap-1.5">
+    <div className="flex justify-center md:gap-[2rem] max-md:gap-[1rem] items-center place-items-center">
       {options.map((option) => (
         <PaymentMethodCard
           key={option.id}
@@ -61,7 +61,7 @@ function PaymentMethodCard({
       whileTap={{ scale: isDisabled ? 1 : 0.98 }}
       onClick={() => !isDisabled && onSelect(option.id)}
       className={cn(
-        "relative rounded-lg border p-1.5 transition-all duration-200 flex flex-col items-center justify-center h-[60px]",
+        "relative rounded-lg border p-1.5 transition-all duration-200 flex flex-col items-center justify-center h-[60px] w-fit",
         isDisabled
           ? "cursor-not-allowed border-muted bg-muted/20 opacity-70"
           : "cursor-pointer",
@@ -92,7 +92,7 @@ function PaymentMethodCard({
       )}
 
       {isDisabled && (
-        <div className="absolute -top-1 -right-1 bg-muted-foreground text-[8px] text-white px-1 py-0.5 rounded-sm font-medium">
+        <div className="absolute -top-1 -right-1 bg-muted-foreground text-[8px] text-white px-1 py-0.5 rounded-sm font-medium max-md:text-[5px]">
           Soon
         </div>
       )}
@@ -107,9 +107,9 @@ function PaymentMethodCard({
       </div>
 
       <div className="text-center">
-        <h3 className="font-medium text-[11px]">{option.name}</h3>
+        <h3 className="font-bold max-md:font-extrabold text-[11px] max-md:text-[6px]">{option.name}</h3>
         {option.description && (
-          <p className="text-[9px] text-muted-foreground mt-0 leading-tight">
+          <p className="text-[9px] max-md:text-[5px] text-muted-foreground mt-0 leading-tight">
             {option.description}
           </p>
         )}

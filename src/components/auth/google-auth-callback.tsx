@@ -12,8 +12,72 @@ export function GoogleAuthCallback() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Function to check if user is admin and redirect if needed
+    const checkAdminAndRedirect = async (token: string) => {
+      try {
+        console.log("GoogleAuthCallback: Checking if user is admin via API");
+
+        // Make a direct request to our admin check API
+        const adminCheckResponse = await fetch('/api/auth/check-admin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        if (adminCheckResponse.ok) {
+          const adminData = await adminCheckResponse.json();
+
+          if (adminData.isAdmin) {
+            console.log("GoogleAuthCallback: User is admin (confirmed by API), redirecting to admin dashboard IMMEDIATELY");
+
+            // Store the token in localStorage
+            localStorage.setItem("accessToken", token);
+
+            // Store admin status in localStorage
+            localStorage.setItem('isAdmin', 'true');
+            localStorage.setItem('userRole', 'admin');
+
+            // Set admin cookies
+            document.cookie = `isAdmin=true; path=/; max-age=2592000; SameSite=Lax`;
+            document.cookie = `X-User-Role=admin; path=/; max-age=2592000; SameSite=Lax`;
+
+            // Redirect directly to admin dashboard with a hard redirect
+            window.location.href = "/admin";
+            return true;
+          }
+        }
+
+        return false;
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        return false;
+      }
+    };
+
+    // Function to extract referral code from URL
+    const extractReferralCode = () => {
+      if (!searchParams) return null;
+
+      // Check for referral code in URL parameters
+      const refCode = searchParams.get('ref');
+      if (refCode) {
+        console.log("GoogleAuthCallback: Referral code found in URL:", refCode);
+        return refCode;
+      }
+
+      return null;
+    };
+
     const fetchUserData = async (token: string) => {
       try {
+        // First, check if user is admin and redirect if needed
+        const isAdmin = await checkAdminAndRedirect(token);
+        if (isAdmin) {
+          return; // Stop processing if user is admin
+        }
+
         console.log("GoogleAuthCallback: Fetching user data with token");
 
         console.log("GoogleAuthCallback: Setting tokens in storage and headers");
@@ -36,12 +100,45 @@ export function GoogleAuthCallback() {
         // Set a flag to indicate we're in the Google auth flow
         localStorage.setItem("googleAuthFlow", "true");
 
+        // Check for referral code in URL
+        const referralCode = extractReferralCode();
+        if (referralCode) {
+          // Store referral code in localStorage to use it in the complete-profile page
+          localStorage.setItem("pendingReferralCode", referralCode);
+          console.log("GoogleAuthCallback: Stored referral code in localStorage:", referralCode);
+        }
+
         // Fetch user data
         const response = await socialAuthApi.getCurrentUser();
 
         if (response.success && response.user) {
           console.log("GoogleAuthCallback: User data fetched successfully", response.user);
 
+          // Check if user is admin FIRST - before doing anything else
+          const isAdmin = response.user.role === 'admin' || response.user.isAdmin === true;
+
+          if (isAdmin) {
+            console.log("GoogleAuthCallback: User is admin, redirecting to admin dashboard IMMEDIATELY");
+
+            // Store admin status in localStorage
+            localStorage.setItem('isAdmin', 'true');
+            localStorage.setItem('userRole', 'admin');
+
+            // Store user data in localStorage
+            localStorage.setItem("user", JSON.stringify(response.user));
+
+            // If user has a default profile, store the ID
+            if (response.user.profileId) {
+              localStorage.setItem("selectedProfileId", response.user.profileId);
+            }
+
+            // Redirect directly to admin dashboard with a hard redirect
+            // This is more immediate than router.replace
+            window.location.href = "/admin";
+            return;
+          }
+
+          // For non-admin users, continue with normal flow
           // Store user data in localStorage
           localStorage.setItem("user", JSON.stringify(response.user));
 
@@ -85,17 +182,39 @@ export function GoogleAuthCallback() {
 
     console.log("GoogleAuthCallback: Processing callback", { error, success, token: token ? "exists" : "missing" });
 
-    if (error) {
-      console.error("GoogleAuthCallback: Error in callback", error);
-      toast.error("Login failed. Please try again.");
-      router.replace("/login");
-    } else if (success === "true" && token) {
-      console.log("GoogleAuthCallback: Success with token, fetching user data");
-      fetchUserData(token);
-    } else {
-      console.error("GoogleAuthCallback: Invalid callback parameters");
-      toast.error("Login failed. Please try again.");
-      router.replace("/login");
+    const handleCallback = async () => {
+      if (error) {
+        console.error("GoogleAuthCallback: Error in callback", error);
+        toast.error("Login failed. Please try again.");
+        router.replace("/login");
+      } else if (success === "true" && token) {
+        console.log("GoogleAuthCallback: Success with token, checking admin status first");
+
+        // Check for referral code in URL
+        const referralCode = extractReferralCode();
+        if (referralCode) {
+          console.log("GoogleAuthCallback: Found referral code in URL:", referralCode);
+        }
+
+        // First check if user is admin and redirect if needed
+        const isAdmin = await checkAdminAndRedirect(token);
+        if (isAdmin) {
+          // If user is admin, we've already redirected
+          return;
+        }
+
+        // If not admin, continue with normal flow
+        console.log("GoogleAuthCallback: Not admin, continuing with normal flow");
+        fetchUserData(token);
+      } else {
+        console.error("GoogleAuthCallback: Invalid callback parameters");
+        toast.error("Login failed. Please try again.");
+        router.replace("/login");
+      }
+    };
+
+    if (searchParams) {
+      handleCallback();
     }
   }, [searchParams, router]);
 

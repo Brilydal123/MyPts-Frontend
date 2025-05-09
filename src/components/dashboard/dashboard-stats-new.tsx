@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, UserPlus, RefreshCw } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, UserPlus, RefreshCw, Eye } from "lucide-react";
 import { MyPtsBalance, MyPtsValue } from "@/types/mypts";
 import { DashboardStatsCard } from "./dashboard-stats-card";
 import { ReferralStatsCard } from "./referral-stats-card";
 import ShareReferralModal from "@/components/referrals/ShareReferralModal";
+import ExchangeRateModal from "./exchange-rate-modal";
 import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import { useCachedExchangeRates } from "@/hooks/use-cached-exchange-rates";
 import { formatCurrency, getDirectConversionValue } from "@/lib/currency";
+import { Button } from "@/components/ui/button";
 
 interface DashboardStatsProps {
   balance: MyPtsBalance;
@@ -28,6 +30,7 @@ export function DashboardStats({
   referralCode,
 }: DashboardStatsProps) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isExchangeRateModalOpen, setIsExchangeRateModalOpen] = useState(false);
 
   // Use our cached exchange rates hook to prevent excessive API calls
   const {
@@ -108,9 +111,24 @@ export function DashboardStats({
           icon={<TrendingUp className="h-5 w-5" />}
           iconColor="text-[#007AFF] dark:text-[#0A84FF]"
           iconBgColor="bg-[#f5f5f7] dark:bg-[#2c2c2e]"
-          value={valuePerMyPt.toString()}
+          value={currency === 'XAF' ? valuePerMyPt.toFixed(5) : valuePerMyPt.toFixed(6)}
           unit={currency}
-          subtitle={`${formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt ${isLoadingRates ? '(Loading rates...)' : usingFallbackRates ? '(Fallback rates)' : '(Live rates)'}`}
+          subtitle={
+            <div className="flex items-center gap-1">
+              <span>{`${formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt ${isLoadingRates ? '(Loading rates...)' : usingFallbackRates ? '(Fallback rates)' : '(Live rates)'}`}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 rounded-full hover:bg-primary/10 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExchangeRateModalOpen(true);
+                }}
+              >
+                <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+              </Button>
+            </div>
+          }
           trend={{
             value: `${change.percentage.toFixed(2)}%`,
             isPositive: change.isPositive,
@@ -169,6 +187,15 @@ export function DashboardStats({
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         referralCode={referralCode}
+      />
+
+      {/* Exchange Rate Modal */}
+      <ExchangeRateModal
+        isOpen={isExchangeRateModalOpen}
+        onClose={() => setIsExchangeRateModalOpen(false)}
+        currency={currency}
+        valuePerMyPt={valuePerMyPt}
+        isUsingFallbackRates={usingFallbackRates}
       />
     </>
   );

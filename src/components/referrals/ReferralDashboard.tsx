@@ -340,6 +340,9 @@ const ReferralDashboard: React.FC = () => {
                         <p className="text-sm text-muted-foreground">
                           Total Referrals
                         </p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">
+                          {referralStats?.totalReferrals === 1 ? 'person' : 'people'}
+                        </p>
                       </div>
                       <div className="bg-muted/50 hover:bg-muted p-4 rounded-md text-center transition-all duration-200 group cursor-default">
                         <p className="text-2xl font-bold text-primary group-hover:scale-105 transition-transform">
@@ -347,6 +350,11 @@ const ReferralDashboard: React.FC = () => {
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Successful Referrals
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">
+                          {referralStats?.successfulReferrals === 0 ? 'None qualified yet' :
+                            referralStats?.successfulReferrals === 1 ? '1 qualified' :
+                              `${referralStats?.successfulReferrals} qualified`}
                         </p>
                       </div>
                     </div>
@@ -380,7 +388,7 @@ const ReferralDashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-6 bg-muted/50 rounded-lg p-4">
                       <div className="flex items-center gap-4">
                         <div>
-                          <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text">
                             {referralStats?.earnedPoints || 0}
                           </p>
                           <p className="text-sm text-muted-foreground">
@@ -449,18 +457,41 @@ const ReferralDashboard: React.FC = () => {
                                 src={referral.profile.profileImage}
                               />
                               <AvatarFallback>
-                                {referral.profile.name
+                                {(referral.profile.name ||
+                                  referral.profile.profileInformation?.username ||
+                                  "N/A")
                                   .substring(0, 2)
                                   .toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                                {referral.profile.name}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                                  {referral.profile.name ||
+                                    referral.profile.profileInformation?.username}
+                                </p>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                  {referral.profile.profileType
+                                    ? referral.profile.profileType.charAt(0).toUpperCase() + referral.profile.profileType.slice(1)
+                                    : referral.profile.type?.subtype
+                                      ? referral.profile.type.subtype.charAt(0).toUpperCase() + referral.profile.type.subtype.slice(1)
+                                      : referral.profile.profileInformation?.profileType
+                                        ? referral.profile.profileInformation.profileType.charAt(0).toUpperCase() + referral.profile.profileInformation.profileType.slice(1)
+                                        : 'Personal'}
+                                </span>
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 Referred on{" "}
-                                {new Date(referral.date).toLocaleDateString()}
+                                {new Date(referral.date).toLocaleDateString(undefined, {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}{" "}
+                                at{" "}
+                                {new Date(referral.date).toLocaleTimeString(undefined, {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
                               </p>
                             </div>
                           </div>
@@ -471,8 +502,8 @@ const ReferralDashboard: React.FC = () => {
                                 : "outline"
                             }
                             className={`transition-all duration-200 ${referral.hasReachedThreshold
-                                ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 ring-1 ring-green-500/20"
-                                : "hover:bg-primary/10"
+                              ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 ring-1 ring-green-500/20"
+                              : "hover:bg-primary/10"
                               }`}
                           >
                             {referral.hasReachedThreshold
@@ -517,15 +548,29 @@ const ReferralDashboard: React.FC = () => {
                           src={referralStats.referredBy.profileImage}
                         />
                         <AvatarFallback className="bg-amber-500/10">
-                          {referralStats.referredBy.name
+                          {(referralStats.referredBy.name ||
+                            referralStats.referredBy.profileInformation?.username ||
+                            "N/A")
                             .substring(0, 2)
                             .toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium bg-gradient-to-r from-amber-500 to-amber-600/70 bg-clip-text text-transparent">
-                          {referralStats.referredBy.name}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium bg-gradient-to-r from-amber-500 to-amber-600/70 bg-clip-text text-transparent">
+                            {referralStats.referredBy.name ||
+                              referralStats.referredBy.profileInformation?.username}
+                          </p>
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-100">
+                            {referralStats.referredBy.profileType
+                              ? referralStats.referredBy.profileType.charAt(0).toUpperCase() + referralStats.referredBy.profileType.slice(1)
+                              : referralStats.referredBy.type?.subtype
+                                ? referralStats.referredBy.type.subtype.charAt(0).toUpperCase() + referralStats.referredBy.type.subtype.slice(1)
+                                : referralStats.referredBy.profileInformation?.profileType
+                                  ? referralStats.referredBy.profileInformation.profileType.charAt(0).toUpperCase() + referralStats.referredBy.profileInformation.profileType.slice(1)
+                                  : 'Personal'}
+                          </span>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           Your Referrer
                         </p>

@@ -12,6 +12,15 @@ export interface ReferralStats {
       _id: string;
       name: string;
       profileImage?: string;
+      profileType?: string;
+      type?: {
+        category?: string;
+        subtype?: string;
+      };
+      profileInformation?: {
+        username: string;
+        profileType?: string;
+      };
     };
     date: string;
     hasReachedThreshold: boolean;
@@ -21,13 +30,32 @@ export interface ReferralStats {
     _id: string;
     name: string;
     profileImage?: string;
+    profileType?: string;
+    type?: {
+      category?: string;
+      subtype?: string;
+    };
+    profileInformation?: {
+      username: string;
+      profileType?: string;
+    };
   } | null;
 }
 
 export interface ReferralTreeNode {
   profileId: string;
   name: string;
+  formattedName?: string;
   profileImage?: string;
+  profileType?: string;
+  type?: {
+    category?: string;
+    subtype?: string;
+  };
+  profileInformation?: {
+    username: string;
+    profileType?: string;
+  };
   successfulReferrals: number;
   totalReferrals: number;
   milestoneLevel: number;
@@ -39,6 +67,15 @@ export interface LeaderboardEntry {
     _id: string;
     name: string;
     profileImage?: string;
+    profileType?: string;
+    type?: {
+      category?: string;
+      subtype?: string;
+    };
+    profileInformation?: {
+      username: string;
+      profileType?: string;
+    };
   };
   referralCode: string;
   totalReferrals: number;
@@ -62,11 +99,17 @@ export const ReferralService = {
       return response.data.data;
     } catch (error) {
       console.error('Error fetching referral stats:', error);
-      // If we get a 404 or other error, try to initialize the referral code
-      await this.initializeReferralCode();
-      // Try again after initialization
-      const retryResponse = await apiClient.get('/referrals');
-      return retryResponse.data.data;
+      // Return default empty stats instead of trying to initialize
+      return {
+        referralCode: '',
+        totalReferrals: 0,
+        successfulReferrals: 0,
+        earnedPoints: 0,
+        pendingPoints: 0,
+        currentMilestoneLevel: 0,
+        referredProfiles: [],
+        referredBy: null
+      };
     }
   },
 

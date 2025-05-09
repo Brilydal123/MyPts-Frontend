@@ -3,6 +3,7 @@
 import { GoogleAvatar } from "@/components/shared/google-avatar";
 import { Navbar } from "@/components/shared/navbar";
 import { GlobalSearch } from "@/components/shared/global-search";
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut as LogOutIcon, Settings as SettingsIcon } from "lucide-react";
@@ -267,13 +268,13 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <div className="flex items-center p-3 mt-2">
                   <GoogleAvatar
                     profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
+                    fallbackText={user?.fullName || user?.name || (isAdmin ? "Admin" : "User")}
                     size={32}
                     className="mr-3"
                   />
                   <div className="text-sm">
                     <p className="font-medium text-white">
-                      {user?.fullName || user?.name || "User"}
+                      {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                     </p>
                     <p className="text-white text-xs truncate">{user?.email}</p>
                   </div>
@@ -283,7 +284,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <div className="flex justify-center p-2 mt-2">
                   <GoogleAvatar
                     profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || "User"}
+                    fallbackText={user?.fullName || user?.name || (isAdmin ? "Admin" : "User")}
                     size={32}
                   />
                 </div>
@@ -326,6 +327,9 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Global search component - available throughout the app */}
       <GlobalSearch defaultOpen={false} />
+
+      {/* Route change loading indicator */}
+      {/* <RouteChangeLoading /> */}
     </div>
   );
 }

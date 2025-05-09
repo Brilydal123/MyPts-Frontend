@@ -4,11 +4,11 @@ import { getToken } from 'next-auth/jwt';
 export async function POST(req: NextRequest) {
   try {
     // Get the profile data from the request
-    const { profileId, profileToken } = await req.json();
+    const { profileId, profileToken, isAdmin, role } = await req.json();
 
-    if (!profileId || !profileToken) {
+    if (!profileId) {
       return NextResponse.json(
-        { success: false, message: 'Profile ID and token are required' },
+        { success: false, message: 'Profile ID is required' },
         { status: 400 }
       );
     }
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     // Create a cookie with the updated token
     // This is a simplified approach - in a real app, you'd use the NextAuth session handling
     const response = NextResponse.json({ success: true });
-    
+
     // Set cookies for the profile information
     response.cookies.set('profileId', profileId, {
       path: '/',
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
     });
-    
+
     response.cookies.set('profileToken', profileToken, {
       path: '/',
       maxAge: 30 * 24 * 60 * 60, // 30 days

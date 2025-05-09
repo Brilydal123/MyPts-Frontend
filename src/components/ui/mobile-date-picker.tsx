@@ -8,6 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import dynamic from 'next/dynamic';
+// Dynamically import Lottie to ensure it only loads on the client side
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
 interface MobileDatePickerProps {
   value: Date | undefined;
@@ -31,6 +35,7 @@ export function MobileDatePicker({
   const [yearInput, setYearInput] = React.useState('');
   const [monthInput, setMonthInput] = React.useState('');
   const [dayInput, setDayInput] = React.useState('');
+  const [showCheckmark, setShowCheckmark] = React.useState(false);
 
   // Get current date for calculations
   const today = React.useMemo(() => new Date(), []);
@@ -62,6 +67,10 @@ export function MobileDatePicker({
       setMonthInput((getMonth(value) + 1).toString().padStart(2, '0'));
       setDayInput(value.getDate().toString().padStart(2, '0'));
       setCurrentDate(value);
+
+      // Show checkmark animation when value is set from outside
+      setShowCheckmark(true);
+      // Keep the checkmark visible - don't hide it
     } else {
       setYearInput('');
       setMonthInput('');
@@ -132,6 +141,12 @@ export function MobileDatePicker({
   const handleSelect = React.useCallback((date: Date | undefined) => {
     onChange(date);
     setOpen(false);
+
+    // Show checkmark animation
+    if (date) {
+      setShowCheckmark(true);
+      // Keep the checkmark visible - don't hide it
+    }
   }, [onChange]);
 
   // Handle year selection
@@ -167,17 +182,23 @@ export function MobileDatePicker({
           // Check age restriction
           if (minAge > 0 && minDate && newDate > minDate) {
             // Date doesn't meet age requirement
+            toast.error(`You must be at least ${minAge} years old.`);
             return;
           }
 
           // Check future date restriction
           if (newDate > today) {
             // Future date
+            toast.error("Future dates are not allowed.");
             return;
           }
 
           onChange(newDate);
           setOpen(false);
+
+          // Show checkmark animation
+          setShowCheckmark(true);
+          // Keep the checkmark visible - don't hide it
         }
       }
     }
@@ -196,17 +217,56 @@ export function MobileDatePicker({
     exit: { opacity: 0, x: -20, transition: { duration: 0.3 } }
   };
 
+  // Reference to the animation JSON
+  const [animationData, setAnimationData] = React.useState<any>(null);
+
+  // Load the animation data
+  React.useEffect(() => {
+    // Dynamically import the animation data
+    fetch('/animations/checkmark.json')
+      .then(response => response.json())
+      .then(data => setAnimationData(data))
+      .catch(error => console.error('Error loading animation:', error));
+  }, []);
+
   // Memoize the button content
   const buttonContent = React.useMemo(() => (
-    <>
-      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
-      {value ? (
-        <span className="font-medium">{format(value, 'MMMM d, yyyy')}</span>
-      ) : (
-        <span className="text-gray-500">{placeholder}</span>
-      )}
-    </>
-  ), [value, placeholder]);
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center">
+        <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+        {value ? (
+          <span className="font-medium">{format(value, 'MMMM d, yyyy')}</span>
+        ) : (
+          <span className="text-gray-500">{placeholder}</span>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showCheckmark && value && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              transition: {
+                type: "spring",
+                stiffness: 500,
+                damping: 15
+              }
+            }}
+            className="h-7 w-7"
+          >
+            <Lottie
+              animationData={animationData}
+              loop={false}
+              autoplay={true}
+              style={{ height: '100%', width: '100%' }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  ), [value, placeholder, showCheckmark, animationData]);
 
   // Year grid for selection
   const YearGrid = React.useCallback(() => (
@@ -324,23 +384,37 @@ export function MobileDatePicker({
 
   // Memoize the calendar component to prevent unnecessary re-renders
   const calendarComponent = React.useMemo(() => (
-    <Calendar
-      mode="single"
-      selected={value}
-      onSelect={handleSelect}
-      month={currentDate}
-      onMonthChange={setCurrentDate}
-      className="rounded-md"
-      disabled={(date) => {
-        // Disable future dates
-        if (date > today) return true;
+    <>
+      {minAge > 0 && (
+        <div className="px-3 py-2 text-xs text-amber-600 bg-amber-50 border-b">
+          You must be at least {minAge} years old to continue.
+        </div>
+      )}
+      <Calendar
+        mode="single"
+        selected={value}
+        onSelect={(date) => {
+          // Additional validation before calling handleSelect
+          if (date && minAge > 0 && minDate && date > minDate) {
+            toast.error(`You must be at least ${minAge} years old.`);
+            return;
+          }
+          handleSelect(date);
+        }}
+        month={currentDate}
+        onMonthChange={setCurrentDate}
+        className="rounded-md"
+        disabled={(date) => {
+          // Disable future dates
+          if (date > today) return true;
 
-        // Disable dates that don't meet minimum age requirement
-        if (minAge > 0 && minDate && date > minDate) return true;
+          // Disable dates that don't meet minimum age requirement
+          if (minAge > 0 && minDate && date > minDate) return true;
 
-        return false;
-      }}
-    />
+          return false;
+        }}
+      />
+    </>
   ), [value, currentDate, handleSelect, setCurrentDate, today, minAge, minDate]);
 
   return (
@@ -364,6 +438,7 @@ export function MobileDatePicker({
         <SheetContent
           side="bottom"
           className="h-[90vh] p-0 rounded-t-3xl border-t-0 shadow-2xl"
+          hideCloseButton={true}
         >
           <div className="flex justify-between items-center p-4 border-b">
             <div className="w-8" />

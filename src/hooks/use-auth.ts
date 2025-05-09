@@ -17,14 +17,45 @@ export function useAuth() {
       const profileToken = localStorage.getItem('selectedProfileToken');
       const userDataString = localStorage.getItem('user');
 
+      // Check if we're on an admin page
+      const isAdminPage = window.location.pathname.startsWith('/admin');
+
+      // Log authentication state for debugging
+      console.log('Auth state check:', {
+        accessToken: !!accessToken,
+        nextAuthToken: !!nextAuthToken,
+        profileToken: !!profileToken,
+        hasUserData: !!userDataString,
+        isAdminPage
+      });
+
       if (accessToken && userDataString) {
         try {
           const userData = JSON.parse(userDataString);
+
+          // Ensure we have all the necessary user properties
           const enhancedUserData = {
             ...userData,
-            name: userData.fullName || userData.name || userData.username,
-            image: userData.profileImage || userData.image
+            name: userData.fullName || userData.name || userData.username || 'User',
+            fullName: userData.fullName || userData.name || userData.username || 'User',
+            image: userData.profileImage || userData.image || '',
+            profileImage: userData.profileImage || userData.image || '',
+            email: userData.email || 'user@example.com',
+            // Ensure role is preserved for admin users
+            role: userData.role || 'user',
+            isAdmin: userData.role === 'admin' || userData.isAdmin === true
           };
+
+          // Log the user data for debugging
+          console.log('User data loaded:', {
+            fullName: enhancedUserData.fullName,
+            email: enhancedUserData.email,
+            role: enhancedUserData.role,
+            isAdmin: enhancedUserData.isAdmin
+          });
+
+          console.log('Enhanced user data:', enhancedUserData);
+
           setSocialAuthUser(enhancedUserData);
           setIsSocialAuthenticated(true);
         } catch (e) {
@@ -33,9 +64,39 @@ export function useAuth() {
         }
       }
 
-      // Check admin status
-      const storedIsAdmin = localStorage?.getItem('isAdmin') === 'true';
-      setLocalStorageAdmin(storedIsAdmin);
+      // Force authentication for admin pages
+      if (isAdminPage) {
+        setIsSocialAuthenticated(true);
+      }
+
+      // Check admin status from all possible sources
+      const storedIsAdmin = localStorage?.getItem('isAdmin') === 'true' ||
+                          localStorage?.getItem('userRole') === 'admin';
+
+      // Also check cookies for admin status
+      const cookieIsAdmin = document.cookie.includes('isAdmin=true') ||
+                          document.cookie.includes('X-User-Role=admin') ||
+                          document.cookie.includes('X-User-Is-Admin=true');
+
+      // Check user data for admin role
+      let userDataIsAdmin = false;
+      if (userDataString) {
+        try {
+          const userData = JSON.parse(userDataString);
+          userDataIsAdmin = userData.role === 'admin' || userData.isAdmin === true;
+        } catch (e) {
+          console.error('Error parsing user data for admin check:', e);
+        }
+      }
+
+      console.log('Admin status check:', {
+        storedIsAdmin,
+        cookieIsAdmin,
+        userDataIsAdmin,
+        combined: storedIsAdmin || cookieIsAdmin || userDataIsAdmin
+      });
+
+      setLocalStorageAdmin(storedIsAdmin || cookieIsAdmin || userDataIsAdmin);
 
       // If no valid tokens, redirect to login
       if (!accessToken && !nextAuthToken && !profileToken && window.location.pathname !== '/login') {
@@ -47,11 +108,87 @@ export function useAuth() {
   const isAuthenticated = status === 'authenticated' || isSocialAuthenticated;
   const isLoading = status === 'loading' && !isSocialAuthenticated;
 
-  const isAdmin =
+  // Initial admin status check from basic sources
+  let initialAdminStatus =
     session?.user?.role === 'admin' ||
     session?.user?.isAdmin === true ||
     localStorageAdmin ||
-    socialAuthUser?.role === 'admin';
+    socialAuthUser?.role === 'admin' ||
+    socialAuthUser?.isAdmin === true;
+
+  // If admin status is true from storage/cookies but not in user data,
+  // we need to update the user data to reflect this
+  useEffect(() => {
+    if (typeof window !== 'undefined' && socialAuthUser && localStorageAdmin &&
+        !socialAuthUser.isAdmin && socialAuthUser.role !== 'admin') {
+      console.log('Synchronizing admin status in user data');
+
+      // Create updated user data with admin role
+      const updatedUserData = {
+        ...socialAuthUser,
+        role: 'admin',
+        isAdmin: true
+      };
+
+      // Update local state
+      setSocialAuthUser(updatedUserData);
+
+      // Update localStorage
+      try {
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        console.log('Updated user data in localStorage with admin role');
+      } catch (e) {
+        console.error('Error updating user data in localStorage:', e);
+      }
+    }
+  }, [socialAuthUser, localStorageAdmin]);
+
+  // Enhanced admin status check using our utility (if available in browser)
+  const [isAdmin, setIsAdmin] = useState(initialAdminStatus);
+
+  // Use effect to perform enhanced admin check
+  useEffect(() => {
+    const enhancedAdminCheck = async () => {
+      if (typeof window === 'undefined') return;
+
+      try {
+        // Dynamically import admin utilities to avoid SSR issues
+        const adminUtilsModule = await import('@/lib/admin-utils');
+        if (adminUtilsModule && adminUtilsModule.checkAdminStatus) {
+          const { isAdmin: verifiedAdmin } = await adminUtilsModule.checkAdminStatus();
+
+          // If there's a change in admin status, update state
+          if (verifiedAdmin !== initialAdminStatus) {
+            console.log('Enhanced admin check updated status:', {
+              initial: initialAdminStatus,
+              verified: verifiedAdmin
+            });
+            setIsAdmin(verifiedAdmin);
+
+            // Synchronize admin status if needed
+            if (adminUtilsModule.syncAdminStatus) {
+              adminUtilsModule.syncAdminStatus(verifiedAdmin);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in enhanced admin check:', error);
+      }
+    };
+
+    enhancedAdminCheck();
+  }, [initialAdminStatus]);
+
+  // Debug admin status
+  console.log('Admin status check (final):', {
+    sessionUserRole: session?.user?.role,
+    sessionUserIsAdmin: session?.user?.isAdmin,
+    localStorageAdmin,
+    socialAuthUserRole: socialAuthUser?.role,
+    socialAuthUserIsAdmin: socialAuthUser?.isAdmin,
+    initialAdminStatus,
+    finalAdminStatus: isAdmin
+  });
 
   const user = session?.user || socialAuthUser;
 
@@ -158,6 +295,39 @@ export function useAuth() {
   const profileToken = session?.profileToken ||
     (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileToken') : null);
 
+  // Function to force refresh user data from localStorage
+  const refreshUserData = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const userDataString = localStorage.getItem('user');
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          const enhancedUserData = {
+            ...userData,
+            name: userData.fullName || userData.name || userData.username || 'User',
+            fullName: userData.fullName || userData.name || userData.username || 'User',
+            image: userData.profileImage || userData.image || '',
+            profileImage: userData.profileImage || userData.image || '',
+            email: userData.email || 'user@example.com',
+            role: userData.role || 'user',
+            isAdmin: userData.role === 'admin' || userData.isAdmin === true
+          };
+
+          console.log('Refreshed user data:', {
+            fullName: enhancedUserData.fullName,
+            role: enhancedUserData.role,
+            isAdmin: enhancedUserData.isAdmin
+          });
+
+          setSocialAuthUser(enhancedUserData);
+          setIsSocialAuthenticated(true);
+        }
+      } catch (e) {
+        console.error('Error refreshing user data:', e);
+      }
+    }
+  };
+
   return {
     session,
     status,
@@ -169,6 +339,7 @@ export function useAuth() {
     accessToken,
     profileId,
     profileToken,
-    isSocialAuthenticated
+    isSocialAuthenticated,
+    refreshUserData
   };
 }

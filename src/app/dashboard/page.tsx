@@ -51,11 +51,52 @@ export default function DashboardPage() {
     refetch: refetchReferral
   } = useReferralData();
 
-  // Check if user is authenticated
+  // Check if user is authenticated and debug admin role
   useEffect(() => {
     const accessToken = localStorage.getItem('accessToken');
     const nextAuthToken = localStorage.getItem('next-auth.session-token');
     const profileToken = localStorage.getItem('selectedProfileToken');
+
+    // Debug admin role
+    const isAdminFromStorage = localStorage.getItem('isAdmin') === 'true';
+    const userRole = localStorage.getItem('userRole');
+
+    // Try to get session data
+    const fetchSessionData = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        const sessionData = await response.json();
+
+        console.log('ADMIN ROLE DEBUG (dashboard):', {
+          isAdminFromStorage,
+          userRole,
+          accessToken: !!accessToken,
+          nextAuthToken: !!nextAuthToken,
+          profileToken: !!profileToken,
+          sessionData: sessionData ? {
+            user: sessionData.user ? {
+              role: sessionData.user.role,
+              isAdmin: sessionData.user.isAdmin
+            } : null
+          } : null
+        });
+
+        // If user is admin, redirect to admin dashboard
+        if (
+          sessionData?.user?.role === 'admin' ||
+          sessionData?.user?.isAdmin === true ||
+          isAdminFromStorage ||
+          userRole === 'admin'
+        ) {
+          console.log('Admin user detected in dashboard, redirecting to admin dashboard');
+          window.location.href = '/admin';
+        }
+      } catch (error) {
+        console.error('Error fetching session data:', error);
+      }
+    };
+
+    fetchSessionData();
 
     if (!accessToken && !nextAuthToken && !profileToken) {
       toast.error('Authentication required', {

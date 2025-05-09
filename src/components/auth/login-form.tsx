@@ -19,6 +19,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import { Button } from "../ui/button";
+import { Eye, EyeOff } from "lucide-react";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 
@@ -31,6 +32,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const error = searchParams?.get("error") || null;
   const callbackUrl = searchParams?.get("callbackUrl") || "/select-profile";
   const isLogout = searchParams?.get("logout") === "true";
@@ -89,12 +91,12 @@ export function LoginForm() {
         try {
           const sessionResponse = await fetch("/api/auth/session");
           const sessionData = await sessionResponse.json();
-          
+
           // Check if user is admin from session data
           isAdmin = sessionData?.user?.role === 'admin' || sessionData?.user?.isAdmin === true;
-          
+
           console.log("Admin check during login:", { isAdmin, userData: sessionData?.user });
-          
+
           // Store admin status in localStorage if admin
           if (isAdmin && typeof window !== 'undefined') {
             localStorage.setItem('isAdmin', 'true');
@@ -103,7 +105,7 @@ export function LoginForm() {
         } catch (error) {
           console.error("Error checking admin status:", error);
         }
-        
+
         // Redirect based on admin status
         if (isAdmin) {
           toast.success("Admin login successful", {
@@ -159,12 +161,28 @@ export function LoginForm() {
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <FloatingLabelInput
-                    label="Password"
-                    type="password"
-                    {...field}
-                    className="rounded-md"
-                  />
+                  <div className="relative">
+                    <FloatingLabelInput
+                      label="Password"
+                      type={showPassword ? "text" : "password"}
+                      {...field}
+                      className="rounded-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -177,7 +195,7 @@ export function LoginForm() {
             </Label>
             <Link
               href="/forgot-password"
-              className="text-sm text-muted-foreground hover:underline"
+              className="text-sm text-blue-400 hover:underline"
             >
               Trouble logging in?
             </Link>
@@ -191,11 +209,11 @@ export function LoginForm() {
           </Button>
         </form>
       </Form>
-      <div className="flex flex-col space-y-4 text-center">
-        <div className="text-sm text-muted-foreground mb-4">
-          Don't have an account?{" "}
+      <div className="flex flex-col space-y-4 text-center ">
+        <div className="text-sm text-muted-foreground mb-4 space-x-2">
+          <span>Don't have an account?{" "}</span>
           <Link href="/register" className="text-primary hover:underline">
-            Create an account
+            <span className="text-blue-400">Create an account</span>
           </Link>
         </div>
 

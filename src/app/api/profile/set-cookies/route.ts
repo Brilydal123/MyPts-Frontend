@@ -3,18 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     // Get the profile data from the request
-    const { profileId, profileToken } = await req.json();
+    const { profileId, profileToken, isAdmin, role } = await req.json();
 
-    if (!profileId || !profileToken) {
+    if (!profileId) {
       return NextResponse.json(
-        { success: false, message: 'Profile ID and token are required' },
+        { success: false, message: 'Profile ID is required' },
         { status: 400 }
       );
     }
 
     // Create a response with cookies
     const response = NextResponse.json({ success: true });
-    
+
     // Set cookies for the profile information
     // These will be sent with subsequent requests to the backend
     response.cookies.set('profileId', profileId, {
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
     });
-    
+
     response.cookies.set('profileToken', profileToken, {
       path: '/',
       maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -38,13 +38,33 @@ export async function POST(req: NextRequest) {
       httpOnly: false, // Allow JavaScript access
       secure: process.env.NODE_ENV === 'production',
     });
-    
-    response.cookies.set('X-Profile-Token', profileToken, {
-      path: '/',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      httpOnly: false, // Allow JavaScript access
-      secure: process.env.NODE_ENV === 'production',
-    });
+
+    if (profileToken) {
+      response.cookies.set('X-Profile-Token', profileToken, {
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        httpOnly: false, // Allow JavaScript access
+        secure: process.env.NODE_ENV === 'production',
+      });
+    }
+
+    // Set admin role cookies
+    if (isAdmin === true || role === 'admin') {
+      console.log('Setting admin role cookies');
+      response.cookies.set('X-User-Role', 'admin', {
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        httpOnly: false, // Allow JavaScript access
+        secure: process.env.NODE_ENV === 'production',
+      });
+
+      response.cookies.set('X-User-Is-Admin', 'true', {
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        httpOnly: false, // Allow JavaScript access
+        secure: process.env.NODE_ENV === 'production',
+      });
+    }
 
     return response;
   } catch (error) {

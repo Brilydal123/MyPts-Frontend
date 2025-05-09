@@ -66,7 +66,14 @@ export function formatCurrency(
   // For MyPts value display, preserve full precision if requested
   if (preserveFullPrecision) {
     const symbol = getCurrencySymbol(currencyCode);
-    return `${symbol}${amount}`;
+
+    // Special handling for XAF/FCFA to limit decimal places to 5
+    if (currencyCode === "XAF") {
+      return `FCFA ${amount.toFixed(5)}`;
+    }
+
+    // For other currencies, limit to 6 decimal places maximum to avoid excessive precision
+    return `${symbol}${typeof amount === 'number' ? amount.toFixed(6) : amount}`;
   }
 
   // Special handling for certain currencies

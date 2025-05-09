@@ -28,6 +28,42 @@ export function useBalance(currency: string = 'USD') {
   });
 }
 
+// Hook for refreshing user balance from the backend
+export function useRefreshBalance() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (currency: string = 'USD') => {
+      console.log(`[BALANCE] Refreshing balance from backend in ${currency}`);
+      const response = await myPtsApi.refreshBalance(currency);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to refresh balance');
+      }
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data && data.value) {
+        // Update the balance in the cache
+        queryClient.setQueryData(['balance', data.value.currency], data);
+
+        // Also invalidate the balance query to trigger a refetch if needed
+        queryClient.invalidateQueries({ queryKey: ['balance'] });
+
+        console.log(`[BALANCE] Successfully refreshed balance: ${data.balance} MyPts`);
+      } else {
+        console.warn('[BALANCE] Refresh balance response data is undefined, invalidating query.');
+        // Still invalidate the query to force a normal refetch
+        queryClient.invalidateQueries({ queryKey: ['balance'] });
+      }
+    },
+    onError: (error) => {
+      console.error('[BALANCE] Error refreshing balance:', error);
+      // Still invalidate the query to force a normal refetch
+      queryClient.invalidateQueries({ queryKey: ['balance'] });
+    }
+  });
+}
+
 // Hook for fetching MyPts value
 export function useMyPtsValue() {
   return useQuery({

@@ -19,6 +19,7 @@ import {
   Coins,
   BarChart4 as CurrencyExchange,
   RefreshCw,
+  Eye,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -26,6 +27,7 @@ import { useExchangeRates } from "@/hooks/use-exchange-rates";
 import { useCachedExchangeRates } from "@/hooks/use-cached-exchange-rates";
 import { formatCurrency, getDirectConversionValue } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
+import ExchangeRateModal from "@/components/dashboard/exchange-rate-modal";
 
 interface BalanceCardProps {
   balance: MyPtsBalance;
@@ -77,6 +79,9 @@ export function BalanceCard({
 
   // State to store the formatted total value
   const [formattedTotalValue, setFormattedTotalValue] = useState<string>('');
+
+  // State for exchange rate modal
+  const [isExchangeRateModalOpen, setIsExchangeRateModalOpen] = useState(false);
 
   // Handle refresh button click
   const handleRefresh = () => {
@@ -176,25 +181,25 @@ export function BalanceCard({
       // whileHover="hover"
       className=""
     >
-      <Card className="overflow-hidden shadow-md h-full border-0 rounded-xl bg-gradient-to-br from-card to-background">
-        <CardHeader className="bg-primary rounded-t-md text-primary-foreground p-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold flex items-center gap-2">
-              <CurrencyExchange className="h-5 w-5" />
+      <Card className="overflow-hidden shadow-md w-full border-0 rounded-xl bg-gradient-to-br from-card to-background">
+        <CardHeader className="bg-primary rounded-t-md text-primary-foreground p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2">
+            <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <CurrencyExchange className="h-4 w-4 sm:h-5 sm:w-5" />
               Local Currencies Conversion
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleRefresh}
-                className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full h-9 w-9"
+                className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full h-8 w-8 sm:h-9 sm:w-9"
                 disabled={isLoadingRates}
               >
-                <RefreshCw className={`h-4 w-4 ${isLoadingRates ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isLoadingRates ? 'animate-spin' : ''}`} />
               </Button>
               <Select value={currency} onValueChange={handleCurrencyChange}>
-                <SelectTrigger className="w-[130px] bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full">
+                <SelectTrigger className="w-full sm:w-[130px] bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20 rounded-full">
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,7 +212,7 @@ export function BalanceCard({
               </Select>
             </div>
           </div>
-          <CardDescription className="text-primary-foreground/90 mt-2">
+          <CardDescription className="text-primary-foreground/90 mt-2 text-xs sm:text-sm">
             {currencies.find((c) => c.value === currency)?.label || currency}
             <br />
             Your current MyPts balance and equivalent value
@@ -222,7 +227,7 @@ export function BalanceCard({
             )}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-2 md:p-5">
+        <CardContent className="p-3 sm:p-4 md:p-5">
           {isLoading ? (
             <div className="flex flex-col space-y-4 animate-pulse">
               <div className="h-8 w-3/4 bg-muted rounded-full"></div>
@@ -254,40 +259,51 @@ export function BalanceCard({
                   <p className="text-2xl sm:text-3xl font-semibold">
                     {formattedTotalValue}
                   </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt
-                  </p>
+                  <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                    <span>{formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 rounded-full hover:bg-primary/10 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExchangeRateModalOpen(true);
+                      }}
+                    >
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
                 <motion.div
                   variants={itemVariants}
-                  className="flex items-center p-5 rounded-xl transition-all duration-300 bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200"
+                  className="flex items-center p-3 sm:p-4 md:p-5 rounded-xl transition-all duration-300 bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200"
                 >
-                  <div className="mr-4 rounded-full p-3 bg-green-100 text-green-600">
-                    <ArrowUpRight className="h-5 w-5" />
+                  <div className="mr-3 sm:mr-4 rounded-full p-2 sm:p-3 bg-green-100 text-green-600">
+                    <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-green-700">
+                    <p className="text-xs sm:text-sm font-medium text-green-700">
                       Total Earned
                     </p>
-                    <p className="text-2xl font-bold text-green-800">
+                    <p className="text-xl sm:text-2xl font-bold text-green-800">
                       {balance.lifetimeEarned.toLocaleString()}
                     </p>
                   </div>
                 </motion.div>
                 <motion.div
                   variants={itemVariants}
-                  className="flex items-center p-5 rounded-xl transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200"
+                  className="flex items-center p-3 sm:p-4 md:p-5 rounded-xl transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200"
                 >
-                  <div className="mr-4 rounded-full p-3 bg-red-100 text-red-600">
-                    <ArrowDownRight className="h-5 w-5" />
+                  <div className="mr-3 sm:mr-4 rounded-full p-2 sm:p-3 bg-red-100 text-red-600">
+                    <ArrowDownRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-red-700">
+                    <p className="text-xs sm:text-sm font-medium text-red-700">
                       Total Spent
                     </p>
-                    <p className="text-2xl font-bold text-red-800">
+                    <p className="text-xl sm:text-2xl font-bold text-red-800">
                       {balance.lifetimeSpent.toLocaleString()}
                     </p>
                   </div>
@@ -307,6 +323,15 @@ export function BalanceCard({
           )}
         </CardContent>
       </Card>
+
+      {/* Exchange Rate Modal */}
+      <ExchangeRateModal
+        isOpen={isExchangeRateModalOpen}
+        onClose={() => setIsExchangeRateModalOpen(false)}
+        currency={currency}
+        valuePerMyPt={valuePerMyPt}
+        isUsingFallbackRates={usingFallbackRates}
+      />
     </motion.div>
   );
 }

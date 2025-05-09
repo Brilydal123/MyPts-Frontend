@@ -2,6 +2,18 @@ import { apiClient } from "./api-client"
 
 class AdminApi {
   /**
+   * Set the authentication token for API requests
+   */
+  setToken(token: string) {
+    if (token) {
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('Admin API: Token set in headers');
+    } else {
+      delete apiClient.defaults.headers.common['Authorization'];
+      console.log('Admin API: Token removed from headers');
+    }
+  }
+  /**
    * Get admin notifications
    */
   async getNotifications(page = 1, limit = 20) {

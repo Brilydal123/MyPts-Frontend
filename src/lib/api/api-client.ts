@@ -8,6 +8,8 @@ const apiClientInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Include credentials (cookies) in requests
+  withCredentials: true,
 });
 
 // Log the API URL for debugging
@@ -26,21 +28,45 @@ apiClientInstance.interceptors.request.use(
         const accessToken = localStorage.getItem('accessToken') ||
                            localStorage.getItem('next-auth.session-token');
 
-        // Use the token from getAuthToken or fallback to localStorage
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-          // Add header to indicate token is verified by client
-          config.headers["x-token-verified"] = "true";
-        } else if (accessToken) {
-          config.headers.Authorization = `Bearer ${accessToken}`;
-          // Add header to indicate token is verified by client
-          config.headers["x-token-verified"] = "true";
+        // Determine if the current request is for an endpoint that uses cookie-only auth
+        const cookieOnlyAuthEndpoints = ['/referrals', '/referrals/tree', '/notifications', '/notifications/unread-count'];
+        const isCookieOnlyAuthRoute = config.url && cookieOnlyAuthEndpoints.some(endpoint => config.url!.startsWith(endpoint));
+
+        // Only add Authorization header if it's NOT a cookie-only auth route
+        if (!isCookieOnlyAuthRoute) {
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            // Add header to indicate token is verified by client
+            config.headers["x-token-verified"] = "true";
+          } else if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
+            // Add header to indicate token is verified by client
+            config.headers["x-token-verified"] = "true";
+          }
+        } else {
+          // For cookie-only auth routes, ensure no Authorization header is present,
+          // relying solely on cookies via withCredentials: true
+          delete config.headers.Authorization;
+          delete config.headers["x-token-verified"];
+          console.log(`Cookie-only auth route (${config.url}): Relying on cookie-based auth. Authorization header removed.`);
         }
 
         // Add profile token if available
         const profileToken = localStorage.getItem('selectedProfileToken');
         if (profileToken) {
           config.headers['X-Profile-Token'] = profileToken;
+        }
+
+        // Store admin status in a safer way that doesn't trigger CORS issues
+        // Instead of adding custom headers that might not be allowed by the backend's CORS config,
+        // we'll use standard Authorization headers and handle admin status in the backend
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        const userRole = localStorage.getItem('userRole');
+
+        if (isAdmin || userRole === 'admin') {
+          console.log('User has admin privileges, using standard auth headers');
+          // We're not adding custom headers that might trigger CORS issues
+          // The backend should determine admin status based on the user ID in the token
         }
 
         // Add profile ID as a query parameter if available and not an admin route

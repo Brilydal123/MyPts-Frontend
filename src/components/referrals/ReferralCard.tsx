@@ -220,12 +220,38 @@ export function ReferralCard() {
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-offset-background ring-amber-500/20">
                     <AvatarImage src={referralStats.referredBy.profileImage} />
-                    <AvatarFallback className="bg-amber-500/10 text-xs">
-                      {referralStats.referredBy.name.substring(0, 2).toUpperCase()}
+                    <AvatarFallback className="bg-amber-500/10 text-xl font-extrabold">
+                      {(() => {
+                        // Get the name or username
+                        const displayName = referralStats.referredBy.name ||
+                          referralStats.referredBy.profileInformation?.username ||
+                          "NA";
+
+                        // For single word names, just use the first letter
+                        if (!displayName.includes(" ")) {
+                          return displayName.charAt(0).toUpperCase();
+                        }
+
+                        // For multi-word names, use first letter of first and last name
+                        return displayName.substring(0, 1).toUpperCase();
+                      })()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium">{referralStats.referredBy.name}</p>
+                    <p className="text-sm font-medium">
+                      {(() => {
+                        // Get the name or username
+                        const displayName = referralStats.referredBy.name ||
+                          referralStats.referredBy.profileInformation?.username ||
+                          "Unknown User";
+
+                        // Capitalize the first letter of each word
+                        return displayName
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                          .join(' ');
+                      })()}
+                    </p>
                     <p className="text-xs text-muted-foreground">Referred you</p>
                   </div>
                 </div>

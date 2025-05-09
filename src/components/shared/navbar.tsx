@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
 import { NotificationCenter } from "@/components/shared/notification-center";
@@ -29,7 +30,25 @@ export function Navbar({
   mobileMenuOpen,
   onMobileMenuToggle,
 }: NavbarProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
+
+  // Force authentication state to true on admin pages
+  const pathname = usePathname();
+  const isAdminPage = pathname?.startsWith('/admin');
+  const effectiveIsAuthenticated = isAuthenticated || isAdminPage || isAdmin;
+
+  // Debug user data
+  useEffect(() => {
+    if (user) {
+      console.log('Navbar - User data:', {
+        fullName: user.fullName,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        isAdmin: isAdmin
+      });
+    }
+  }, [user, isAdmin]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
@@ -100,17 +119,17 @@ export function Navbar({
 
           {/* Actions section */}
           <div className="flex items-center gap-4 px-4">
-            {isAuthenticated ? (
+            {effectiveIsAuthenticated ? (
               <>
                 <NotificationCenter />
                 <div className="flex items-center gap-2">
                   <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
+                    profileImageUrl={user?.profileImage || user?.image || ""}
                     fallbackText={user?.fullName || user?.name || "User"}
                     size={32}
                   />
                   <span className="hidden md:inline-block text-sm text-black">
-                    {user?.fullName || user?.name}
+                    {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                   </span>
                 </div>
               </>

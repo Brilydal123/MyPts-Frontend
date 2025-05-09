@@ -11,7 +11,7 @@ interface DashboardStatsCardProps {
   iconBgColor: string;
   value: string;
   unit?: string;
-  subtitle?: string;
+  subtitle?: string | React.ReactNode;
   trend?: {
     value: string;
     isPositive: boolean;

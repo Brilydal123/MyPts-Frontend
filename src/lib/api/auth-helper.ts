@@ -37,7 +37,7 @@ export const getAuthToken = async (): Promise<string | null> => {
 };
 
 /**
- * Get the current user's admin status
+ * Get the current user's admin status from all possible sources
  */
 export const isUserAdmin = async (): Promise<boolean> => {
   // Only run in browser environment
@@ -45,11 +45,50 @@ export const isUserAdmin = async (): Promise<boolean> => {
     return false;
   }
 
+  console.log('Checking admin status from all sources...');
+
+  // Check admin status from localStorage
+  const storedIsAdmin = localStorage?.getItem('isAdmin') === 'true';
+  const storedUserRole = localStorage?.getItem('userRole') === 'admin';
+
+  if (storedIsAdmin || storedUserRole) {
+    console.log('Admin status found in localStorage');
+    return true;
+  }
+
+  // Check admin status from cookies
+  const cookieIsAdmin = document.cookie.includes('isAdmin=true');
+  const cookieUserRole = document.cookie.includes('X-User-Role=admin');
+  const cookieUserIsAdmin = document.cookie.includes('X-User-Is-Admin=true');
+
+  if (cookieIsAdmin || cookieUserRole || cookieUserIsAdmin) {
+    console.log('Admin status found in cookies');
+    return true;
+  }
+
+  // Check admin status from user data in localStorage
+  try {
+    const userDataStr = localStorage.getItem('user');
+    if (userDataStr) {
+      const userData = JSON.parse(userDataStr);
+      if (userData.role === 'admin' || userData.isAdmin === true) {
+        console.log('Admin status found in user data');
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('Error checking admin status from user data:', error);
+  }
+
   // Try to get admin status from NextAuth session
   try {
     const session = await getSession();
     if (session?.user) {
-      return session.user.role === 'admin' || session.user.isAdmin === true;
+      const isAdmin = session.user.role === 'admin' || session.user.isAdmin === true;
+      if (isAdmin) {
+        console.log('Admin status found in NextAuth session');
+        return true;
+      }
     }
   } catch (error) {
     console.error('Error getting session:', error);
@@ -58,8 +97,13 @@ export const isUserAdmin = async (): Promise<boolean> => {
   // Try to get admin status from window.__NEXT_DATA__
   if (window.__NEXT_DATA__?.props?.pageProps?.session?.user) {
     const user = window.__NEXT_DATA__.props.pageProps.session.user;
-    return user.role === 'admin' || user.isAdmin === true;
+    const isAdmin = user.role === 'admin' || user.isAdmin === true;
+    if (isAdmin) {
+      console.log('Admin status found in window.__NEXT_DATA__');
+      return true;
+    }
   }
 
+  console.log('No admin status found in any source');
   return false;
 };

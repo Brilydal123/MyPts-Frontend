@@ -34,10 +34,26 @@ interface ProfileData {
   isLoadingBalance?: boolean;
 }
 
+// Helper function to format profile data
+const formatProfileData = (profile: any): ProfileData => {
+  console.log("Formatting profile data:", JSON.stringify(profile, null, 2));
+
+  return {
+    id: profile._id || profile.id,
+    name: profile.name === 'Untitled Profile' && profile.username ? profile.username : profile.name,
+    description: profile.description || "",
+    profileType: profile.profileType || (profile.type?.subtype || "personal"),
+    accessToken: profile.accessToken || "",
+    balance: profile.balance?.balance || profile.balanceInfo?.balance || 0,
+    formattedBalance: profile.formattedBalance || `${(profile.balance?.balance || profile.balanceInfo?.balance || 0).toLocaleString()} MyPts`,
+    isLoadingBalance: false,
+  };
+};
+
 export function ProfileSelector() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<ProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
     null
@@ -47,6 +63,44 @@ export function ProfileSelector() {
     const loadProfiles = async () => {
       console.log("===== PROFILE SELECTOR =====");
       console.log("Session:", JSON.stringify(session, null, 2));
+
+      // Check if user is admin from localStorage first (fastest check)
+      if (typeof window !== 'undefined') {
+        const isAdminFromStorage = localStorage.getItem('isAdmin') === 'true' || localStorage.getItem('userRole') === 'admin';
+        if (isAdminFromStorage) {
+          console.log("ADMIN USER DETECTED IN LOCALSTORAGE - Redirecting immediately to admin dashboard");
+          window.location.href = '/admin';
+          return;
+        }
+
+        // Check if user is admin from user data in localStorage
+        try {
+          const userDataStr = localStorage.getItem('user');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            if (userData && (userData.role === 'admin' || userData.isAdmin === true)) {
+              console.log("ADMIN USER DETECTED IN USER DATA - Redirecting immediately to admin dashboard");
+              localStorage.setItem('isAdmin', 'true');
+              localStorage.setItem('userRole', 'admin');
+              window.location.href = '/admin';
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Error checking admin status from localStorage:", error);
+        }
+      }
+
+      // Check if user is admin from session
+      if (session?.user?.role === 'admin' || session?.user?.isAdmin === true) {
+        console.log("ADMIN USER DETECTED IN SESSION - Redirecting immediately to admin dashboard");
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('isAdmin', 'true');
+          localStorage.setItem('userRole', 'admin');
+        }
+        window.location.href = '/admin';
+        return;
+      }
 
       // Check for access token and user data in localStorage (for social auth)
       const accessTokenFromStorage =
@@ -188,7 +242,7 @@ export function ProfileSelector() {
                     p.id === profile.id
                       ? {
                         ...p,
-                        name: profileDetails.data.name || p.name,
+                        name: p.name !== 'Untitled Profile' ? p.name : (profileDetails.data.name || p.name),
                         description:
                           profileDetails.data.description || p.description,
                         profileType:
@@ -213,67 +267,80 @@ export function ProfileSelector() {
       }
 
       try {
-        // Get the full user details including profiles
-        const userResponse = await userApi.getCurrentUser();
-        console.log(
-          "User API response:",
-          JSON.stringify(userResponse, null, 2)
-        );
+        // Get profiles directly from the profile API with caching
+        console.log("Getting profiles from profile API with caching...");
+        const response = await profileApi.getUserProfiles();
+        console.log("Profile API response:", response);
 
-        // If we successfully got the user details and it has profiles, use those
-        if (
-          userResponse.success &&
-          userResponse.data &&
-          userResponse.data.profiles &&
-          userResponse.data.profiles.length > 0
-        ) {
-          console.log(
-            "User has profiles from user API:",
-            userResponse.data.profiles
-          );
+        // If we got profiles from cache or API, process them
+        if (response.success && response.data) {
+          console.log(`Got ${Array.isArray(response.data) ? response.data.length : 'unknown'} profiles from ${response.fromCache ? 'cache' : 'API'}`);
 
-          // Map the profiles to the expected format
-          const mappedProfiles = userResponse.data.profiles.map(
-            (profile: any) => {
-              console.log(
-                "Processing profile from user API:",
-                JSON.stringify(profile, null, 2)
-              );
+          // If we need to check admin status, do it in parallel
+          if (!response.fromCache) {
+            // Check admin status in the background
+            userApi.getCurrentUser().then(userResponse => {
+              if (
+                userResponse.success &&
+                userResponse.data &&
+                (userResponse.data.role === 'admin' || userResponse.data.isAdmin === true)
+              ) {
+                console.log("ADMIN USER DETECTED IN API RESPONSE - Redirecting to admin dashboard");
 
-              // Extract balance information if available
-              const balanceData = profile.balance || {};
-              console.log(
-                "Balance data:",
-                JSON.stringify(balanceData, null, 2)
-              );
+                // Store admin status in localStorage
+                localStorage.setItem('isAdmin', 'true');
+                localStorage.setItem('userRole', 'admin');
 
-              return {
-                id: profile._id,
-                name: profile.name,
-                description: profile.description || "",
-                // Handle different ways the type might be returned
-                profileType:
-                  profile.type?.subtype ||
-                  (typeof profile.type === "string"
-                    ? profile.type
-                    : profile.profileType || "unknown"),
-                accessToken: profile.accessToken || "",
-                // Include balance information directly from the profile data
-                balance: balanceData.balance || 0,
-                formattedBalance: balanceData.balance
-                  ? `${balanceData.balance.toLocaleString()} MyPts`
-                  : "0 MyPts",
-                isLoadingBalance: false,
-              };
-            }
-          );
+                // Redirect to admin dashboard
+                window.location.href = '/admin';
+              }
+            }).catch(error => {
+              console.error("Error checking admin status:", error);
+            });
+          }
+          // Handle authentication errors
+          if (response.message?.includes("authentication") ||
+            response.message?.includes("token") ||
+            response.message?.includes("Unauthorized")) {
+            console.error("Authentication error:", response.message);
+            toast.error("Your session has expired. Please log in again.");
+            // Wait a moment before redirecting
+            setTimeout(() => {
+              router.push("/login");
+            }, 2000);
+            return;
+          }
 
-          setProfiles(mappedProfiles);
+          // Process the profiles data
+          console.log("Processing profile data");
+          console.log("Raw response data:", JSON.stringify(response.data, null, 2));
+
+          // Extract profiles from the response
+          let processedProfiles: ProfileData[] = [];
+
+          // If profiles is an object with categories
+          if (response.data && typeof response.data === "object" && !Array.isArray(response.data)) {
+            // Flatten the profiles from all categories
+            Object.entries(response.data).forEach(([_category, categoryProfiles]: [string, any]) => {
+              if (Array.isArray(categoryProfiles)) {
+                const mappedProfiles = categoryProfiles.map((profile: any) => formatProfileData(profile));
+                processedProfiles = [...processedProfiles, ...mappedProfiles];
+              }
+            });
+          }
+          // If profiles is already an array
+          else if (Array.isArray(response.data)) {
+            processedProfiles = response.data.map((profile: any) => formatProfileData(profile));
+          }
+
+          console.log(`Processed ${processedProfiles.length} profiles`);
+          console.log("Processed profiles:", JSON.stringify(processedProfiles, null, 2));
+          setProfiles(processedProfiles);
 
           // Don't auto-select profiles, even if there's only one
           console.log(
-            "Found profiles from user API:",
-            mappedProfiles.length > 0 ? mappedProfiles.map((p: { id: any; }) => p.id) : "none"
+            "Found profiles from profile API:",
+            processedProfiles.length > 0 ? processedProfiles.map(p => p.id) : "none"
           );
 
           // Clear any stored profile ID to ensure the user can select a profile
@@ -284,138 +351,7 @@ export function ProfileSelector() {
 
           // Don't auto-select profiles from session either
           console.log("Not auto-selecting profile from session");
-
-          setLoading(false);
-          return;
         }
-
-        // If we couldn't get profiles from the user API, try the profile API as a fallback
-        console.log("Trying to get profiles from profile API...");
-        const response = await profileApi.getUserProfiles();
-        console.log("Profile API response:", response);
-
-        if (!response.success || !response.data) {
-          // If we get an authentication error, we might need to redirect to login
-          if (
-            response.message?.includes("authentication") ||
-            response.message?.includes("token") ||
-            response.message?.includes("Unauthorized")
-          ) {
-            console.error("Authentication error:", response.message);
-            toast.error("Your session has expired. Please log in again.");
-            // Wait a moment before redirecting
-            setTimeout(() => {
-              router.push("/login");
-            }, 2000);
-            return;
-          }
-
-          throw new Error(response.message || "Failed to load profiles");
-        }
-
-        console.log("Raw profile data:", response.data);
-
-        // Extract profiles from the response
-        // The API returns profiles grouped by category
-        let allProfiles: ProfileData[] = [];
-
-        // If profiles is an object with categories
-        if (
-          response.data &&
-          typeof response.data === "object" &&
-          !Array.isArray(response.data)
-        ) {
-          // Flatten the profiles from all categories
-          Object.entries(response.data).forEach(
-            ([category, categoryProfiles]: [string, any]) => {
-              console.log(
-                `Processing category: ${category} with ${Array.isArray(categoryProfiles) ? categoryProfiles.length : 0
-                } profiles`
-              );
-
-              if (Array.isArray(categoryProfiles)) {
-                const mappedProfiles = categoryProfiles.map((profile: any) => {
-                  console.log("Processing profile:", profile);
-                  // Extract balance information if available
-                  const balanceData = profile.balance || {};
-
-                  return {
-                    id: profile._id,
-                    name: profile.name,
-                    description: profile.description || "",
-                    // Handle different ways the type might be returned
-                    profileType:
-                      profile.type?.subtype ||
-                      (typeof profile.type === "string"
-                        ? profile.type
-                        : profile.profileType || "unknown"),
-                    accessToken: profile.accessToken || "",
-                    // Include balance information directly from the profile data
-                    balance: balanceData.balance || 0,
-                    formattedBalance: balanceData.balance
-                      ? `${balanceData.balance.toLocaleString()} MyPts`
-                      : "0 MyPts",
-                    isLoadingBalance: false,
-                  };
-                });
-                allProfiles = [...allProfiles, ...mappedProfiles];
-              }
-            }
-          );
-        }
-        // If profiles is already an array
-        else if (Array.isArray(response.data)) {
-          console.log(`Processing array of ${response.data.length} profiles`);
-          allProfiles = response.data.map((profile: any) => {
-            console.log(
-              "Processing profile from array:",
-              JSON.stringify(profile, null, 2)
-            );
-
-            // Extract balance information if available
-            const balanceData = profile.balance || {};
-            console.log(
-              "Balance data from array profile:",
-              JSON.stringify(balanceData, null, 2)
-            );
-
-            return {
-              id: profile._id,
-              name: profile.name,
-              description: profile.description || "",
-              // Handle different ways the type might be returned
-              profileType:
-                profile.type?.subtype ||
-                (typeof profile.type === "string"
-                  ? profile.type
-                  : profile.profileType || "unknown"),
-              accessToken: profile.accessToken || "",
-              // Include balance information directly from the profile data
-              balance: balanceData.balance || 0,
-              formattedBalance: balanceData.balance
-                ? `${balanceData.balance.toLocaleString()} MyPts`
-                : "0 MyPts",
-              isLoadingBalance: false,
-            };
-          });
-        }
-
-        setProfiles(allProfiles);
-
-        // Don't auto-select profiles, even if there's only one
-        console.log(
-          "Found profiles from profile API:",
-          allProfiles.length > 0 ? allProfiles.map(p => p.id) : "none"
-        );
-
-        // Clear any stored profile ID to ensure the user can select a profile
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("selectedProfileId");
-          localStorage.removeItem("selectedProfileToken");
-        }
-
-        // Don't auto-select profiles from session either
-        console.log("Not auto-selecting profile from session");
       } catch (error) {
         console.error("Error loading profiles:", error);
         toast.error("Failed to load profiles");
@@ -452,6 +388,36 @@ export function ProfileSelector() {
           "selectedProfileType",
           selectedProfile.profileType || ""
         );
+      }
+
+      // Preserve admin role if it exists
+      try {
+        // Try to get from session
+        const sessionResponse = await fetch("/api/auth/session");
+        const sessionData = await sessionResponse.json();
+
+        if (sessionData?.user?.isAdmin === true || sessionData?.user?.role === "admin") {
+          console.log("Preserving admin role in localStorage");
+          localStorage.setItem("userRole", "admin");
+          localStorage.setItem("isAdmin", "true");
+        } else {
+          // Check localStorage for existing admin role
+          const userDataStr = localStorage.getItem("user");
+          if (userDataStr) {
+            try {
+              const userData = JSON.parse(userDataStr);
+              if (userData.isAdmin === true || userData.role === "admin") {
+                console.log("Preserving admin role from localStorage");
+                localStorage.setItem("userRole", "admin");
+                localStorage.setItem("isAdmin", "true");
+              }
+            } catch (parseError) {
+              console.error("Error parsing user data:", parseError);
+            }
+          }
+        }
+      } catch (roleError) {
+        console.error("Error preserving admin role:", roleError);
       }
 
       // Get the access token from localStorage or session
@@ -536,13 +502,48 @@ export function ProfileSelector() {
       // Set cookies for the backend
       try {
         const profileToken = localStorage.getItem("selectedProfileToken") || "";
+
+        // Get user role and admin status from session or localStorage
+        let isAdmin = false;
+        let role = "user";
+
+        // Try to get from session
+        try {
+          const sessionResponse = await fetch("/api/auth/session");
+          const sessionData = await sessionResponse.json();
+          console.log("Session data for cookies:", sessionData);
+
+          if (sessionData?.user) {
+            isAdmin = sessionData.user.isAdmin === true;
+            role = sessionData.user.role || "user";
+          }
+        } catch (sessionError) {
+          console.error("Error getting session for cookies:", sessionError);
+        }
+
+        // If not in session, try localStorage
+        if (!isAdmin) {
+          const userDataStr = localStorage.getItem("user");
+          if (userDataStr) {
+            try {
+              const userData = JSON.parse(userDataStr);
+              isAdmin = userData.isAdmin === true || userData.role === "admin";
+              role = userData.role || "user";
+            } catch (parseError) {
+              console.error("Error parsing user data from localStorage:", parseError);
+            }
+          }
+        }
+
+        console.log("Setting cookies with admin status:", { isAdmin, role });
+
         // Call our API endpoint to set cookies
         const cookieResponse = await fetch("/api/profile/set-cookies", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ profileId, profileToken }),
+          body: JSON.stringify({ profileId, profileToken, isAdmin, role }),
           credentials: "include",
         });
 
@@ -717,8 +718,9 @@ export function ProfileSelector() {
                 <div>
                   <h3 className="font-medium">{profile.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {profile.profileType.charAt(0).toUpperCase() +
-                      profile.profileType.slice(1)}
+                    {profile.profileType ?
+                      (profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)) :
+                      'Personal'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {profile.description}
@@ -730,22 +732,9 @@ export function ProfileSelector() {
                       src="/mdi_coins-outline.svg"
                       className="h-4 w-4 mr-1"
                     />
-                    {profile.isLoadingBalance ? (
-                      <span className="text-xs text-muted-foreground animate-pulse">
-                        Loading balance...
-                      </span>
-                    ) : profile.balance !== undefined &&
-                      profile.formattedBalance ? (
-                      <span className="text-sm font-medium">
-                        {profile.formattedBalance}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        {typeof profile.balance === "number"
-                          ? `${profile.balance.toLocaleString()} MyPts`
-                          : "Balance unavailable"}
-                      </span>
-                    )}
+                    <span className="text-sm font-medium">
+                      {profile.formattedBalance || `${(profile.balance || 0).toLocaleString()} MyPts`}
+                    </span>
                   </div>
                 </div>
                 <AnimatePresence>

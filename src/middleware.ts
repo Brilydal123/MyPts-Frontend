@@ -7,14 +7,47 @@ const authRequiredButPublicRoutes = ["/complete-profile"]; // Routes that requir
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const url = new URL(request.url);
 
-  // Skip middleware for social auth callbacks and API routes
-  if (pathname.startsWith("/auth/google/callback") || pathname.startsWith("/api/")) {
+  // Special handling for Google Auth Callback
+  if (pathname.startsWith("/auth/google/callback")) {
+    // For Google Auth Callback, we'll check for admin role in the URL parameters
+    const token = url.searchParams.get("token");
+
+    if (token) {
+      try {
+        // Try to decode the token to check for admin role
+        // This is a simple check and doesn't validate the signature
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+
+          // If the token contains userId, we can try to check for admin cookies
+          if (payload.userId) {
+            const cookieIsAdmin = request.cookies.get("isAdmin")?.value;
+            const cookieUserRole = request.cookies.get("X-User-Role")?.value;
+
+            if (cookieIsAdmin === 'true' || cookieUserRole === 'admin') {
+              console.log("Admin user detected in Google Auth Callback, redirecting to admin dashboard");
+              return NextResponse.redirect(new URL("/admin", request.url));
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error decoding token in middleware:", error);
+      }
+    }
+
+    // If not admin or error, continue with normal flow
+    return NextResponse.next();
+  }
+
+  // Skip middleware for API routes
+  if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
   // Check for logout flag or cache-busting parameter in URL
-  const url = new URL(request.url);
   const isLogoutRequest = url.searchParams.get("logout") === "true";
   const hasCacheBuster = url.searchParams.has("t") || url.searchParams.has("nocache");
 
@@ -95,6 +128,41 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.next();
+  }
+
+  // Check if user is admin - with detailed logging
+  const tokenRole = token?.role;
+  const tokenIsAdmin = token?.isAdmin;
+  const cookieIsAdmin = request.cookies.get("isAdmin")?.value;
+  const cookieUserRole = request.cookies.get("X-User-Role")?.value;
+  const cookieUserIsAdmin = request.cookies.get("X-User-Is-Admin")?.value;
+
+  const isAdmin = tokenRole === 'admin' ||
+                 tokenIsAdmin === true ||
+                 cookieIsAdmin === 'true' ||
+                 cookieUserRole === 'admin' ||
+                 cookieUserIsAdmin === 'true';
+
+  console.log("ADMIN ROLE DEBUG (middleware):", {
+    tokenRole,
+    tokenIsAdmin,
+    cookieIsAdmin,
+    cookieUserRole,
+    cookieUserIsAdmin,
+    isAdmin,
+    pathname,
+    token: token ? {
+      id: token.id,
+      role: token.role,
+      isAdmin: token.isAdmin,
+      profileId: token.profileId
+    } : null
+  });
+
+  // Special handling for select-profile page - redirect admin users directly to admin dashboard
+  if (isAuthenticated && pathname === "/select-profile" && isAdmin) {
+    console.log("Admin user detected in middleware, bypassing profile selection");
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   // Redirect authenticated users away from auth pages

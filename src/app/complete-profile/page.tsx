@@ -11,9 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/responsive-date-picker";
 import { CountrySelector } from "@/components/ui/country-selector";
+import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { countries } from "@/lib/countries";
 import { authApi } from "@/lib/api/auth-api";
 import { useAuth } from "@/hooks/use-auth";
+import { motion, AnimatePresence } from "framer-motion";
+import ReferralService from "@/services/referralService";
 
 // Schema for the form
 const formSchema = z.object({
@@ -32,6 +35,13 @@ const formSchema = z.object({
   countryOfResidence: z.string({
     required_error: "Country of residence is required",
   }).min(1, "Country of residence is required"),
+  wasReferred: z.boolean().optional(),
+  referralCode: z
+    .string()
+    .optional()
+    .refine((val) => !val || val.length >= 6, {
+      message: "Referral code must be at least 6 characters if provided",
+    }),
 });
 
 export default function CompleteProfilePage() {
@@ -39,6 +49,8 @@ export default function CompleteProfilePage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [referralAnswer, setReferralAnswer] = useState<"yes" | "no">("no");
+  const [isValidatingReferralCode, setIsValidatingReferralCode] = useState(false);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,8 +58,58 @@ export default function CompleteProfilePage() {
     defaultValues: {
       dateOfBirth: undefined,
       countryOfResidence: "",
+      wasReferred: false,
+      referralCode: "",
     },
   });
+
+  // Watch referral code for validation
+  const referralCode = form.watch("referralCode");
+
+  // Handle referral code validation
+  useEffect(() => {
+    // If user manually enters a referral code and the field wasn't empty before
+    if (referralCode && referralCode.length > 0 && referralAnswer !== "yes") {
+      console.log("User manually entered a referral code, setting referralAnswer to yes");
+      setReferralAnswer("yes");
+    }
+
+    // Debounced validation of the referral code
+    if (referralCode && referralCode.length >= 6 && referralAnswer === "yes") {
+      // Clear any previous errors
+      form.clearErrors("referralCode");
+
+      // Set a small delay before validating to avoid too many API calls
+      const timer = setTimeout(() => {
+        console.log("Validating referral code:", referralCode);
+        setIsValidatingReferralCode(true);
+
+        ReferralService.validateReferralCode(referralCode)
+          .then(result => {
+            if (result.valid) {
+              console.log("Referral code is valid:", referralCode);
+              // Clear any errors
+              form.clearErrors("referralCode");
+            } else {
+              console.warn("Invalid referral code:", referralCode);
+              // Set error
+              form.setError("referralCode", {
+                type: "manual",
+                message: "Invalid referral code. Please check and try again."
+              });
+            }
+          })
+          .catch(error => {
+            console.error("Error validating referral code:", error);
+          })
+          .finally(() => {
+            setIsValidatingReferralCode(false);
+          });
+      }, 800); // 800ms debounce
+
+      return () => clearTimeout(timer);
+    }
+  }, [referralCode, referralAnswer, form]);
 
   useEffect(() => {
     // Check for token in localStorage (this is set during social auth)
@@ -55,12 +117,16 @@ export default function CompleteProfilePage() {
     const userData = localStorage.getItem("user");
     const isGoogleAuthFlow = localStorage.getItem("googleAuthFlow") === "true";
 
+    // Check for pending referral code from social auth
+    const pendingReferralCode = localStorage.getItem("pendingReferralCode");
+
     console.log("CompleteProfile: Auth state check", {
       isLoading,
       isAuthenticated,
       hasAccessToken: !!accessToken,
       hasUserData: !!userData,
-      isGoogleAuthFlow
+      isGoogleAuthFlow,
+      pendingReferralCode
     });
 
     // If we're in the Google auth flow, we're definitely authenticated
@@ -68,6 +134,35 @@ export default function CompleteProfilePage() {
       console.log("CompleteProfile: In Google auth flow, skipping auth check");
       // Clear the flag after we've used it
       localStorage.removeItem("googleAuthFlow");
+
+      // If there's a pending referral code, set it in the form
+      if (pendingReferralCode) {
+        console.log("CompleteProfile: Found pending referral code:", pendingReferralCode);
+        setReferralAnswer("yes");
+        form.setValue("wasReferred", true);
+        form.setValue("referralCode", pendingReferralCode);
+
+        // Validate the referral code
+        ReferralService.validateReferralCode(pendingReferralCode)
+          .then(result => {
+            if (result.valid) {
+              console.log("Referral code is valid:", pendingReferralCode);
+              form.clearErrors("referralCode");
+            } else {
+              console.warn("Invalid referral code:", pendingReferralCode);
+              form.setError("referralCode", {
+                type: "manual",
+                message: "Invalid referral code. Please check and try again."
+              });
+            }
+          })
+          .catch(error => {
+            console.error("Error validating referral code:", error);
+          });
+
+        // Clear the pending referral code after using it
+        localStorage.removeItem("pendingReferralCode");
+      }
     }
     // If we have no authentication at all, redirect to login
     else if (!isLoading && !isAuthenticated && !accessToken && !userData) {
@@ -102,7 +197,7 @@ export default function CompleteProfilePage() {
     } else {
       console.log("No user data available yet");
     }
-  }, [user, isAuthenticated, isLoading, router]);
+  }, [user, isAuthenticated, isLoading, router, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -111,10 +206,48 @@ export default function CompleteProfilePage() {
       // Format date to ISO string for API
       const formattedDate = values.dateOfBirth.toISOString();
 
-      console.log("Submitting profile update:", {
+      // Prepare update data
+      const updateData: any = {
         dateOfBirth: formattedDate,
-        countryOfResidence: values.countryOfResidence
-      });
+        countryOfResidence: values.countryOfResidence,
+      };
+
+      // Add referral information if user was referred
+      if (referralAnswer === "yes" && values.referralCode) {
+        // Validate referral code before submitting
+        try {
+          const validationResult = await ReferralService.validateReferralCode(values.referralCode);
+
+          if (!validationResult.valid) {
+            form.setError("referralCode", {
+              type: "manual",
+              message: "Invalid referral code. Please check and try again.",
+            });
+            toast.error("Invalid referral code", {
+              description: "The referral code you entered is not valid. Please check and try again.",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Add valid referral code to update data
+          updateData.referralCode = values.referralCode;
+          updateData.wasReferred = true;
+        } catch (error) {
+          console.error("Error validating referral code:", error);
+          form.setError("referralCode", {
+            type: "manual",
+            message: "Error validating referral code. Please try again.",
+          });
+          toast.error("Error validating referral code", {
+            description: "We encountered an error while validating your referral code. Please try again.",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      console.log("Submitting profile update:", updateData);
 
       // Get token from localStorage
       const accessToken = localStorage.getItem("accessToken");
@@ -136,10 +269,7 @@ export default function CompleteProfilePage() {
             "x-token-verified": "true",
             "x-access-token": accessToken
           },
-          body: JSON.stringify({
-            dateOfBirth: formattedDate,
-            countryOfResidence: values.countryOfResidence,
-          })
+          body: JSON.stringify(updateData)
         });
 
         const directData = await directResponse.json();
@@ -154,6 +284,10 @@ export default function CompleteProfilePage() {
               const parsedUser = JSON.parse(userData);
               parsedUser.dateOfBirth = formattedDate;
               parsedUser.countryOfResidence = values.countryOfResidence;
+              if (updateData.referralCode) {
+                parsedUser.referralCode = updateData.referralCode;
+                parsedUser.wasReferred = true;
+              }
               localStorage.setItem("user", JSON.stringify(parsedUser));
             }
           }
@@ -171,10 +305,7 @@ export default function CompleteProfilePage() {
       }
 
       // Fall back to using the auth API client
-      const response = await authApi.updateProfile({
-        dateOfBirth: formattedDate,
-        countryOfResidence: values.countryOfResidence,
-      });
+      const response = await authApi.updateProfile(updateData);
 
       if (response.success) {
         toast.success("Profile updated successfully");
@@ -186,6 +317,10 @@ export default function CompleteProfilePage() {
             const parsedUser = JSON.parse(userData);
             parsedUser.dateOfBirth = formattedDate;
             parsedUser.countryOfResidence = values.countryOfResidence;
+            if (updateData.referralCode) {
+              parsedUser.referralCode = updateData.referralCode;
+              parsedUser.wasReferred = true;
+            }
             localStorage.setItem("user", JSON.stringify(parsedUser));
           }
         }
@@ -215,6 +350,20 @@ export default function CompleteProfilePage() {
     );
   }
 
+  // Direct handler functions for referral buttons
+  const handleYesClick = () => {
+    console.log("YES button clicked, setting referralAnswer to yes");
+    setReferralAnswer("yes");
+    form.setValue("wasReferred", true);
+  };
+
+  const handleNoClick = () => {
+    console.log("NO button clicked, setting referralAnswer to no");
+    setReferralAnswer("no");
+    form.setValue("wasReferred", false);
+    form.setValue("referralCode", "");
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -227,6 +376,66 @@ export default function CompleteProfilePage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Referral Question */}
+              <div className="space-y-2 mb-4">
+                <p className="text-sm font-medium">Did someone refer you?</p>
+                <div className="flex justify-center space-x-4">
+                  <Button
+                    type="button"
+                    variant={referralAnswer === "yes" ? "default" : "outline"}
+                    onClick={handleYesClick}
+                    className="w-full rounded-full"
+                  >
+                    YES
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={referralAnswer === "no" ? "default" : "outline"}
+                    onClick={handleNoClick}
+                    className="w-full rounded-full"
+                  >
+                    NO
+                  </Button>
+                </div>
+              </div>
+
+              {/* Referral Code Field (conditionally rendered) */}
+              <AnimatePresence>
+                {referralAnswer === "yes" && (
+                  <motion.div
+                    key="referral-code-field"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <FormField
+                      control={form.control}
+                      name="referralCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Referral Code</FormLabel>
+                          <FormControl>
+                            <FloatingLabelInput
+                              label="Enter Referral Code"
+                              {...field}
+                              className={`rounded-md ${isValidatingReferralCode ? 'checking' : ''} ${referralCode
+                                ? form.formState.errors.referralCode
+                                  ? "border-red-300"
+                                  : "border-green-300"
+                                : ""
+                                }`}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {missingFields.includes("dateOfBirth") && (
                 <FormField
                   control={form.control}

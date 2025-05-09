@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { FcGoogle } from 'react-icons/fc';
 import { toast } from 'sonner';
@@ -18,9 +19,13 @@ export function SocialLoginButtons({
   className = '',
 }: SocialLoginButtonsProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
 
   // Generate a random state value for CSRF protection
   const [state, setState] = useState('');
+
+  // Check for referral code in URL
+  const referralCode = searchParams?.get('ref');
 
   useEffect(() => {
     // Generate a random state string when component mounts
@@ -29,7 +34,12 @@ export function SocialLoginButtons({
 
     // Store the state in localStorage for verification when the callback returns
     localStorage.setItem('googleAuthState', randomState);
-  }, []);
+
+    // If there's a referral code in the URL, log it
+    if (referralCode) {
+      console.log('Referral code found in URL:', referralCode);
+    }
+  }, [referralCode]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -40,8 +50,14 @@ export function SocialLoginButtons({
       const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin;
       const callbackUrl = `${FRONTEND_URL}/auth/google/callback`;
 
-      // Get the Google OAuth URL from our API
-      const googleAuthUrl = socialAuthApi.getGoogleAuthUrl(callbackUrl, state);
+      // Get the Google OAuth URL from our API, including referral code if present
+      // Convert null to undefined to satisfy TypeScript's type checking
+      const googleAuthUrl = socialAuthApi.getGoogleAuthUrl(callbackUrl, state, referralCode || undefined);
+
+      console.log('Redirecting to Google auth with URL:', googleAuthUrl);
+      if (referralCode) {
+        console.log('Including referral code in Google auth:', referralCode);
+      }
 
       // Redirect to Google OAuth consent screen
       window.location.href = googleAuthUrl;

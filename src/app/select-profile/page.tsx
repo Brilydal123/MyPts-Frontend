@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { ProfileSelector } from '@/components/profile/profile-selector';
+import { NewProfileSelector } from '@/components/profile/new-profile-selector';
 import { ApiDebug } from '@/components/debug/api-debug';
 import { DirectApiTest } from '@/components/debug/direct-api-test';
 
@@ -38,13 +38,31 @@ export default function SelectProfilePage() {
       return;
     }
 
-    // Check if user is admin
-    const isAdmin = session?.user?.role === 'admin' ||
-      session?.user?.isAdmin === true ||
-      (typeof window !== 'undefined' && localStorage?.getItem('isAdmin') === 'true') ||
-      userData?.role === 'admin';
+    // Check if user is admin from all possible sources
+    const isAdminFromSession = session?.user?.role === 'admin' || session?.user?.isAdmin === true;
+    const isAdminFromLocalStorage = typeof window !== 'undefined' && (
+      localStorage?.getItem('isAdmin') === 'true' ||
+      localStorage?.getItem('userRole') === 'admin'
+    );
+    const isAdminFromUserData = userData?.role === 'admin' || userData?.isAdmin === true;
 
-    console.log('Select profile page - isAdmin check:', isAdmin);
+    // Check cookies as well
+    let isAdminFromCookies = false;
+    if (typeof document !== 'undefined') {
+      isAdminFromCookies = document.cookie.includes('X-User-Role=admin') ||
+        document.cookie.includes('X-User-Is-Admin=true');
+    }
+
+    const isAdmin = isAdminFromSession || isAdminFromLocalStorage || isAdminFromUserData || isAdminFromCookies;
+
+    console.log('Select profile page - isAdmin check:', {
+      isAdminFromSession,
+      isAdminFromLocalStorage,
+      isAdminFromUserData,
+      isAdminFromCookies,
+      isAdmin,
+      userData: userData ? { id: userData.id, role: userData.role, isAdmin: userData.isAdmin } : null
+    });
 
     // If user is admin, redirect to admin dashboard
     if (isAdmin) {
@@ -105,7 +123,7 @@ export default function SelectProfilePage() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md">
           <h1 className="text-2xl font-bold mb-6 text-center">Select a Profile</h1>
-          <ProfileSelector />
+          <NewProfileSelector />
           <div className="mt-8">
             <ApiDebug />
           </div>

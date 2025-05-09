@@ -22,11 +22,39 @@ export function GoogleAvatar({
   // Reset error state if URL changes
   useEffect(() => {
     setError(false);
-  }, [profileImageUrl]);
 
-  // Get initials for fallback
+    // Set dimensions based on size prop
+    setDimensions({
+      width: size,
+      height: size
+    });
+
+    // Log avatar information for debugging
+    console.log('GoogleAvatar props:', {
+      profileImageUrl,
+      fallbackText,
+      size,
+      hasValidUrl: !!profileImageUrl && profileImageUrl !== 'undefined' && profileImageUrl !== 'null'
+    });
+  }, [profileImageUrl, size]);
+
+  // Get initials for fallback with improved handling
   const getInitials = () => {
     if (!fallbackText) return 'U';
+
+    // Handle email addresses by using first part before @
+    if (fallbackText.includes('@')) {
+      const emailName = fallbackText.split('@')[0];
+      // If email has dots or underscores, treat them as word separators
+      const parts = emailName.split(/[._-]/);
+      if (parts.length > 1) {
+        return parts.map(part => part.charAt(0)).join('').toUpperCase();
+      }
+      // Otherwise just use first two characters of email name
+      return emailName.substring(0, 2).toUpperCase();
+    }
+
+    // Handle normal names
     return fallbackText
       .split(' ')
       .map(part => part.charAt(0))
@@ -34,8 +62,8 @@ export function GoogleAvatar({
       .toUpperCase();
   };
 
-  // If there's an error or no URL, show fallback
-  if (error || !profileImageUrl) {
+  // If there's an error or no valid URL, show fallback
+  if (error || !profileImageUrl || profileImageUrl === 'undefined' || profileImageUrl === 'null') {
     return (
       <div
         className={`flex items-center justify-center rounded-full bg-primary text-primary-foreground ${className}`}

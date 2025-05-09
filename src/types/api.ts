@@ -15,6 +15,7 @@ export interface ApiResponse<T = any> {
   message?: string;
   error?: any;
   errors?: ValidationError[];
+  fromCache?: boolean; // Indicates if the response came from cache
 }
 
 /**

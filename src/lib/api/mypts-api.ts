@@ -263,6 +263,32 @@ class ApiClient {
  */
 export class MyPtsApi extends ApiClient {
   /**
+   * Force refresh the MyPts balance from the backend
+   * This is useful after a payment to ensure the balance is up-to-date
+   * @param currency The currency to use for value calculation (default: USD)
+   * @param specificProfileId Optional profile ID to fetch balance for (overrides localStorage)
+   */
+  async refreshBalance(currency: string = 'USD', specificProfileId?: string): Promise<ApiResponse<MyPtsBalance>> {
+    try {
+      // Get profile ID from parameter or localStorage
+      const profileId = specificProfileId || (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null);
+      console.log("🚀 ~ MyPtsApi ~ refreshBalance ~ profileId:", profileId);
+
+      // Include profileId as a query parameter
+      const response = await this.get<MyPtsBalance>(`/my-pts/refresh-balance?currency=${currency}${profileId ? `&profileId=${profileId}` : ''}`);
+
+      console.log("Balance refreshed from backend:", response);
+      return response;
+    } catch (error) {
+      console.error('Error refreshing balance:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to refresh balance'
+      };
+    }
+  }
+
+  /**
    * Get the current user's MyPts balance
    * @param currency The currency to use for value calculation (default: USD)
    * @param specificProfileId Optional profile ID to fetch balance for (overrides localStorage)

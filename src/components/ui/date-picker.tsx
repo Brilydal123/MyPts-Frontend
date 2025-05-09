@@ -2,16 +2,24 @@
 
 import * as React from 'react';
 import { format, getYear, getMonth, setYear, setMonth, isValid } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, X as CloseIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogClose,
+  DialogTitle,
+  DialogHeader,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import dynamic from 'next/dynamic';
+// Dynamically import Lottie to ensure it only loads on the client side
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
 interface DatePickerProps {
   value: Date | undefined;
@@ -35,6 +43,7 @@ export function DatePicker({
   const [yearInput, setYearInput] = React.useState('');
   const [monthInput, setMonthInput] = React.useState('');
   const [dayInput, setDayInput] = React.useState('');
+  const [showCheckmark, setShowCheckmark] = React.useState(false);
 
   // Get current date for calculations
   const today = React.useMemo(() => new Date(), []);
@@ -66,6 +75,10 @@ export function DatePicker({
       setMonthInput((getMonth(value) + 1).toString().padStart(2, '0'));
       setDayInput(value.getDate().toString().padStart(2, '0'));
       setCurrentDate(value);
+
+      // Show checkmark animation when value is set from outside
+      setShowCheckmark(true);
+      // Keep the checkmark visible - don't hide it
     } else {
       setYearInput('');
       setMonthInput('');
@@ -136,6 +149,12 @@ export function DatePicker({
   const handleSelect = React.useCallback((date: Date | undefined) => {
     onChange(date);
     setOpen(false);
+
+    // Show checkmark animation
+    if (date) {
+      setShowCheckmark(true);
+      // Keep the checkmark visible - don't hide it
+    }
   }, [onChange]);
 
   // Handle year selection
@@ -171,17 +190,23 @@ export function DatePicker({
           // Check age restriction
           if (minAge > 0 && minDate && newDate > minDate) {
             // Date doesn't meet age requirement
+            toast?.error(`You must be at least ${minAge} years old.`);
             return;
           }
 
           // Check future date restriction
           if (newDate > today) {
             // Future date
+            toast?.error("Future dates are not allowed.");
             return;
           }
 
           onChange(newDate);
           setOpen(false);
+
+          // Show checkmark animation
+          setShowCheckmark(true);
+          // Keep the checkmark visible - don't hide it
         }
       }
     }
@@ -189,9 +214,9 @@ export function DatePicker({
 
   // Animation variants
   const containerVariants = {
-    hidden: { opacity: 0, y: -5 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
-    exit: { opacity: 0, y: -5, transition: { duration: 0.2 } }
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
   };
 
   const slideVariants = {
@@ -316,41 +341,94 @@ export function DatePicker({
 
   // Memoize the calendar component to prevent unnecessary re-renders
   const calendarComponent = React.useMemo(() => (
-    <Calendar
-      mode="single"
-      selected={value}
-      onSelect={handleSelect}
-      month={currentDate}
-      onMonthChange={setCurrentDate}
-      className="rounded-md"
-      disabled={(date) => {
-        // Disable future dates
-        if (date > today) return true;
+    <>
+      {minAge > 0 && (
+        <div className="px-3 py-2 text-xs text-amber-600 bg-amber-50 border-b">
+          You must be at least {minAge} years old to continue.
+        </div>
+      )}
+      <Calendar
+        mode="single"
+        selected={value}
+        onSelect={(date) => {
+          // Additional validation before calling handleSelect
+          if (date && minAge > 0 && minDate && date > minDate) {
+            toast.error(`You must be at least ${minAge} years old.`);
+            return;
+          }
+          handleSelect(date);
+        }}
+        month={currentDate}
+        onMonthChange={setCurrentDate}
+        className="rounded-md"
+        disabled={(date) => {
+          // Disable future dates
+          if (date > today) return true;
 
-        // Disable dates that don't meet minimum age requirement
-        if (minAge > 0 && minDate && date > minDate) return true;
+          // Disable dates that don't meet minimum age requirement
+          if (minAge > 0 && minDate && date > minDate) return true;
 
-        return false;
-      }}
-    />
+          return false;
+        }}
+      />
+    </>
   ), [value, currentDate, handleSelect, setCurrentDate, today, minAge, minDate]);
+
+  // Reference to the animation JSON
+  const [animationData, setAnimationData] = React.useState<any>(null);
+
+  // Load the animation data
+  React.useEffect(() => {
+    // Dynamically import the animation data
+    fetch('/animations/checkmark.json')
+      .then(response => response.json())
+      .then(data => setAnimationData(data))
+      .catch(error => console.error('Error loading animation:', error));
+  }, []);
 
   // Memoize the button content
   const buttonContent = React.useMemo(() => (
-    <>
-      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
-      {value ? (
-        <span className="font-medium">{format(value, 'MMMM d, yyyy')}</span>
-      ) : (
-        <span className="text-gray-500">{placeholder}</span>
-      )}
-    </>
-  ), [value, placeholder]);
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center">
+        <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+        {value ? (
+          <span className="font-medium">{format(value, 'MMMM d, yyyy')}</span>
+        ) : (
+          <span className="text-gray-500">{placeholder}</span>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showCheckmark && value && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              transition: {
+                type: "spring",
+                stiffness: 500,
+                damping: 15
+              }
+            }}
+            className="h-7 w-7"
+          >
+            <Lottie
+              animationData={animationData}
+              loop={false}
+              autoplay={true}
+              style={{ height: '100%', width: '100%' }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  ), [value, placeholder, showCheckmark, animationData]);
 
   return (
     <div className={cn('grid gap-2', className)}>
-      <Popover>
-        <PopoverTrigger asChild>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
           <Button
             id="date"
             variant={'outline'}
@@ -363,77 +441,91 @@ export function DatePicker({
             disabled={disabled}
             onClick={() => {
               setView('calendar');
-              setOpen(!open);
             }}
           >
             {buttonContent}
           </Button>
-        </PopoverTrigger>
-        {open && (
-          <PopoverContent
-            className="w-auto p-0 rounded-xl border border-gray-200 shadow-lg max-h-[90vh] overflow-auto"
-            align="center"
-            side="bottom"
-            sideOffset={5}
-            avoidCollisions={true}
-            onInteractOutside={() => setOpen(false)}
-            onEscapeKeyDown={() => setOpen(false)}
-            style={{
-              width: 'min(calc(100vw - 20px), 340px)',
-              position: 'relative',
-              zIndex: 50
-            }}
+        </DialogTrigger>
+        <DialogContent
+          className="p-0 rounded-xl border border-gray-200 shadow-lg max-h-[90vh] overflow-auto sm:max-w-md bg-white"
+          onInteractOutside={() => setOpen(false)}
+          onEscapeKeyDown={() => setOpen(false)}
+          hideCloseButton={true}
+        >
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden"
           >
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="overflow-hidden"
-            >
-              <div className="flex items-center justify-between p-3 border-b">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
-                  onClick={() => setView('year')}
-                  type="button"
-                >
-                  {getYear(currentDate)}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
-                  onClick={() => setView('month')}
-                  type="button"
-                >
-                  {months[getMonth(currentDate)]}
-                </Button>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {view === 'calendar' && (
-                  <motion.div
-                    key="calendar"
-                    variants={slideVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
+            <DialogHeader className="p-3 border-b">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-lg font-semibold">Select Date</DialogTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
+                    onClick={() => setView('year')}
+                    type="button"
                   >
-                    {calendarComponent}
-                  </motion.div>
-                )}
+                    {getYear(currentDate)}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-sm font-medium text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
+                    onClick={() => setView('month')}
+                    type="button"
+                  >
+                    {months[getMonth(currentDate)]}
+                  </Button>
+                  <DialogClose asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <CloseIcon className="h-4 w-4" />
+                    </Button>
+                  </DialogClose>
+                </div>
+              </div>
+            </DialogHeader>
 
-                {view === 'year' && <YearGrid />}
-                {view === 'month' && <MonthGrid />}
-              </AnimatePresence>
+            <AnimatePresence mode="wait">
+              {view === 'calendar' && (
+                <motion.div
+                  key="calendar"
+                  variants={slideVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  {calendarComponent}
+                </motion.div>
+              )}
 
-              <DirectInput />
-            </motion.div>
-          </PopoverContent>
-        )}
-      </Popover>
+              {view === 'year' && <YearGrid />}
+              {view === 'month' && <MonthGrid />}
+            </AnimatePresence>
+
+            <DirectInput />
+
+            <DialogFooter className="p-4 border-t">
+              <Button
+                className="w-full rounded-full h-12 text-base font-medium"
+                onClick={() => {
+                  if (value) {
+                    handleSelect(value);
+                  } else if (currentDate) {
+                    handleSelect(currentDate);
+                  }
+                }}
+              >
+                Confirm
+              </Button>
+            </DialogFooter>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -78,9 +78,46 @@ export default function AdminDashboardPage() {
     fetchData();
   }, []);
 
+  // Check for admin status from all possible sources
+  const isAdminFromSession = session?.user?.role === 'admin' || session?.user?.isAdmin === true;
+  const isAdminFromStorage = typeof window !== 'undefined' && (
+    localStorage.getItem('isAdmin') === 'true' ||
+    localStorage.getItem('userRole') === 'admin'
+  );
+  const isAdminFromCookies = typeof document !== 'undefined' && (
+    document.cookie.includes('isAdmin=true') ||
+    document.cookie.includes('X-User-Role=admin') ||
+    document.cookie.includes('X-User-Is-Admin=true')
+  );
+
+  // Check user data for admin role
+  let isAdminFromUserData = false;
+  if (typeof window !== 'undefined') {
+    try {
+      const userDataStr = localStorage.getItem('user');
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        isAdminFromUserData = userData?.role === 'admin' || userData?.isAdmin === true;
+      }
+    } catch (error) {
+      console.error('Error checking admin status from user data:', error);
+    }
+  }
+
+  const isAdmin = manualCheckPassed || isAdminFromSession || isAdminFromStorage || isAdminFromCookies || isAdminFromUserData;
+
+  console.log('Admin page - admin status check:', {
+    manualCheckPassed,
+    isAdminFromSession,
+    isAdminFromStorage,
+    isAdminFromCookies,
+    isAdminFromUserData,
+    isAdmin
+  });
+
   // Note: Access control is now handled in the admin layout component
   // This is just an additional check for this specific page
-  if (!session || (!manualCheckPassed && !session?.user?.isAdmin)) {
+  if (!isAdmin) {
     return (
       <div className="space-y-6 py-12">
         <Alert variant="destructive">

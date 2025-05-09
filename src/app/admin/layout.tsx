@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminNotificationCenter } from "@/components/admin/admin-notification-center";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
+// import { RouteChangeLoading } from "@/components/shared/route-change-loading";
 import Image from "next/image";
 import {
   DollarSign,
@@ -35,7 +36,55 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const { isAdmin, isLoading, user } = useAuth();
+  const { isAdmin, isLoading, user, session, refreshUserData } = useAuth();
+
+  // Refresh user data when component mounts
+  useEffect(() => {
+    // Force refresh user data from localStorage
+    refreshUserData();
+  }, [refreshUserData]);
+
+  // Log user data for debugging and ensure admin role is set
+  useEffect(() => {
+    if (user) {
+      console.log('Admin layout - User data:', {
+        fullName: user.fullName,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isAdmin: user.isAdmin || isAdmin
+      });
+
+      // If we're in the admin area but user data doesn't have admin role,
+      // we should update the user data in localStorage
+      if (isAdmin && (!user.isAdmin && user.role !== 'admin') && typeof window !== 'undefined') {
+        try {
+          // Get current user data
+          const userDataString = localStorage.getItem('user');
+          if (userDataString) {
+            const userData = JSON.parse(userDataString);
+
+            // Update with admin role
+            const updatedUserData = {
+              ...userData,
+              role: 'admin',
+              isAdmin: true
+            };
+
+            // Save back to localStorage
+            localStorage.setItem('user', JSON.stringify(updatedUserData));
+            console.log('Admin layout - Updated user data with admin role');
+
+            // Refresh user data in the auth hook
+            refreshUserData();
+          }
+        } catch (e) {
+          console.error('Error updating user data in localStorage:', e);
+        }
+      }
+    }
+  }, [user, isAdmin]);
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -100,12 +149,53 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     },
   ];
 
+  // Enhanced admin status verification and synchronization
   useEffect(() => {
-    if (isAdmin && typeof window !== "undefined") {
-      localStorage.setItem("isAdmin", "true");
-      console.log("Admin layout - stored isAdmin in localStorage");
-    }
-  }, [isAdmin]);
+    const verifyAdminAccess = async () => {
+      if (typeof window === "undefined") return;
+
+      try {
+        // Import the admin utilities
+        const { verifyAndSyncAdminStatus, checkAdminStatus } = await import('@/lib/admin-utils');
+
+        // First, do a manual check to log all sources
+        const { isAdmin: manualCheckPassed, sources } = await checkAdminStatus();
+
+        // Log detailed admin status information
+        console.log('Admin page - admin status check:', {
+          manualCheckPassed,
+          isAdminFromSession: sources.isAdminFromSession,
+          isAdminFromStorage: sources.isAdminFromStorage,
+          isAdminFromCookies: sources.isAdminFromCookies,
+          isAdminFromUserData: sources.isAdminFromUserData,
+          isAdminFromNextData: sources.isAdminFromNextData,
+          isAdminFromHook: isAdmin
+        });
+
+        // Verify and synchronize admin status across all storage methods
+        const verifiedAdmin = await verifyAndSyncAdminStatus();
+
+        // If there's a mismatch between the hook's admin status and our verification
+        if (verifiedAdmin !== isAdmin) {
+          console.warn('Admin status mismatch detected:', {
+            hookStatus: isAdmin,
+            verifiedStatus: verifiedAdmin
+          });
+
+          // If we're in the admin area but verification says we're not admin,
+          // we might need to redirect or refresh
+          if (!verifiedAdmin && window.location.pathname.startsWith('/admin')) {
+            console.warn('Non-admin user detected in admin area, will redirect...');
+            // We'll let the component's conditional rendering handle this
+          }
+        }
+      } catch (error) {
+        console.error('Error in admin verification process:', error);
+      }
+    };
+
+    verifyAdminAccess();
+  }, [isAdmin, session]);
 
   if (!isAdmin) {
     if (isLoading) {
@@ -204,6 +294,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <TooltipProvider>
       <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950">
+        {/* <RouteChangeLoading /> */}
         <Navbar
           sidebarOpen={isSidebarOpen}
           onSidebarToggle={toggleSidebar}
@@ -287,22 +378,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <div className="flex items-center p-3 mt-2">
                   <GoogleAvatar
                     profileImageUrl={user?.profileImage || user?.image || ""}
-                    fallbackText={user?.fullName || user?.name || "Admin"}
+                    fallbackText={user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                     size={32}
                     className="mr-3"
                   />
                   <div className="text-sm">
                     <p className="font-medium text-white">
-                      {user?.fullName || user?.name || "Admin"}
+                      {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                     </p>
-                    <p className="text-white text-xs truncate">{user?.email}</p>
+                    <p className="text-white text-xs truncate">{user?.email || ""}</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex justify-center p-2 mt-2">
                   <GoogleAvatar
                     profileImageUrl={user?.profileImage || user?.image || ""}
-                    fallbackText={user?.fullName || user?.name || "Admin"}
+                    fallbackText={user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                     size={32}
                   />
                 </div>
@@ -391,15 +482,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <div className="flex items-center p-3 mb-2">
                   <GoogleAvatar
                     profileImageUrl={user?.profileImage || user?.image || ""}
-                    fallbackText={user?.fullName || user?.name || "Admin"}
+                    fallbackText={user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                     size={32}
                     className="mr-3"
                   />
                   <div className="text-sm">
                     <p className="font-medium text-white">
-                      {user?.fullName || user?.name || "Admin"}
+                      {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                     </p>
-                    <p className="text-white text-xs truncate">{user?.email}</p>
+                    <p className="text-white text-xs truncate">{user?.email || ""}</p>
                   </div>
                 </div>
 
