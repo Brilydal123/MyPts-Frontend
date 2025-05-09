@@ -15,7 +15,7 @@ export default async function handler(
   }
 
   try {
-    // 1. Extract refreshToken from various sources
+    // 1. Extract refreshToken from various sources with detailed logging
     // Try cookies first (both camelCase and lowercase variants)
     const cookies = cookie.parse(req.headers.cookie || '');
     const refreshTokenFromCookie = cookies.refreshtoken || cookies.refreshToken;
@@ -23,20 +23,32 @@ export default async function handler(
     // Try body next (from client-side localStorage)
     const refreshTokenFromBody = req.body?.refreshToken;
 
+    // Try NextAuth cookies
+    const nextAuthToken = cookies['next-auth.session-token'] || cookies['__Secure-next-auth.session-token'];
+
     // Use the first available token
     const clientRefreshToken = refreshTokenFromCookie || refreshTokenFromBody;
 
     console.log('[Frontend Refresh API] Token sources:', {
       hasCookieToken: !!refreshTokenFromCookie,
       hasBodyToken: !!refreshTokenFromBody,
-      finalToken: !!clientRefreshToken
+      hasNextAuthToken: !!nextAuthToken,
+      finalToken: !!clientRefreshToken,
+      availableCookies: Object.keys(cookies)
     });
 
     if (!clientRefreshToken) {
+      console.log('[Frontend Refresh API] No refresh token found in any source');
       return res.status(401).json({
         success: false,
         message: 'Refresh token not found in cookies or request body.'
       });
+    }
+
+    // Log the first few characters of the token for debugging (don't log the full token for security)
+    if (clientRefreshToken) {
+      const tokenPreview = clientRefreshToken.substring(0, 10) + '...';
+      console.log(`[Frontend Refresh API] Using token: ${tokenPreview}`);
     }
 
     // 2. Forward the refresh token to your actual backend API
@@ -45,6 +57,8 @@ export default async function handler(
 
     // console.log(`[Frontend Refresh API] Forwarding refresh request to: ${backendRefreshUrl}`);
 
+    console.log(`[Frontend Refresh API] Forwarding refresh request to: ${backendRefreshUrl}`);
+
     const backendResponse = await fetch(backendRefreshUrl, {
       method: 'POST',
       headers: {
@@ -52,7 +66,7 @@ export default async function handler(
         // Forward any other necessary headers from the original client request if needed
       },
       body: JSON.stringify({ refreshToken: clientRefreshToken }),
-      credentials: 'omit',
+      credentials: 'include', // Changed from 'omit' to 'include' to send cookies
     });
 
     const data = await backendResponse.json();
@@ -68,7 +82,6 @@ export default async function handler(
     //    Next.js will automatically proxy those 'Set-Cookie' headers back to the client's browser
     //    if the backend sets them. We just need to return the JSON data.
 
-    // Example: If your backend sets new HttpOnly cookies for tokens:
     // Copy Set-Cookie headers from the backend response to the frontend response
     const backendSetCookieHeader = backendResponse.headers.get('set-cookie');
     if (backendSetCookieHeader) {
@@ -78,6 +91,25 @@ export default async function handler(
       const cookiesToSet = Array.isArray(backendSetCookieHeader) ? backendSetCookieHeader : [backendSetCookieHeader];
       res.setHeader('Set-Cookie', cookiesToSet);
       console.log('[Frontend Refresh API] Proxied Set-Cookie headers from backend.');
+    }
+
+    // Also set our own cookies for better compatibility
+    if (data.success && data.tokens) {
+      // Set access token cookie (both camelCase and lowercase for compatibility)
+      res.setHeader('Set-Cookie', [
+        // Access token cookies
+        `accessToken=${data.tokens.accessToken}; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax`,
+        `accesstoken=${data.tokens.accessToken}; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax`,
+
+        // Refresh token cookies
+        `refreshToken=${data.tokens.refreshToken}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`,
+        `refreshtoken=${data.tokens.refreshToken}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`,
+
+        // NextAuth compatible cookie
+        `__Secure-next-auth.session-token=${data.tokens.accessToken}; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax`
+      ]);
+
+      console.log('[Frontend Refresh API] Set additional cookies for better compatibility');
     }
 
     console.log('[Frontend Refresh API] Backend refresh successful, returning tokens.');

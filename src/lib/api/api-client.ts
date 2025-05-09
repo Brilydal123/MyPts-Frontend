@@ -112,54 +112,108 @@ apiClientInstance.interceptors.response.use(
 
           // Check if this is a retry to avoid infinite loops
           const isRetry = error.config._isRetry;
+          const isAuthEndpoint = error.config.url && (
+            error.config.url.includes('/auth/') ||
+            error.config.url.includes('/login') ||
+            error.config.url.includes('/refresh-token')
+          );
 
-          if (!isRetry && !error.config.url.includes('/auth/')) {
+          // Skip token refresh for auth endpoints to avoid loops
+          if (!isRetry && !isAuthEndpoint) {
             error.config._isRetry = true;
 
             // This is not a retry and not an auth endpoint, so try to refresh the token
             return new Promise((resolve, reject) => {
               (async () => {
                 try {
-                  // Get the refresh token
-                  const refreshToken = localStorage.getItem('refreshToken') ||
-                                      document.cookie.match(/refreshtoken=([^;]+)/)?.[1];
+                  // Try multiple sources for refresh token with detailed logging
+                  const refreshTokenFromLocalStorage = localStorage.getItem('refreshToken');
+                  const refreshTokenFromCookie = document.cookie.match(/refreshtoken=([^;]+)/)?.[1] ||
+                                                document.cookie.match(/refreshToken=([^;]+)/)?.[1];
+                  const nextAuthToken = localStorage.getItem('next-auth.session-token');
+
+                  console.log('Available token sources for refresh:', {
+                    hasRefreshTokenInLocalStorage: !!refreshTokenFromLocalStorage,
+                    hasRefreshTokenInCookie: !!refreshTokenFromCookie,
+                    hasNextAuthToken: !!nextAuthToken,
+                    url: error.config.url
+                  });
+
+                  // Use the first available token
+                  const refreshToken = refreshTokenFromLocalStorage || refreshTokenFromCookie;
 
                   if (refreshToken) {
                     console.log('Found refresh token, attempting to refresh access token');
 
-                    // Call the refresh token endpoint
-                    const response = await fetch('/api/auth/refresh-token', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({ refreshToken }),
-                      credentials: 'include'
-                    });
+                    // Try the frontend-refresh endpoint first (which uses HttpOnly cookies)
+                    try {
+                      console.log('Trying frontend-refresh endpoint first...');
+                      const frontendRefreshResponse = await fetch('/api/auth/frontend-refresh', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                        credentials: 'include' // Important to include cookies
+                      });
 
-                    const data = await response.json();
-
-                    if (data.success && data.tokens) {
-                      console.log('Token refresh successful, retrying original request');
-
-                      // Store the new tokens
-                      localStorage.setItem('accessToken', data.tokens.accessToken);
-
-                      // Update the Authorization header for the failed request
-                      error.config.headers.Authorization = `Bearer ${data.tokens.accessToken}`;
-
-                      // Retry the original request
-                      try {
-                        const retryResponse = await axios(error.config);
-                        resolve(retryResponse);
-                        return;
-                      } catch (retryError) {
-                        console.error('Retry after token refresh failed:', retryError);
-                        reject(retryError);
-                        return;
+                      // If frontend-refresh fails, fall back to the regular refresh endpoint
+                      let response;
+                      if (frontendRefreshResponse.ok) {
+                        response = frontendRefreshResponse;
+                        console.log('Frontend refresh succeeded');
+                      } else {
+                        console.log('Frontend refresh failed, trying regular refresh endpoint...');
+                        response = await fetch('/api/auth/refresh-token', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({ refreshToken }),
+                          credentials: 'include'
+                        });
                       }
-                    } else {
-                      console.error('Token refresh failed:', data);
+
+                      const data = await response.json();
+
+                      if (data.success && data.tokens) {
+                        console.log('Token refresh successful, retrying original request');
+
+                        // Store tokens in multiple places for better compatibility
+                        localStorage.setItem('accessToken', data.tokens.accessToken);
+                        if (data.tokens.refreshToken) {
+                          localStorage.setItem('refreshToken', data.tokens.refreshToken);
+
+                          // Also set in cookie as backup
+                          document.cookie = `refreshtoken=${data.tokens.refreshToken}; path=/; max-age=2592000`; // 30 days
+                        }
+
+                        // Set access token in cookie as backup
+                        document.cookie = `accesstoken=${data.tokens.accessToken}; path=/; max-age=3600`; // 1 hour
+
+                        // Also store NextAuth compatible token for better integration
+                        localStorage.setItem('next-auth.session-token', data.tokens.accessToken);
+
+                        // Update the Authorization header for the failed request
+                        error.config.headers.Authorization = `Bearer ${data.tokens.accessToken}`;
+
+                        // Add header to indicate token is verified by client
+                        error.config.headers["x-token-verified"] = "true";
+
+                        // Retry the original request
+                        try {
+                          const retryResponse = await axios(error.config);
+                          resolve(retryResponse);
+                          return;
+                        } catch (retryError) {
+                          console.error('Retry after token refresh failed:', retryError);
+                          reject(retryError);
+                          return;
+                        }
+                      } else {
+                        console.error('Token refresh failed:', data);
+                      }
+                    } catch (refreshError) {
+                      console.error('Error during token refresh:', refreshError);
                     }
                   }
 
@@ -177,9 +231,22 @@ apiClientInstance.interceptors.response.use(
                     // Store the current location to redirect back after login
                     localStorage.setItem('redirectAfterLogin', window.location.pathname);
 
-                    // Redirect to login page
+                    // Clear all tokens to force a fresh login
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('refreshToken');
+                    localStorage.removeItem('next-auth.session-token');
+                    localStorage.removeItem('__Secure-next-auth.session-token');
+
+                    // Clear cookies
+                    document.cookie = 'accesstoken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    document.cookie = 'refreshtoken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    document.cookie = '__Secure-next-auth.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+                    // Redirect to login page with cache busting
                     console.log('Redirecting to login page');
-                    window.location.href = '/login';
+                    window.location.href = `/login?nocache=${Date.now()}`;
                   }
 
                   reject(error);
@@ -189,6 +256,10 @@ apiClientInstance.interceptors.response.use(
                 }
               })();
             });
+          } else if (isRetry) {
+            console.log('This is a retry request, not attempting token refresh again');
+          } else if (isAuthEndpoint) {
+            console.log('This is an auth endpoint, not attempting token refresh');
           }
         }
       }

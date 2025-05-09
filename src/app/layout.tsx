@@ -2,6 +2,7 @@ import { ReactQueryProvider } from "@/components/providers/query-provider";
 import { NextAuthProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TokenRefreshProvider } from "@/components/providers/token-refresh-provider";
+import { TokenDebugProvider } from "@/components/providers/token-debug-provider";
 // import { LoadingProvider } from "@/contexts/loading-context";
 // import { ExchangeRateProvider } from "@/contexts/exchange-rate-context";
 import { Toaster } from "@/components/ui/sonner";
@@ -32,16 +33,18 @@ export default function RootLayout({
         <NextAuthProvider>
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-              <TokenRefreshProvider>
-                {/* <ExchangeRateProvider baseCurrency="USD"> */}
-                {/* <LoadingProvider>/ */}
-                <div className="font-manrope">
-                  {children}
-                </div>
-                <Toaster position="top-right" richColors />
-                {/* </LoadingProvider> */}
-                {/* </ExchangeRateProvider> */}
-              </TokenRefreshProvider>
+              <TokenDebugProvider>
+                <TokenRefreshProvider>
+                  {/* <ExchangeRateProvider baseCurrency="USD"> */}
+                  {/* <LoadingProvider>/ */}
+                  <div className="font-manrope">
+                    {children}
+                  </div>
+                  <Toaster position="top-right" richColors />
+                  {/* </LoadingProvider> */}
+                  {/* </ExchangeRateProvider> */}
+                </TokenRefreshProvider>
+              </TokenDebugProvider>
             </ThemeProvider>
           </ReactQueryProvider>
         </NextAuthProvider>
