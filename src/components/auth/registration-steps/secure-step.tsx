@@ -13,12 +13,44 @@ import {
 import { authApi } from "@/lib/api/auth-api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Check, Eye, EyeOff, X } from "lucide-react";
+import { Check, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import { RegistrationData } from "../registration-flow";
+
+// Animated ellipsis component
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex ml-1">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+      >
+        .
+      </motion.span>
+    </span>
+  );
+}
 
 const formSchema = z
   .object({
@@ -432,17 +464,23 @@ export function SecureStep({
             )}
           />
 
-          <div className="flex  pt-4 mb-8 justify-between  mx-auto">
-            <BackButton onClick={onPrev} className="" />
-            <div className="">
-              <Button
-                type="submit"
-                className="px-16 max-md:px-5"
-                disabled={isLoading || !form.formState.isValid}
-              >
-                Continue
-              </Button>
-            </div>
+          <div className="flex pt-4 mb-8 justify-center mx-auto">
+            <Button
+              type="submit"
+              className="px-16 max-md:px-5 min-w-[160px] h-10"
+              disabled={isLoading || !form.formState.isValid}
+            >
+              <div className="w-full flex items-center justify-center">
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span className="whitespace-nowrap">Processing<AnimatedEllipsis /></span>
+                  </span>
+                ) : (
+                  <span className="whitespace-nowrap">Continue</span>
+                )}
+              </div>
+            </Button>
           </div>
         </form>
       </Form>

@@ -19,9 +19,42 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import { Button } from "../ui/button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
+import { motion } from "framer-motion";
+
+// Animated ellipsis component
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex ml-1">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+      >
+        .
+      </motion.span>
+    </span>
+  );
+}
 
 const formSchema = z.object({
   identifier: z.string().email("Invalid email address"),
@@ -130,7 +163,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-lg border rounded-xl overflow-hidden p-10 gap-5 flex flex-col bg-white shadow">
+    <div className="w-full max-w-lg border rounded-xl overflow-hidden p-10 max-md:p-4 gap-5 flex flex-col bg-white shadow">
       <div>
         <h1 className="text-2xl font-bold">Welcome Back!</h1>
         <p className="text-muted-foreground">
@@ -202,10 +235,19 @@ export function LoginForm() {
           </div>
           <Button
             type="submit"
-            className="w-full"
+            className="w-full min-h-[40px]"
             disabled={isLoading || !form.formState.isValid}
           >
-            {isLoading ? "Signing in..." : "Sign in"}
+            <div className="w-full flex items-center justify-center">
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="whitespace-nowrap">Signing in<AnimatedEllipsis /></span>
+                </span>
+              ) : (
+                <span className="whitespace-nowrap">Sign in</span>
+              )}
+            </div>
           </Button>
         </form>
       </Form>

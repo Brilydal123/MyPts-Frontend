@@ -17,6 +17,39 @@ import { authApi } from "@/lib/api/auth-api";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
 import ReferralService from "@/services/referralService";
+import { Loader2 } from "lucide-react";
+
+// Animated ellipsis component
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex ml-1">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+      >
+        .
+      </motion.span>
+    </span>
+  );
+}
 
 // Schema for the form
 const formSchema = z.object({
@@ -343,8 +376,8 @@ export default function CompleteProfilePage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading<AnimatedEllipsis /></p>
         </div>
       </div>
     );
@@ -487,7 +520,14 @@ export default function CompleteProfilePage() {
                 className="w-full"
                 disabled={isSubmitting || !form.formState.isValid}
               >
-                {isSubmitting ? "Saving..." : "Complete Profile"}
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving<AnimatedEllipsis />
+                  </span>
+                ) : (
+                  "Complete Profile"
+                )}
               </Button>
             </form>
           </Form>

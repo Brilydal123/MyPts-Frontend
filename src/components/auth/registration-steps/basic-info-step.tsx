@@ -21,8 +21,40 @@ import { toast } from "sonner";
 import { UsernameSuggestionsDialog } from "@/components/ui/username-suggestions-dialog";
 import ReferralService from "@/services/referralService";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Animated ellipsis component
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex ml-1">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+      >
+        .
+      </motion.span>
+    </span>
+  );
+}
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -657,7 +689,14 @@ export function BasicInfoStep({
                   }
                 }}
               >
-                {isFormComplete ? "Continue" : "Complete Form"}
+                {isLoading ? (
+                  <span className="flex items-center max-md:space-x-1 max-md:justify-between">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing<AnimatedEllipsis />
+                  </span>
+                ) : (
+                  isFormComplete ? "Continue" : "Complete Form"
+                )}
               </Button>
             </div>
           </div>

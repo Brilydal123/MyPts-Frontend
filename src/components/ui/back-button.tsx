@@ -14,14 +14,14 @@ interface BackButtonProps {
 export function BackButton({
   onClick,
   className,
-  children = "Go Back",
+  children = "",
 }: BackButtonProps) {
   return (
     <Button
       onClick={onClick}
       variant="ghost"
       type="button"
-      className={cn(className, "rounded-full")}
+      className={cn(className, "rounded-full w-10 h-10 shadow-2xl border bg-blue-50")}
     >
       <ArrowLeft className="size-4" /> {children}
     </Button>

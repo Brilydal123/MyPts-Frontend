@@ -18,9 +18,41 @@ import { profileApi } from "@/lib/api/profile-api";
 import { userApi } from "@/lib/api/user-api";
 import { socialAuthApi } from "@/lib/api/social-auth-api";
 // Removed unused import: import { myPtsApi } from '@/lib/api/mypts-api';
-import { Coins, Check } from "lucide-react";
+import { Coins, Check, Loader2 } from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Animated ellipsis component
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex ml-1">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+      >
+        .
+      </motion.span>
+    </span>
+  );
+}
 
 // Interface for profile data
 interface ProfileData {
@@ -814,7 +846,14 @@ export function ProfileSelector() {
                 borderWidth: "1px",
               }}
             >
-              Continue
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading<AnimatedEllipsis />
+                </span>
+              ) : (
+                "Continue"
+              )}
             </AnimatedButton>
           </motion.div>
         </CardFooter>

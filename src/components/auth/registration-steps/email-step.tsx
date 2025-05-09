@@ -10,7 +10,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -32,6 +32,38 @@ interface EmailRegistrationStepProps {
   updateRegistrationData: (data: Partial<RegistrationData>) => void;
   onNext: () => void;
   onPrev?: () => void;
+}
+
+// Animated ellipsis component
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex ml-1">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+      >
+        .
+      </motion.span>
+    </span>
+  );
 }
 
 export function EmailRegistrationStep({
@@ -158,7 +190,7 @@ export function EmailRegistrationStep({
   };
 
   return (
-    <div className="flex flex-col  w-full">
+    <div className="flex flex-col w-full md:px-2">
       <div className="text-center mb-6">
         <div className="mr-4 p-2 flex justify-center items-center pb-4 space-x-2">
           <motion.img
@@ -193,7 +225,7 @@ export function EmailRegistrationStep({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-3">
           <FormField
             control={form.control}
             name="email"
@@ -227,13 +259,18 @@ export function EmailRegistrationStep({
             <Button
               type="submit"
               disabled={isLoading || !isEmailValid}
-              className="w-full"
+              className="w-full md:px-2"
             >
-              {isLoading
-                ? "Processing..."
-                : isEmailValid
-                  ? "Save & Continue"
-                  : "Enter Valid Email"}
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing<AnimatedEllipsis />
+                </span>
+              ) : isEmailValid ? (
+                "Save & Continue"
+              ) : (
+                "Enter Valid Email"
+              )}
             </Button>
           </div>
         </form>

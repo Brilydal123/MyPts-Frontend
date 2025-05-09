@@ -10,6 +10,7 @@ import { SetupStep } from "./registration-steps/setup-step";
 import { SecureStep } from "./registration-steps/secure-step";
 import { VerificationStep } from "./registration-steps/verification-step";
 import ReferralService from "@/services/referralService";
+import { BackButton } from "@/components/ui/back-button";
 
 export type RegistrationData = {
   email: string;
@@ -94,7 +95,7 @@ export const RegistrationFlow = () => {
   const steps = [
     { title: "Email", component: EmailRegistrationStep, showInProgress: false },
     {
-      title: "Get Started",
+      title: "Started",
       component: BasicInfoStep,
       showInProgress: true,
       stepNumber: 1,
@@ -255,7 +256,7 @@ export const RegistrationFlow = () => {
             return (
               <div key={index} className="flex items-center">
                 <motion.div
-                  className="text-xs w-10 text-center"
+                  className="text-xs w-10  text-center"
                   variants={titleVariants}
                   initial="inactive"
                   animate={isActiveOrCompleted ? "active" : "inactive"}
@@ -279,7 +280,12 @@ export const RegistrationFlow = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen w-full">
-      <div className="flex flex-col gap-5 w-full max-w-lg border rounded-xl overflow-hidden p-10 bg-white shadow">
+      <div className="flex flex-col gap-5 w-full max-w-lg border rounded-xl overflow-hidden p-10 max-md:p-5 bg-white shadow relative">
+        {/* {currentStep > 0 && (
+          <div className="absolute -top-[2rem] left-4 z-[99999px] bg-white">
+            <BackButton onClick={handlePrev} className="h-10 w-10 shadow-md hover:shadow-lg transition-shadow" />
+          </div>
+        )} */}
         {steps[currentStep]?.showInProgress && renderProgressIndicator()}
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
