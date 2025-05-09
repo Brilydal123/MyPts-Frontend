@@ -38,7 +38,7 @@ export function AuthErrorPage() {
       case 'EmailSignin':
         return 'Check your email address.';
       case 'CredentialsSignin':
-        return 'Sign in failed. Check the details you provided are correct.';
+        return 'We couldn\'t sign you in with these credentials. Please check your email and password and try again. If you\'ve forgotten your password, use the "Trouble logging in?" link.';
       case 'SessionRequired':
         return 'Please sign in to access this page.';
       default:

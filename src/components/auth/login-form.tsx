@@ -74,7 +74,21 @@ export function LoginForm() {
     if (isLogout) {
       toast.success("Logged out successfully");
     }
-  }, [isLogout]);
+
+    // Show error message if there's an error in the URL
+    if (error) {
+      let errorDescription = "Please check your credentials and try again.";
+
+      // Handle specific error cases
+      if (error === "CredentialsSignin") {
+        errorDescription = "We couldn't sign you in with these credentials. Please check your email and password.";
+      }
+
+      toast.error("Unable to sign in", {
+        description: errorDescription,
+      });
+    }
+  }, [isLogout, error]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -96,8 +110,16 @@ export function LoginForm() {
       console.log("SignIn result:", result);
 
       if (result?.error) {
-        toast.error("Login failed", {
-          description: result.error,
+        // Provide a more user-friendly error message
+        let errorDescription = "Please check your email and password and try again.";
+
+        // Handle specific error cases
+        if (result.error === "CredentialsSignin") {
+          errorDescription = "We couldn't sign you in with these credentials. Please check your email and password.";
+        }
+
+        toast.error("Unable to sign in", {
+          description: errorDescription,
         });
       } else {
         // Get the session to extract the access token
@@ -154,8 +176,8 @@ export function LoginForm() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed", {
-        description: "An unexpected error occurred",
+      toast.error("Unable to sign in", {
+        description: "We're having trouble connecting to our servers. Please check your internet connection and try again.",
       });
     } finally {
       setIsLoading(false);
