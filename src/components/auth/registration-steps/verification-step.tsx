@@ -14,6 +14,39 @@ import { RegistrationData } from '../registration-flow';
 import { toast } from 'sonner';
 import { VerificationCodeInput } from '@/components/ui/verification-code-input';
 import { authApi } from '@/lib/api/auth-api';
+import { Loader2 } from 'lucide-react';
+
+// Animated ellipsis component
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex ml-1">
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+      >
+        .
+      </motion.span>
+    </span>
+  );
+}
 
 const formSchema = z.object({
   verificationCode: z.string()
@@ -230,13 +263,20 @@ export function VerificationStep({
               className="flex mx-auto h-12"
               style={{
                 width: '100%',
-                maxWidth: '100px',
+                maxWidth: '120px',
                 margin: '0 auto',
               }}
               active={form.formState.isValid}
               disabled={isLoading || !form.formState.isValid}
             >
-              {isLoading ? 'Verifying...' : 'Verify'}
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="whitespace-nowrap">Verifying<AnimatedEllipsis /></span>
+                </span>
+              ) : (
+                'Verify'
+              )}
             </AnimatedButton>
           </form>
         </Form>
@@ -248,11 +288,17 @@ export function VerificationStep({
           <button
             onClick={handleResendCode}
             disabled={isResending || timeLeft > 270} // Disable for 30 seconds after sending
-            className={`text-blue-600 hover:underline ${
-              isResending || timeLeft > 270 ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`text-blue-600 hover:underline ${isResending || timeLeft > 270 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
-            {isResending ? 'Resending...' : 'Resend Code'}
+            {isResending ? (
+              <span className="flex items-center">
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                <span className="whitespace-nowrap">Resending<AnimatedEllipsis /></span>
+              </span>
+            ) : (
+              'Resend Code'
+            )}
           </button>
         </p>
       </div>

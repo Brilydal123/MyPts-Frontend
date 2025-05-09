@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Call backend API to update user profile
-    const BACKEND_URL = process.env.BACKEND_API_URL || 'http://localhost:3000/api';
-    const response = await fetch(`${BACKEND_URL}/auth/update-profile`, {
+    const BACKEND_URL = process.env.BACKEND_API_URL || 'http://localhost:3000';
+    const response = await fetch(`${BACKEND_URL}/api/auth/update-profile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,11 +46,25 @@ export async function POST(req: NextRequest) {
       })
     });
 
-    const data = await response.json();
+    // Log the response status for debugging
+    console.log(`Backend API response status: ${response.status}`);
+
+    let data;
+    try {
+      data = await response.json();
+      console.log('Backend API response data:', data);
+    } catch (parseError) {
+      console.error('Error parsing response JSON:', parseError);
+      return NextResponse.json(
+        { success: false, message: `Failed to parse response: ${response.statusText}` },
+        { status: 500 }
+      );
+    }
 
     if (!response.ok) {
+      console.error('Backend API error:', { status: response.status, data });
       return NextResponse.json(
-        { success: false, message: data.message || 'Failed to update profile' },
+        { success: false, message: data.message || `Failed to update profile: ${response.statusText}` },
         { status: response.status }
       );
     }
