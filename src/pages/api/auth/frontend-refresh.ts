@@ -15,13 +15,28 @@ export default async function handler(
   }
 
   try {
-    // 1. Extract refreshToken from the incoming request's cookies
-    // The actual name of your refreshToken cookie might vary.
+    // 1. Extract refreshToken from various sources
+    // Try cookies first (both camelCase and lowercase variants)
     const cookies = cookie.parse(req.headers.cookie || '');
-    const clientRefreshToken = cookies.refreshtoken; // Adjust 'refreshtoken' if your cookie has a different name
+    const refreshTokenFromCookie = cookies.refreshtoken || cookies.refreshToken;
+
+    // Try body next (from client-side localStorage)
+    const refreshTokenFromBody = req.body?.refreshToken;
+
+    // Use the first available token
+    const clientRefreshToken = refreshTokenFromCookie || refreshTokenFromBody;
+
+    console.log('[Frontend Refresh API] Token sources:', {
+      hasCookieToken: !!refreshTokenFromCookie,
+      hasBodyToken: !!refreshTokenFromBody,
+      finalToken: !!clientRefreshToken
+    });
 
     if (!clientRefreshToken) {
-      return res.status(401).json({ success: false, message: 'Refresh token not found in cookies.' });
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token not found in cookies or request body.'
+      });
     }
 
     // 2. Forward the refresh token to your actual backend API

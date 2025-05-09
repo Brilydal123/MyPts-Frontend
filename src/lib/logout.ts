@@ -226,8 +226,9 @@ export async function logout() {
 
       // Check for specific auth-related cookies
       const authCookies = [
-        'profileId', 'profileToken', 'accessToken', 'refreshToken',
-        'next-auth.session-token', 'selectedProfileId', 'selectedProfileToken'
+        'profileId', 'profileToken', 'accessToken', 'refreshToken', 'accesstoken', 'refreshtoken',
+        'next-auth.session-token', '__Secure-next-auth.session-token',
+        'selectedProfileId', 'selectedProfileToken'
       ];
 
       const remainingAuthCookies = authCookies.filter(name =>

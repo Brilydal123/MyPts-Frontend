@@ -58,46 +58,88 @@ export function useTokenRefreshManager() {
       setIsRefreshing(true);
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken') ||
-                            document.cookie.match(/refreshtoken=([^;]+)/)?.[1];
+        // Try multiple sources for refresh token with detailed logging
+        const refreshTokenFromLocalStorage = localStorage.getItem('refreshToken');
+        const refreshTokenFromCookie = document.cookie.match(/refreshtoken=([^;]+)/)?.[1] ||
+                                      document.cookie.match(/refreshToken=([^;]+)/)?.[1];
+        const nextAuthToken = localStorage.getItem('next-auth.session-token');
+
+        console.log('Available token sources:', {
+          hasRefreshTokenInLocalStorage: !!refreshTokenFromLocalStorage,
+          hasRefreshTokenInCookie: !!refreshTokenFromCookie,
+          hasNextAuthToken: !!nextAuthToken
+        });
+
+        // Use the first available token
+        const refreshToken = refreshTokenFromLocalStorage || refreshTokenFromCookie;
 
         if (!refreshToken) {
-          console.error('No refresh token found');
+          console.error('No refresh token found in any source');
+
+          // If we're not on the login page, redirect
+          if (!window.location.pathname.includes('/login')) {
+            localStorage.setItem('redirectAfterLogin', window.location.pathname);
+            toast.error("No valid session found. Please log in again.");
+            setTimeout(() => {
+              window.location.href = '/login?nocache=' + Date.now();
+            }, 2000);
+          }
           return;
         }
 
         console.log('Proactively refreshing token...');
 
-        const response = await fetch('/api/auth/refresh-token', {
+        // Try the frontend-refresh endpoint first (which uses HttpOnly cookies)
+        const frontendRefreshResponse = await fetch('/api/auth/frontend-refresh', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ refreshToken }),
-          credentials: 'include'
+          credentials: 'include' // Important to include cookies
         });
+
+        // If frontend-refresh fails, fall back to the regular refresh endpoint
+        let response;
+        if (frontendRefreshResponse.ok) {
+          response = frontendRefreshResponse;
+        } else {
+          console.log('Frontend refresh failed, trying regular refresh endpoint...');
+          response = await fetch('/api/auth/refresh-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ refreshToken }),
+            credentials: 'include'
+          });
+        }
 
         const data = await response.json();
 
         if (data.success && data.tokens) {
+          // Store tokens in localStorage
           localStorage.setItem('accessToken', data.tokens.accessToken);
-          if (data.tokens.refreshToken) { // Check if a new refresh token was sent
+          if (data.tokens.refreshToken) {
             localStorage.setItem('refreshToken', data.tokens.refreshToken);
             console.log('Refresh token updated proactively');
+
+            // Also set in cookie as backup
+            document.cookie = `refreshtoken=${data.tokens.refreshToken}; path=/; max-age=2592000`; // 30 days
           }
-          console.log('Token refreshed proactively'); // Corrected: Access token was refreshed
+
+          // Set access token in cookie as backup
+          document.cookie = `accesstoken=${data.tokens.accessToken}; path=/; max-age=3600`; // 1 hour
+
+          console.log('Token refreshed proactively');
         } else {
           console.error('Failed to refresh token:', data);
 
           // If we're not on the login page, redirect
           if (!window.location.pathname.includes('/login')) {
             localStorage.setItem('redirectAfterLogin', window.location.pathname);
-
             toast.error("Session expired. Please log in again to continue.");
-
-            // Short delay to allow toast to be seen
             setTimeout(() => {
-              window.location.href = '/login';
+              window.location.href = '/login?nocache=' + Date.now();
             }, 2000);
           }
         }

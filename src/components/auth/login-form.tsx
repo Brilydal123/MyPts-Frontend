@@ -128,19 +128,33 @@ export function LoginForm() {
           const session = await response.json();
           console.log("Session after login:", session);
 
-          // Store the access token in localStorage
+          // Store tokens in multiple places for better compatibility
           if (session?.accessToken) {
+            // Store in localStorage
             localStorage.setItem("accessToken", session.accessToken);
-          }
-          if (session?.refreshToken) {
-            localStorage.setItem("refreshToken", session.refreshToken);
+
+            // Store in cookies (both camelCase and lowercase for compatibility)
+            document.cookie = `accessToken=${session.accessToken}; path=/; max-age=3600`; // 1 hour
+            document.cookie = `accesstoken=${session.accessToken}; path=/; max-age=3600`; // 1 hour
+
+            console.log("Access token stored in localStorage and cookies");
           }
 
-          // Also store the token in a cookie for better compatibility
-          if (session?.accessToken) {
-            document.cookie = `accesstoken=${session.accessToken}; path=/; max-age=2592000`; // 30 days
+          if (session?.refreshToken) {
+            // Store in localStorage
+            localStorage.setItem("refreshToken", session.refreshToken);
+
+            // Store in cookies (both camelCase and lowercase for compatibility)
+            document.cookie = `refreshToken=${session.refreshToken}; path=/; max-age=2592000`; // 30 days
+            document.cookie = `refreshtoken=${session.refreshToken}; path=/; max-age=2592000`; // 30 days
+
+            console.log("Refresh token stored in localStorage and cookies");
           }
-          console.log("Access token also stored in cookie");
+
+          // Also store NextAuth compatible token for better integration
+          if (session?.accessToken) {
+            localStorage.setItem("next-auth.session-token", session.accessToken);
+          }
 
           // Check if user is admin
           let isAdmin = false;

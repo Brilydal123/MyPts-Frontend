@@ -3,11 +3,32 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { refreshToken } = await req.json();
+    // Try to get refresh token from multiple sources
+    let refreshToken;
+
+    // 1. Try to get from request body
+    try {
+      const body = await req.json();
+      refreshToken = body.refreshToken;
+    } catch (e) {
+      console.log('No JSON body or invalid JSON in request');
+    }
+
+    // 2. If not in body, try to get from cookies
+    if (!refreshToken) {
+      // Get all cookies
+      const cookieStore = req.cookies;
+      refreshToken = cookieStore.get('refreshToken')?.value || cookieStore.get('refreshtoken')?.value;
+    }
+
+    console.log('Refresh token sources:', {
+      hasToken: !!refreshToken,
+      cookiesAvailable: req.cookies.getAll().map(c => c.name)
+    });
 
     if (!refreshToken) {
       return NextResponse.json(
-        { success: false, message: 'Refresh token is required' },
+        { success: false, message: 'Refresh token is required but not found in request body or cookies' },
         { status: 400 }
       );
     }
@@ -31,6 +52,8 @@ export async function POST(req: NextRequest) {
 
     // Set cookies if tokens are provided
     if (data.success && data.tokens) {
+      // Set both camelCase and lowercase versions for better compatibility
+      // Access token (httpOnly for security)
       jsonResponse.cookies.set('accessToken', data.tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -39,6 +62,16 @@ export async function POST(req: NextRequest) {
         maxAge: 60 * 60 // 1 hour
       });
 
+      // Lowercase version
+      jsonResponse.cookies.set('accesstoken', data.tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 60 * 60 // 1 hour
+      });
+
+      // Refresh token (httpOnly for security)
       jsonResponse.cookies.set('refreshToken', data.tokens.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -46,6 +79,26 @@ export async function POST(req: NextRequest) {
         path: '/',
         maxAge: 30 * 24 * 60 * 60 // 30 days
       });
+
+      // Lowercase version
+      jsonResponse.cookies.set('refreshtoken', data.tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60 // 30 days
+      });
+
+      // Also set NextAuth compatible cookie for better integration
+      jsonResponse.cookies.set('__Secure-next-auth.session-token', data.tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        maxAge: 60 * 60 // 1 hour
+      });
+
+      console.log('Set all cookies for token refresh');
     }
 
     return jsonResponse;
