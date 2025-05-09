@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       refreshToken = cookieStore.get('refreshToken')?.value || cookieStore.get('refreshtoken')?.value;
     }
 
-    console.log('Refresh token sources:', {
+    console.log('Refresh token so`urces:', {
       hasToken: !!refreshToken,
       cookiesAvailable: req.cookies.getAll().map(c => c.name)
     });
