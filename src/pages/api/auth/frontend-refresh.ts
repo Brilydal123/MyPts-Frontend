@@ -95,18 +95,27 @@ export default async function handler(
 
     // Also set our own cookies for better compatibility
     if (data.success && data.tokens) {
+      // Determine if we're in production for secure cookie setting
+      const isProduction = process.env.NODE_ENV === 'production';
+      const secure = isProduction ? 'Secure; ' : '';
+      const sameSite = isProduction ? 'None' : 'Lax';
+
       // Set access token cookie (both camelCase and lowercase for compatibility)
       res.setHeader('Set-Cookie', [
         // Access token cookies
-        `accessToken=${data.tokens.accessToken}; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax`,
-        `accesstoken=${data.tokens.accessToken}; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax`,
+        `accessToken=${data.tokens.accessToken}; Path=/; HttpOnly; ${secure}Max-Age=3600; SameSite=${sameSite}`,
+        `accesstoken=${data.tokens.accessToken}; Path=/; HttpOnly; ${secure}Max-Age=3600; SameSite=${sameSite}`,
 
         // Refresh token cookies
-        `refreshToken=${data.tokens.refreshToken}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`,
-        `refreshtoken=${data.tokens.refreshToken}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`,
+        `refreshToken=${data.tokens.refreshToken}; Path=/; HttpOnly; ${secure}Max-Age=2592000; SameSite=${sameSite}`,
+        `refreshtoken=${data.tokens.refreshToken}; Path=/; HttpOnly; ${secure}Max-Age=2592000; SameSite=${sameSite}`,
 
         // NextAuth compatible cookie
-        `__Secure-next-auth.session-token=${data.tokens.accessToken}; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax`
+        `__Secure-next-auth.session-token=${data.tokens.accessToken}; Path=/; HttpOnly; ${secure}Max-Age=3600; SameSite=${sameSite}`,
+
+        // Also set non-HttpOnly versions for client-side access
+        `client-accessToken=${data.tokens.accessToken}; Path=/; ${secure}Max-Age=3600; SameSite=${sameSite}`,
+        `client-refreshToken=${data.tokens.refreshToken}; Path=/; ${secure}Max-Age=2592000; SameSite=${sameSite}`
       ]);
 
       console.log('[Frontend Refresh API] Set additional cookies for better compatibility');

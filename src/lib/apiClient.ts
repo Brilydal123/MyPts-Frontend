@@ -17,24 +17,59 @@ apiClientInstance.interceptors.request.use(
     // Check if we're in a browser environment
     if (typeof window !== 'undefined') {
       try {
-        // Get tokens from localStorage
-        const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('next-auth.session-token');
-        const profileToken = localStorage.getItem('selectedProfileToken');
-        
+        // Get tokens from multiple sources
+        // 1. Check localStorage
+        const accessTokenFromLocalStorage = localStorage.getItem('accessToken');
+        const nextAuthTokenFromLocalStorage = localStorage.getItem('next-auth.session-token');
+        const profileTokenFromLocalStorage = localStorage.getItem('selectedProfileToken');
+
+        // 2. Check cookies
+        const getCookieValue = (name: string) => {
+          const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+          return match ? match[2] : null;
+        };
+
+        const accessTokenFromCookie = getCookieValue('accessToken') ||
+                                     getCookieValue('accesstoken') ||
+                                     getCookieValue('client-accessToken');
+
+        // Use the first available token for authorization
+        const accessToken = accessTokenFromLocalStorage ||
+                           nextAuthTokenFromLocalStorage ||
+                           accessTokenFromCookie;
+
+        // Use the first available profile token
+        const profileToken = profileTokenFromLocalStorage;
+
+        // Log available tokens for debugging
+        console.log('API Request - Available tokens:', {
+          hasAccessTokenInLocalStorage: !!accessTokenFromLocalStorage,
+          hasNextAuthTokenInLocalStorage: !!nextAuthTokenFromLocalStorage,
+          hasAccessTokenInCookie: !!accessTokenFromCookie,
+          hasProfileToken: !!profileToken,
+          url: config.url
+        });
+
         if (accessToken) {
           config.headers.Authorization = `Bearer ${accessToken}`;
         }
-        
+
         // Add profile token if available
         if (profileToken) {
           config.headers['X-Profile-Token'] = profileToken;
         }
-        
+
         // Add profile ID as a query parameter if available
         const profileId = localStorage.getItem('selectedProfileId');
         if (profileId && config.url && !config.url.includes('profileId=')) {
           const separator = config.url.includes('?') ? '&' : '?';
           config.url = `${config.url}${separator}profileId=${profileId}`;
+        }
+
+        // Add cache busting parameter to prevent caching
+        if (config.url && !config.url.includes('_t=')) {
+          const separator = config.url.includes('?') ? '&' : '?';
+          config.url = `${config.url}${separator}_t=${Date.now()}`;
         }
       } catch (error) {
         console.error('Error setting auth headers:', error);
@@ -64,16 +99,37 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 const clearAuthDataAndRedirect = () => {
+  // Clear localStorage tokens
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
-  localStorage.removeItem('next-auth.session-token'); // Also clear next-auth token if present
-  // Optionally, clear other user-specific localStorage items here
-  
+  localStorage.removeItem('next-auth.session-token');
+  localStorage.removeItem('__Secure-next-auth.session-token');
+
+  // Clear cookies
+  const cookiesToClear = [
+    'accessToken', 'accesstoken',
+    'refreshToken', 'refreshtoken',
+    'next-auth.session-token', '__Secure-next-auth.session-token',
+    'client-accessToken', 'client-refreshToken'
+  ];
+
+  cookiesToClear.forEach(name => {
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure`;
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=none`;
+  });
+
   if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
     // Store the current path to redirect after login
     localStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
-    // window.location.href = '/login'; // Uncomment to enable redirect
-    console.log("Auth data cleared, would redirect to login.");
+
+    // Add a small delay before redirecting to allow other operations to complete
+    setTimeout(() => {
+      // Redirect to login with cache busting
+      window.location.href = `/login?nocache=${Date.now()}`;
+    }, 100);
+
+    console.log("Auth data cleared, redirecting to login.");
   }
 };
 
@@ -112,8 +168,8 @@ apiClientInstance.interceptors.response.use(
 
             console.log('Attempting token refresh via /api/auth/frontend-refresh...');
             // Use a relative path for the Next.js API route
-            const refreshUrl = '/api/auth/frontend-refresh'; 
-            
+            const refreshUrl = '/api/auth/frontend-refresh';
+
             const refreshResponse = await fetch(refreshUrl, {
               method: 'POST',
               headers: {
@@ -121,7 +177,7 @@ apiClientInstance.interceptors.response.use(
               },
               // Body might be optional if frontend-refresh uses HttpOnly cookie exclusively
               // For now, let's assume it can still accept it in the body as a fallback or for non-HttpOnly scenarios.
-              body: JSON.stringify({ refreshToken: localRefreshTokenFromStorage }), 
+              body: JSON.stringify({ refreshToken: localRefreshTokenFromStorage }),
               credentials: 'include', // Important for sending cookies to the Next.js API route
             });
 
@@ -133,14 +189,14 @@ apiClientInstance.interceptors.response.use(
               if (data.tokens.refreshToken) {
                 localStorage.setItem('refreshToken', data.tokens.refreshToken); // If backend sends new one
               }
-              
+
               // Update the Authorization header for the original request and for subsequent requests
               apiClientInstance.defaults.headers.common['Authorization'] = 'Bearer ' + data.tokens.accessToken;
               originalRequest.headers['Authorization'] = 'Bearer ' + data.tokens.accessToken;
 
               // Dispatch event to notify NextAuth session needs update
               window.dispatchEvent(new CustomEvent('tokensRefreshed', { detail: data.tokens }));
-              
+
               processQueue(null, data.tokens.accessToken);
               return apiClientInstance(originalRequest); // Retry the original request
             } else {
@@ -160,7 +216,7 @@ apiClientInstance.interceptors.response.use(
         } else {
           // Is refreshing, queue the original request
           return new Promise((resolve, reject) => {
-            failedQueue.push({ 
+            failedQueue.push({
               resolve: (token: string) => {
                 originalRequest.headers['Authorization'] = 'Bearer ' + token;
                 resolve(apiClientInstance(originalRequest));

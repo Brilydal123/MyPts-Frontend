@@ -26,8 +26,25 @@ export function useTokenRefreshManager() {
       if (typeof window === 'undefined') return;
 
       try {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) return;
+        // Check multiple sources for access token
+        const accessTokenFromLocalStorage = localStorage.getItem('accessToken');
+        const nextAuthTokenFromLocalStorage = localStorage.getItem('next-auth.session-token');
+
+        // Get tokens from cookies
+        const getCookieValue = (name: string) => {
+          const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+          return match ? match[2] : null;
+        };
+
+        const accessTokenFromCookie = getCookieValue('accessToken') || getCookieValue('accesstoken');
+
+        // Use the first available token
+        const accessToken = accessTokenFromLocalStorage || nextAuthTokenFromLocalStorage || accessTokenFromCookie;
+
+        if (!accessToken) {
+          console.log('No access token found, skipping token refresh check');
+          return;
+        }
 
         // Decode the JWT to check expiration
         // Note: This doesn't verify the signature, just decodes the payload
@@ -36,9 +53,12 @@ export function useTokenRefreshManager() {
           const expiresAt = payload.exp * 1000; // Convert to milliseconds
           const now = Date.now();
 
+          // Log token expiration for debugging
+          console.log(`Token expires in ${Math.round((expiresAt - now) / 1000)} seconds (${Math.round((expiresAt - now) / 60000)} minutes)`);
+
           // If token will expire in less than the threshold, refresh it
           if (expiresAt - now < REFRESH_THRESHOLD_MS) {
-            console.log(`Token expires in ${Math.round((expiresAt - now) / 1000)} seconds, refreshing...`);
+            console.log(`Token expires soon, refreshing...`);
             await refreshToken();
           }
         } catch (decodeError) {

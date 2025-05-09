@@ -53,57 +53,153 @@ export default function DashboardPage() {
 
   // Check if user is authenticated and debug admin role
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    const nextAuthToken = localStorage.getItem('next-auth.session-token');
-    const profileToken = localStorage.getItem('selectedProfileToken');
+    // Create a flag to track if the component is mounted
+    let isMounted = true;
 
-    // Debug admin role
-    const isAdminFromStorage = localStorage.getItem('isAdmin') === 'true';
-    const userRole = localStorage.getItem('userRole');
-
-    // Try to get session data
-    const fetchSessionData = async () => {
+    // Function to check authentication
+    const checkAuthentication = async () => {
       try {
-        const response = await fetch('/api/auth/session');
-        const sessionData = await response.json();
+        // Get tokens from multiple sources
+        const accessToken = localStorage.getItem('accessToken');
+        const nextAuthToken = localStorage.getItem('next-auth.session-token');
+        const profileToken = localStorage.getItem('selectedProfileToken');
 
-        console.log('ADMIN ROLE DEBUG (dashboard):', {
-          isAdminFromStorage,
-          userRole,
+        // Get tokens from cookies
+        const getCookieValue = (name: string) => {
+          const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+          return match ? match[2] : null;
+        };
+
+        const accessTokenFromCookie = getCookieValue('accessToken') || getCookieValue('accesstoken');
+        const refreshTokenFromCookie = getCookieValue('refreshToken') || getCookieValue('refreshtoken');
+
+        // Debug admin role
+        const isAdminFromStorage = localStorage.getItem('isAdmin') === 'true';
+        const userRole = localStorage.getItem('userRole');
+
+        // Log all available tokens for debugging
+        console.log('Dashboard auth check:', {
           accessToken: !!accessToken,
           nextAuthToken: !!nextAuthToken,
           profileToken: !!profileToken,
-          sessionData: sessionData ? {
-            user: sessionData.user ? {
-              role: sessionData.user.role,
-              isAdmin: sessionData.user.isAdmin
-            } : null
-          } : null
+          accessTokenFromCookie: !!accessTokenFromCookie,
+          refreshTokenFromCookie: !!refreshTokenFromCookie,
+          isAdminFromStorage,
+          userRole
         });
 
-        // If user is admin, redirect to admin dashboard
-        if (
-          sessionData?.user?.role === 'admin' ||
-          sessionData?.user?.isAdmin === true ||
-          isAdminFromStorage ||
-          userRole === 'admin'
-        ) {
-          console.log('Admin user detected in dashboard, redirecting to admin dashboard');
-          window.location.href = '/admin';
+        // If no tokens at all, redirect to login
+        if (!accessToken && !nextAuthToken && !profileToken && !accessTokenFromCookie) {
+          if (isMounted) {
+            toast.error('Authentication required', {
+              description: 'Please log in to continue',
+            });
+
+            // Store current location for redirect after login
+            localStorage.setItem('redirectAfterLogin', window.location.pathname);
+
+            // Redirect to login with cache busting
+            window.location.href = `/login?nocache=${Date.now()}`;
+          }
+          return;
+        }
+
+        // Try to get session data
+        try {
+          const response = await fetch('/api/auth/session');
+
+          // If response is not ok, try to refresh token first
+          if (!response.ok) {
+            console.log('Session fetch failed, attempting token refresh');
+
+            // Try to refresh token
+            const refreshResponse = await fetch('/api/auth/frontend-refresh', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            });
+
+            // If refresh successful, try session again
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+
+              if (refreshData.success && refreshData.tokens) {
+                console.log('Token refresh successful, retrying session fetch');
+
+                // Store new tokens
+                localStorage.setItem('accessToken', refreshData.tokens.accessToken);
+                if (refreshData.tokens.refreshToken) {
+                  localStorage.setItem('refreshToken', refreshData.tokens.refreshToken);
+                }
+
+                // Try session again
+                const retryResponse = await fetch('/api/auth/session');
+                if (retryResponse.ok) {
+                  const sessionData = await retryResponse.json();
+
+                  // If user is admin, redirect to admin dashboard
+                  if (
+                    sessionData?.user?.role === 'admin' ||
+                    sessionData?.user?.isAdmin === true ||
+                    isAdminFromStorage ||
+                    userRole === 'admin'
+                  ) {
+                    console.log('Admin user detected in dashboard, redirecting to admin dashboard');
+                    if (isMounted) {
+                      window.location.href = '/admin';
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            // Session fetch successful
+            const sessionData = await response.json();
+
+            console.log('ADMIN ROLE DEBUG (dashboard):', {
+              isAdminFromStorage,
+              userRole,
+              accessToken: !!accessToken,
+              nextAuthToken: !!nextAuthToken,
+              profileToken: !!profileToken,
+              sessionData: sessionData ? {
+                user: sessionData.user ? {
+                  role: sessionData.user.role,
+                  isAdmin: sessionData.user.isAdmin
+                } : null
+              } : null
+            });
+
+            // If user is admin, redirect to admin dashboard
+            if (
+              sessionData?.user?.role === 'admin' ||
+              sessionData?.user?.isAdmin === true ||
+              isAdminFromStorage ||
+              userRole === 'admin'
+            ) {
+              console.log('Admin user detected in dashboard, redirecting to admin dashboard');
+              if (isMounted) {
+                window.location.href = '/admin';
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching session data:', error);
         }
       } catch (error) {
-        console.error('Error fetching session data:', error);
+        console.error('Error in authentication check:', error);
       }
     };
 
-    fetchSessionData();
+    // Run the authentication check
+    checkAuthentication();
 
-    if (!accessToken && !nextAuthToken && !profileToken) {
-      toast.error('Authentication required', {
-        description: 'Please log in to continue',
-      });
-      window.location.href = '/login';
-    }
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Extract data from query results
