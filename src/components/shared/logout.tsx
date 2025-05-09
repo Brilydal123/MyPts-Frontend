@@ -28,7 +28,7 @@ const Logout = () => {
     try {
       setTimeout(async () => {
         await logout();
-        router.push("/sign-in");
+        router.push("/login");
         toast.success("Logged out successfully");
         setIsOpen(false);
       }, 2000);
