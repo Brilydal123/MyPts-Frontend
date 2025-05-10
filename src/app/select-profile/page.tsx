@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { NewProfileSelector } from '@/components/profile/new-profile-selector';
-import { ApiDebug } from '@/components/debug/api-debug';
+// import { ApiDebug } from '@/components/debug/api-debug';
 import { DirectApiTest } from '@/components/debug/direct-api-test';
 
 export default function SelectProfilePage() {
@@ -124,9 +124,9 @@ export default function SelectProfilePage() {
         <div className="w-full max-w-md">
           <h1 className="text-2xl font-bold mb-6 text-center">Select a Profile</h1>
           <NewProfileSelector />
-          <div className="mt-8">
+          {/* <div className="mt-8">
             <ApiDebug />
-          </div>
+          </div> */}
         </div>
       </div>
     );

@@ -87,7 +87,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           onClick={() => setMobileMenuOpen(false)}
         >
           <div
-            className="fixed left-0 top-0 h-full w-72 bg-black shadow-lg"
+            className="fixed left-0 top-0 h-full w-72 bg-black dark:bg-gray-900 shadow-lg border-r dark:border-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-24 items-center border-b px-6">
@@ -101,11 +101,18 @@ export function MainLayout({ children }: MainLayoutProps) {
                   alt="MyPts"
                   width={50}
                   height={50}
-                  className="h-[2.7rem] w-[2.7rem] object-contain"
+                  className="h-[2.7rem] w-[2.7rem] object-contain dark:hidden"
+                />
+                <Image
+                  src="/profileblack.png"
+                  alt="MyPts"
+                  width={50}
+                  height={50}
+                  className="h-[2.7rem] w-[2.7rem] object-contain hidden dark:block"
                 />
                 <div className="flex justify-center items-center">
-                  <span className="text-white text-3xl font-extrabold">My</span>
-                  <span className="text-white text-2xl font-extralight">
+                  <span className="text-white dark:text-gray-900 text-3xl font-extrabold">My</span>
+                  <span className="text-white dark:text-gray-900 text-2xl font-extralight">
                     Profile
                   </span>
                 </div>
@@ -119,9 +126,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                     key={item.name}
                     href={item.href}
                     className={`flex items-center px-3 py-2 rounded-md ${pathname === item.href
-                      ? "bg-white text-black"
-                      : "text-white hover:bg-muted"
-                      } ${item.isAdmin ? "text-primary" : ""}`}
+                      ? "bg-white dark:bg-gray-200 text-black dark:text-gray-900"
+                      : "text-white dark:text-gray-200 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white"
+                      } ${item.isAdmin ? "text-primary dark:text-blue-400" : ""}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <span className="mr-3">
@@ -138,7 +145,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <div className="space-y-2">
                   <Link
                     href="/settings"
-                    className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full"
+                    className="flex items-center px-3 py-2 rounded-md text-white dark:text-gray-200 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <SettingsIcon className="mr-3 h-5 w-5" />
@@ -146,7 +153,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                   </Link>
                   <Button
                     variant="ghost"
-                    className="flex items-center px-3 py-2 rounded-md text-white hover:bg-muted w-full justify-start"
+                    className="flex items-center px-3 py-2 rounded-md text-white dark:text-gray-200 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full justify-start"
                     onClick={handleLogout}
                   >
                     <LogOutIcon className="mr-3 h-5 w-5" />
@@ -161,11 +168,11 @@ export function MainLayout({ children }: MainLayoutProps) {
                       size={32}
                       className="mr-3"
                     />
-                    <div className="text-sm text-white">
-                      <p className="font-medium">
+                    <div className="text-sm">
+                      <p className="font-medium text-white dark:text-gray-200">
                         {user?.fullName || user?.name || "User"}
                       </p>
-                      <p className="text-white text-xs">{user?.email}</p>
+                      <p className="text-white dark:text-gray-400 text-xs">{user?.email}</p>
                     </div>
                   </div>
                 </div>
@@ -178,7 +185,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Desktop sidebar */}
       <div
         className={`hidden lg:block fixed left-0 top-0 h-full ${sidebarOpen ? "w-64" : "w-20"
-          } dark:bg-white bg-black transition-all duration-300 z-30`}
+          } dark:bg-gray-900 bg-black transition-all duration-300 z-30 border-r dark:border-gray-800`}
       >
         <div
           className={`relative ${sidebarOpen
@@ -193,11 +200,18 @@ export function MainLayout({ children }: MainLayoutProps) {
                 alt="MyPts"
                 width={50}
                 height={50}
-                className="h-[2.7rem] w-[2.7rem] object-contain"
+                className="h-[2.7rem] w-[2.7rem] object-contain dark:hidden"
+              />
+              <Image
+                src="/profileblack.png"
+                alt="MyPts"
+                width={50}
+                height={50}
+                className="h-[2.7rem] w-[2.7rem] object-contain hidden dark:block"
               />
               <div className="flex justify-center items-center">
-                <span className="text-white text-3xl font-extrabold">My</span>
-                <span className="text-white text-2xl font-extralight">
+                <span className="text-white dark:text-gray-900 text-3xl font-extrabold">My</span>
+                <span className="text-white dark:text-gray-900 text-2xl font-extralight">
                   Profile
                 </span>
               </div>
@@ -209,7 +223,14 @@ export function MainLayout({ children }: MainLayoutProps) {
                 alt="MyPts"
                 width={32}
                 height={32}
-                className="h-[1.7rem] w-[1.7rem]"
+                className="h-[1.7rem] w-[1.7rem] dark:hidden"
+              />
+              <Image
+                src="/profileblack.png"
+                alt="MyPts"
+                width={32}
+                height={32}
+                className="h-[1.7rem] w-[1.7rem] hidden dark:block"
               />
             </Link>
           )}
@@ -224,9 +245,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                 href={item.href}
                 className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
                   } py-2 rounded-md ${pathname === item.href
-                    ? "bg-white text-black"
-                    : "text-white hover:bg-muted hover:text-black"
-                  } ${item.isAdmin ? "text-primary" : ""}`}
+                    ? "bg-white dark:bg-gray-200 text-black dark:text-gray-900"
+                    : "text-white dark:text-gray-200 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white"
+                  } ${item.isAdmin ? "text-primary dark:text-blue-400" : ""}`}
               >
                 <span className={sidebarOpen ? "mr-3" : ""}>
                   {<item.icon className="size-5" />}
@@ -243,7 +264,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               <Link
                 href="/settings"
                 className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                  } py-2 rounded-md text-white hover:bg-muted hover:text-black`}
+                  } py-2 rounded-md text-white dark:text-gray-200 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white`}
               >
                 <span className={sidebarOpen ? "mr-3" : ""}>
                   <SettingsIcon className="h-5 w-5" />
@@ -253,7 +274,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               <Button
                 variant="ghost"
                 className={`flex items-center ${sidebarOpen ? "px-3" : "justify-center"
-                  } py-2 rounded-md text-white hover:bg-muted w-full ${sidebarOpen ? "justify-start" : "justify-center"
+                  } py-2 rounded-md text-white dark:text-gray-200 hover:bg-gray-800 dark:hover:bg-gray-700 hover:text-white dark:hover:text-white w-full ${sidebarOpen ? "justify-start" : "justify-center"
                   }`}
                 onClick={handleLogout}
               >
@@ -273,10 +294,10 @@ export function MainLayout({ children }: MainLayoutProps) {
                     className="mr-3"
                   />
                   <div className="text-sm">
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-white dark:text-gray-200">
                       {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
                     </p>
-                    <p className="text-white text-xs truncate">{user?.email}</p>
+                    <p className="text-white dark:text-gray-400 text-xs truncate">{user?.email}</p>
                   </div>
                 </div>
               )}
@@ -308,16 +329,16 @@ export function MainLayout({ children }: MainLayoutProps) {
           } transition-all duration-300`}
       >
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-          <p className="text-sm text-white">
+          <p className="text-sm text-white dark:text-gray-400">
             &copy; {new Date().getFullYear()} MyPts. All rights reserved.
           </p>
           <div className="flex gap-4">
-            <Link href="/terms" className="text-sm text-white hover:underline">
+            <Link href="/terms" className="text-sm text-white dark:text-gray-400 hover:underline">
               Terms
             </Link>
             <Link
               href="/privacy"
-              className="text-sm text-white hover:underline"
+              className="text-sm text-white dark:text-gray-400 hover:underline"
             >
               Privacy
             </Link>

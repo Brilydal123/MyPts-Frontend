@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -114,6 +114,18 @@ export function NotificationCenter() {
         ? notifications.filter((n) => !n.isRead)
         : notifications.filter((n) => n.type === activeTab);
 
+  // Handle keyboard events for accessibility
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
     if (!notification.isRead) {
@@ -139,18 +151,33 @@ export function NotificationCenter() {
             <Button
               variant="outline"
               size="icon"
-              className="relative h-9 w-9 rounded-full border-muted-foreground/20 hover:bg-accent/10 hover:text-accent-foreground flex items-center justify-center"
+              className={`relative h-9 w-9 rounded-full transition-all duration-200 ${isOpen
+                ? 'bg-accent/20 ring-2 ring-accent/30 shadow-md border-transparent'
+                : 'border-muted-foreground/20 hover:bg-accent/10 hover:text-accent-foreground'
+                } flex items-center justify-center`}
               onClick={() => setIsOpen(!isOpen)}
             >
-              <Bell className="h-[18px] w-[18px]" />
-              {unreadCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-4 w-4 min-w-[1rem] p-0.5 text-[10px] flex items-center justify-center rounded-full bg-red-500 text-white shadow-md"
-                >
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Badge>
-              )}
+              <motion.div
+                animate={{
+                  scale: isOpen ? 0.92 : 1
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 17
+                }}
+                className={`relative ${unreadCount > 0 && !isOpen ? 'pulse-subtle' : ''}`}
+              >
+                <Bell className={`h-[18px] w-[18px] ${unreadCount > 0 && !isOpen ? 'text-primary bell-ring-loop' : ''}`} />
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-[19px] -right-1 h-4 w-4 min-w-[1rem] p-0.5 text-[10px] flex items-center justify-center rounded-full bg-red-500 text-white shadow-md"
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Badge>
+                )}
+              </motion.div>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -158,6 +185,30 @@ export function NotificationCenter() {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+
+      {/* Blur overlay when notification panel is open */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsOpen(false)}
+            style={{
+              pointerEvents: "auto",
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100vh"
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Notification Panel */}
       <AnimatePresence>

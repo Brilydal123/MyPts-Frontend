@@ -470,81 +470,65 @@ export default function RewardMyPtsPage() {
   };
 
   return (
-    <React.Fragment>
-      <div className="space-y-6 sm:space-y-10 p-4 sm:p-6 md:p-8 lg:p-12 bg-gray-50 min-h-screen font-sans">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Award MyPts</h1>
-        </div>
+    <div className="space-y-6 sm:space-y-10 p-4 sm:p-6 md:p-8 lg:p-12 bg-gray-50 min-h-screen font-sans">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Award MyPts</h1>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10 max-w-full w-full mx-auto">
-          {/* Profile Search Card - Softer corners, more padding */}
-          <Card className="border-none shadow-sm rounded-xl overflow-hidden w-full">
-            {/* Responsive header padding */}
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-3 sm:pb-4">
-              <div>
-                <CardTitle className="text-lg sm:text-xl font-medium text-gray-900">Find Profile</CardTitle>
-                <CardDescription className="text-xs sm:text-sm text-gray-500 pt-1">
-                  {allProfilesData?.pagination
-                    ? `${allProfilesData.pagination.total} profiles available`
-                    : "Search by name, email, or ID to award MyPts"}
-                </CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => refetchAllProfiles()}
-                disabled={isLoadingAllProfiles}
-                className="text-gray-500 hover:bg-gray-100 h-8 w-8 sm:h-10 sm:w-10"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 sm:h-5 sm:w-5 ${isLoadingAllProfiles ? "animate-spin" : ""}`}
-                />
-              </Button> {/* Close Refresh Button */}
-            </CardHeader> {/* Close CardHeader */}
-
-            <CardContent className="px-4 sm:px-6 md:px-8 py-4 sm:py-6"> {/* Start CardContent and add padding */}
-              {/* Search Input and Button Section */}
-              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mb-4 sm:mb-6"> {/* Wrapper for input and search button */}
-                <Label htmlFor="search-profiles" className="sr-only">Search Profiles</Label>
-                <Input
-                  id="search-profiles"
-                  type="search"
-                  placeholder="Search by name, email, or ID..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-sm sm:text-base h-10 sm:h-12"
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery((e.target as HTMLInputElement).value)} /* Corrected TS error */
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10 max-w-full w-full mx-auto">
+        {/* Profile Search Card - Softer corners, more padding */}
+        <Card className="border-none shadow-sm rounded-xl overflow-hidden w-full">
+          {/* Responsive header padding */}
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-3 sm:pb-4">
+            <div>
+              <CardTitle className="text-lg sm:text-xl font-medium text-gray-900">Find Profile</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-gray-500 pt-1">
+                {allProfilesData?.pagination
+                  ? `${allProfilesData.pagination.total} profiles available`
+                  : "Search by name, email, or ID to award MyPts"}
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetchAllProfiles()}
+              disabled={isLoadingAllProfiles}
+              className="text-gray-500 hover:bg-gray-100 h-8 w-8 sm:h-10 sm:w-10"
+            >
+              <RefreshCw
+                className={`h-4 w-4 sm:h-5 sm:w-5 ${isLoadingAllProfiles ? "animate-spin" : ""
+                  }`}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
                 <Button
                   onClick={handleSearch}
                   disabled={searchQuery.length < 2}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300 px-3 sm:px-5 h-9 sm:h-10 w-full sm:w-auto mt-2 sm:mt-0"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300 px-3 sm:px-5 h-9 sm:h-10 mt-2 sm:mt-0"
                 >
                   <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Search
                 </Button>
               </div>
-
-              {/* Sort Dropdown - now inside CardContent */}
-              {!searchQuery && allProfilesData?.profiles?.length > 0 && (
-                <div className="w-full sm:w-auto mb-4 sm:mb-6">
+              {/* Sort Dropdown - Hide when searching? Or allow sorting search results? (Current setup sorts the main list fetch) */}
+              {!searchQuery && (
+                <div className="w-full sm:w-auto">
                   <Label htmlFor="sort-profiles" className="sr-only">Sort by</Label>
                   <Select value={sortOption} onValueChange={setSortOption}>
                     <SelectTrigger id="sort-profiles" className="w-full sm:w-[200px] text-xs sm:text-sm h-9 sm:h-10">
                       <SelectValue placeholder="Sort by..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">Default (Date Added)</SelectItem>
-                      <SelectItem value="name-asc">Name (A-Z)</SelectItem>
-                      <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-                      <SelectItem value="balance-asc">Balance (Low-High)</SelectItem>
-                      <SelectItem value="balance-desc">Balance (High-Low)</SelectItem>
+                      {sortOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value} className="text-xs sm:text-sm">
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
-
-              {/* Profile List / Search Results Section - Stays within CardContent */}
+              {/* Loading State */}
               {isSearching || isLoadingAllProfiles ? (
                 <div className="space-y-2 sm:space-y-3 pt-2 sm:pt-4">
                   {[1, 2, 3].map((i) => (
@@ -645,233 +629,235 @@ export default function RewardMyPtsPage() {
                   Enter a name, email, or profile ID to search.
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Award MyPts Card - Softer corners, more padding */}
-          <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden w-full">
-            {/* Responsive header padding */}
-            <CardHeader className="px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-3 sm:pb-4">
-              <CardTitle className="text-lg sm:text-xl font-medium text-gray-900">Award MyPts</CardTitle>
-              <CardDescription className="text-xs sm:text-sm text-gray-500 pt-1">Award the selected profile with MyPts.</CardDescription>
-            </CardHeader>
-            {/* Responsive content padding */}
-            <CardContent className="px-4 sm:px-6 md:px-8">
-              {selectedProfileId ? (
-                selectedProfileData ? (
-                  <div className="space-y-4 sm:space-y-6">
-                    {/* Display selected profile info */}
-                    <div className="flex items-center p-3 sm:p-4 bg-gray-100 rounded-xl border border-gray-200 shadow-sm">
-                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3 sm:mr-4 text-blue-600 font-medium text-sm sm:text-base">
-                        {selectedProfileData.name?.charAt(0).toUpperCase() || "?"}
+        {/* Award MyPts Card - Softer corners, more padding */}
+        <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden w-full">
+          {/* Responsive header padding */}
+          <CardHeader className="px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl font-medium text-gray-900">Award MyPts</CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-gray-500 pt-1">Award the selected profile with MyPts.</CardDescription>
+          </CardHeader>
+          {/* Responsive content padding */}
+          <CardContent className="px-4 sm:px-6 md:px-8">
+            {selectedProfileId ? (
+              selectedProfileData ? (
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Display selected profile info */}
+                  <div className="flex items-center p-3 sm:p-4 bg-gray-100 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3 sm:mr-4 text-blue-600 font-medium text-sm sm:text-base">
+                      {selectedProfileData.name?.charAt(0).toUpperCase() || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">
+                        {selectedProfileData.name || "Unnamed Profile"}
+                      </p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">
+                        {getProfileType(selectedProfileData)}
+                      </p>
+                      <div className="flex items-center mt-1 mb-1">
+                        <Coins className="h-4 w-4 mr-1 text-blue-500" />
+                        <p className="text-sm font-medium text-blue-600">
+                          {selectedProfileData.myPtsBalance ?? selectedProfileData.ProfileMypts?.currentBalance ?? selectedProfileData.balance ?? 0} MyPts
+                        </p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 text-sm sm:text-base truncate">
-                          {selectedProfileData.name || "Unnamed Profile"}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 mt-0.5 sm:mt-1">
+                        <p className="text-[10px] sm:text-xs text-gray-500 truncate">
+                          ID: {selectedProfileData._id || selectedProfileData.id}
                         </p>
-                        <p className="text-xs sm:text-sm text-gray-500 truncate">
-                          {getProfileType(selectedProfileData)}
-                        </p>
-                        <div className="flex items-center mt-1 mb-1">
-                          <Coins className="h-4 w-4 mr-1 text-blue-500" />
-                          <p className="text-sm font-medium text-blue-600">
-                            {selectedProfileData.myPtsBalance ?? selectedProfileData.ProfileMypts?.currentBalance ?? selectedProfileData.balance ?? 0} MyPts
-                          </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 mt-0.5 sm:mt-1">
+                        {/* Assuming email is available in selectedProfileData */}
+                        {selectedProfileData.email && (
                           <p className="text-[10px] sm:text-xs text-gray-500 truncate">
-                            ID: {selectedProfileData._id || selectedProfileData.id}
+                            Email: {selectedProfileData.email}
                           </p>
-                          {/* Assuming email is available in selectedProfileData */}
-                          {selectedProfileData.email && (
-                            <p className="text-[10px] sm:text-xs text-gray-500 truncate">
-                              Email: {selectedProfileData.email}
-                            </p>
-                          )}
-                        </div>
-                        <div className="mt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                // Use our custom hook to refresh the balance
-                                const profileId = selectedProfileData._id || selectedProfileData.id;
-                                const balanceData = await refreshMyPtsBalanceMutation.mutateAsync(profileId);
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              // Use our custom hook to refresh the balance
+                              const profileId = selectedProfileData._id || selectedProfileData.id;
+                              const balanceData = await refreshMyPtsBalanceMutation.mutateAsync(profileId);
+
+                              // Update the selected profile data with the latest balance
+                              if (balanceData) {
+                                // Create a new ProfileMypts object if it doesn't exist or is a string
+                                const updatedProfileMypts = typeof selectedProfileData.ProfileMypts === 'object' && selectedProfileData.ProfileMypts !== null
+                                  ? {
+                                    ...selectedProfileData.ProfileMypts,
+                                    currentBalance: balanceData.balance,
+                                    lifetimeMypts: balanceData.lifetimeEarned
+                                  }
+                                  : {
+                                    currentBalance: balanceData.balance,
+                                    lifetimeMypts: balanceData.lifetimeEarned
+                                  };
 
                                 // Update the selected profile data with the latest balance
-                                if (balanceData) {
-                                  // Create a new ProfileMypts object if it doesn't exist or is a string
-                                  const updatedProfileMypts = typeof selectedProfileData.ProfileMypts === 'object' && selectedProfileData.ProfileMypts !== null
-                                    ? {
-                                      ...selectedProfileData.ProfileMypts,
-                                      currentBalance: balanceData.balance,
-                                      lifetimeMypts: balanceData.lifetimeEarned
-                                    }
-                                    : {
-                                      currentBalance: balanceData.balance,
-                                      lifetimeMypts: balanceData.lifetimeEarned
-                                    };
-
-                                  // Update the selected profile data with the latest balance
-                                  setSelectedProfileData({
-                                    ...selectedProfileData,
-                                    myPtsBalance: balanceData.balance,
-                                    balance: balanceData.balance, // Also update the balance property
-                                    ProfileMypts: updatedProfileMypts
-                                  });
-                                }
-                              } catch (error) {
-                                console.error('Error refreshing balance:', error);
+                                setSelectedProfileData({
+                                  ...selectedProfileData,
+                                  myPtsBalance: balanceData.balance,
+                                  balance: balanceData.balance, // Also update the balance property
+                                  ProfileMypts: updatedProfileMypts
+                                });
                               }
-                            }}
-                            disabled={refreshMyPtsBalanceMutation.isPending}
-                          >
-                            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${refreshMyPtsBalanceMutation.isPending ? 'animate-spin' : ''}`} />
-                            {refreshMyPtsBalanceMutation.isPending ? 'Refreshing...' : 'Refresh Balance'}
-                          </Button>
-                        </div>
+                            } catch (error) {
+                              console.error('Error refreshing balance:', error);
+                            }
+                          }}
+                          disabled={refreshMyPtsBalanceMutation.isPending}
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${refreshMyPtsBalanceMutation.isPending ? 'animate-spin' : ''}`} />
+                          {refreshMyPtsBalanceMutation.isPending ? 'Refreshing...' : 'Refresh Balance'}
+                        </Button>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Award Form */}
-                    <div className="space-y-2 sm:space-y-3">
-                      <Label htmlFor="amount" className="text-gray-700 font-medium text-sm sm:text-base">Amount (MyPts)</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        min="1"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg text-sm sm:text-base h-9 sm:h-10"
-                        value={amount || ""}
-                        onChange={(e) => setAmount(Number(e.target.value))}
-                        placeholder="Enter amount to award"
-                      />
-                    </div>
+                  {/* Award Form */}
+                  <div className="space-y-2 sm:space-y-3">
+                    <Label htmlFor="amount" className="text-gray-700 font-medium text-sm sm:text-base">Amount (MyPts)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      min="1"
+                      className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg text-sm sm:text-base h-9 sm:h-10"
+                      value={amount || ""}
+                      onChange={(e) => setAmount(Number(e.target.value))}
+                      placeholder="Enter amount to award"
+                    />
+                  </div>
 
-                    <div className="space-y-2 sm:space-y-3">
-                      <Label htmlFor="reason" className="text-gray-700 font-medium text-sm sm:text-base">Reason (optional)</Label>
-                      <Textarea
-                        id="reason"
-                        value={reason}
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg text-sm sm:text-base"
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder="Enter reason for awarding MyPts (e.g., Contest winner)"
-                        rows={3}
-                      />
-                    </div>
-                    <AnimatePresence>
-                      {awardSuccess && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <Alert className="bg-green-50 border-green-200 mt-3 sm:mt-4 text-sm sm:text-base">
-                            <motion.svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mr-1.5 sm:mr-2"
-                              initial="hidden"
-                              animate="visible"
-                            >
-                              <motion.path
-                                d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
-                                variants={checkVariants}
-                                stroke="currentColor"
-                              ></motion.path>
-                              <motion.polyline
-                                points="22 4 12 14.01 9 11.01"
-                                variants={checkVariants}
-                                stroke="currentColor"
-                              ></motion.polyline>
-                            </motion.svg>
-                            <AlertTitle className="text-green-800 text-sm sm:text-base">
-                              Success!
-                            </AlertTitle>
-                            <AlertDescription className="text-green-700 text-xs sm:text-sm">
-                              {awardedAmount} MyPts have been successfully awarded to{" "}
-                              {selectedProfileData.name}.
-                            </AlertDescription>
-                          </Alert>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Error Alert: Check our manual error state */}
-                    {awardApiError && (
-                      <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 mt-3 sm:mt-4 text-sm sm:text-base">
-                        <AlertCircle className="h-4 w-4 !text-red-600" />
-                        <AlertTitle className="text-sm sm:text-base">Award Failed</AlertTitle>
-                        <AlertDescription className="text-xs sm:text-sm">
-                          {awardApiError}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    
-                    {/* View Invoice Button (only show after successful award) */}
-                    {awardSuccess && invoiceData && (
+                  <div className="space-y-2 sm:space-y-3">
+                    <Label htmlFor="reason" className="text-gray-700 font-medium text-sm sm:text-base">Reason (optional)</Label>
+                    <Textarea
+                      id="reason"
+                      value={reason}
+                      className="border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg text-sm sm:text-base"
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="Enter reason for awarding MyPts (e.g., Contest winner)"
+                      rows={3}
+                    />
+                  </div>
+                  <AnimatePresence>
+                    {awardSuccess && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5, duration: 0.3 }}
-                        className="mt-4"
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.3 }}
                       >
-                        <Button
-                          variant="outline"
-                          className="w-full flex items-center justify-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
-                          onClick={() => setShowInvoice(true)}
-                        >
-                          <FileText className="h-4 w-4" />
-                          View Transaction Invoice
-                        </Button>
+                        <Alert className="bg-green-50 border-green-200 mt-3 sm:mt-4 text-sm sm:text-base">
+                          <motion.svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mr-1.5 sm:mr-2"
+                            initial="hidden"
+                            animate="visible"
+                          >
+                            <motion.path
+                              d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                              variants={checkVariants}
+                              stroke="currentColor"
+                            ></motion.path>
+                            <motion.polyline
+                              points="22 4 12 14.01 9 11.01"
+                              variants={checkVariants}
+                              stroke="currentColor"
+                            ></motion.polyline>
+                          </motion.svg>
+                          <AlertTitle className="text-green-800 text-sm sm:text-base">
+                            Success!
+                          </AlertTitle>
+                          <AlertDescription className="text-green-700 text-xs sm:text-sm">
+                            {awardedAmount} MyPts have been successfully awarded to{" "}
+                            {selectedProfileData.name}.
+                          </AlertDescription>
+                        </Alert>
                       </motion.div>
                     )}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 sm:py-10 px-4 text-gray-500 text-sm sm:text-base">
-                    Loading profile data...
-                  </div>
-                )
+                  </AnimatePresence>
+
+                  {/* Error Alert: Check our manual error state */}
+                  {awardApiError && (
+                    <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 mt-3 sm:mt-4 text-sm sm:text-base">
+                      <AlertCircle className="h-4 w-4 !text-red-600" />
+                      <AlertTitle className="text-sm sm:text-base">Award Failed</AlertTitle>
+                      <AlertDescription className="text-xs sm:text-sm">
+                        {awardApiError}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {/* View Invoice Button (only show after successful award) */}
+                  {awardSuccess && invoiceData && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5, duration: 0.3 }}
+                      className="mt-4"
+                    >
+                      <Button
+                        variant="outline"
+                        className="w-full flex items-center justify-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                        onClick={() => setShowInvoice(true)}
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Transaction Invoice
+                      </Button>
+                    </motion.div>
+                  )}
+                </div>
               ) : (
                 <div className="text-center py-6 sm:py-10 px-4 text-gray-500 text-sm sm:text-base">
-                  <Award className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-3 sm:mb-4 text-gray-300" />
-                  <p>Select a profile to begin awarding MyPts.</p>
+                  Loading profile data...
                 </div>
-              )}
-            </CardContent>
-            {/* Responsive footer padding */}
-            <CardFooter className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 pt-4 sm:pt-6">
-              <Button
-                size="lg"
-                className="w-full bg-black hover:bg-slate-700 text-white text-sm sm:text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300 h-10 sm:h-12"
-                onClick={handleAwardMyPts}
-                disabled={
-                  !selectedProfileId || !amount || amount <= 0 || isAwarding
-                }
-              >
-                {isAwarding ? "Processing..." : "Award MyPts"}
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+              )
+            ) : (
+              <div className="text-center py-6 sm:py-10 px-4 text-gray-500 text-sm sm:text-base">
+                <Award className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-3 sm:mb-4 text-gray-300" />
+                <p>Select a profile to begin awarding MyPts.</p>
+              </div>
+            )}
+          </CardContent>
+          {/* Responsive footer padding */}
+          <CardFooter className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 pt-4 sm:pt-6">
+            <Button
+              size="lg"
+              className="w-full bg-black hover:bg-slate-700 text-white text-sm sm:text-base font-medium shadow-sm rounded-lg disabled:bg-gray-300 h-10 sm:h-12"
+              onClick={handleAwardMyPts}
+              disabled={
+                !selectedProfileId || !amount || amount <= 0 || isAwarding
+              }
+            >
+              {isAwarding ? "Processing..." : "Award MyPts"}
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
-
-      {/* Invoice Modal - Must be inside the React.Fragment before it closes */}
-      {showInvoice && invoiceData && (
-        <RewardInvoice
-          isOpen={true} /* Always true since we're already checking showInvoice in the conditional */
-          onClose={() => setShowInvoice(false)}
-          profileData={invoiceData.profileData}
-          hubData={invoiceData.hubData}
-          transactionData={invoiceData.transactionData}
-        />
-      )}
+      </div>
+    </div>
+    
+    {/* Invoice Modal */}
+    {invoiceData && (
+      <RewardInvoice
+        isOpen={showInvoice}
+        onClose={() => setShowInvoice(false)}
+        profileData={invoiceData.profileData}
+        hubData={invoiceData.hubData}
+        transactionData={invoiceData.transactionData}
+      />
+    )}
     </React.Fragment>
   );
 }

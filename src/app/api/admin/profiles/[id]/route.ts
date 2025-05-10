@@ -39,7 +39,7 @@ export async function GET(
     const { id } = await params;
 
     // Call the backend APIs
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/profiles/${id}`;
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/profiles/p/${id}`;
 
     const response = await fetch(apiUrl, {
       headers: {
@@ -100,7 +100,7 @@ export async function PUT(
     const updates = await request.json();
 
     // Call the backend API
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/profiles/${id}`;
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/profiles/p/${id}`;
 
     const response = await fetch(apiUrl, {
       method: 'PUT',
@@ -166,7 +166,7 @@ export async function DELETE(
     const deleteUserAccount = url.searchParams.get('deleteUserAccount');
 
     // Build the API URL with the query parameter if it exists
-    let apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/profiles/${id}`;
+    let apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/profiles/p/${id}`;
     if (deleteUserAccount) {
       apiUrl += `?deleteUserAccount=${deleteUserAccount}`;
     }

@@ -1,0 +1,591 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Download,
+  Eye,
+  Filter,
+  Info,
+  Loader2,
+  RefreshCcw,
+  Search,
+  X
+} from 'lucide-react';
+import { myPtsApi } from '@/lib/api/mypts-api';
+import { formatDate, formatDateTime } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getCurrencySymbol } from '@/lib/currency';
+
+export default function LocalTransactionsPage() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<any[]>([]);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [paymentReference, setPaymentReference] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Fetch transactions on component mount
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  // Apply filters when search query or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [searchQuery, statusFilter, paymentMethodFilter, transactions]);
+
+  const fetchTransactions = async () => {
+    setIsLoading(true);
+    try {
+      const response = await myPtsApi.getLocalTransactions();
+      if (response.success && response.data) {
+        setTransactions(response.data);
+      } else {
+        toast.error('Failed to fetch transactions', {
+          description: response.message || 'An error occurred',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      toast.error('Failed to fetch transactions', {
+        description: 'An unexpected error occurred',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...transactions];
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (transaction) =>
+          transaction.profileId?.toLowerCase().includes(query) ||
+          transaction._id?.toLowerCase().includes(query) ||
+          transaction.metadata?.accountDetails?.accountName?.toLowerCase().includes(query) ||
+          transaction.metadata?.accountDetails?.mobileNumber?.toLowerCase().includes(query) ||
+          transaction.metadata?.accountDetails?.accountNumber?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((transaction) => transaction.status === statusFilter);
+    }
+
+    // Apply payment method filter
+    if (paymentMethodFilter !== 'all') {
+      filtered = filtered.filter(
+        (transaction) => transaction.metadata?.paymentMethod === paymentMethodFilter
+      );
+    }
+
+    setFilteredTransactions(filtered);
+  };
+
+  const handleViewDetails = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const handleApproveTransaction = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setPaymentReference('');
+    setAdminNotes('');
+    setIsApprovalDialogOpen(true);
+  };
+
+  const handleProcessTransaction = async () => {
+    if (!paymentReference) {
+      toast.error('Payment reference is required');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await myPtsApi.processLocalTransaction(
+        selectedTransaction._id,
+        paymentReference,
+        adminNotes
+      );
+
+      if (response.success) {
+        toast.success('Transaction processed successfully!');
+        setIsApprovalDialogOpen(false);
+        fetchTransactions();
+      } else {
+        toast.error('Failed to process transaction', {
+          description: response.message || 'An error occurred',
+        });
+      }
+    } catch (error) {
+      console.error('Error processing transaction:', error);
+      toast.error('Failed to process transaction', {
+        description: 'An unexpected error occurred',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'COMPLETED':
+        return <Badge className="bg-green-500">Completed</Badge>;
+      case 'PENDING':
+        return <Badge className="bg-yellow-500">Pending</Badge>;
+      case 'RESERVED':
+        return <Badge variant="outline" className="text-blue-500 border-blue-500">Reserved</Badge>;
+      case 'FAILED':
+        return <Badge className="bg-red-500">Failed</Badge>;
+      case 'CANCELLED':
+        return <Badge variant="outline" className="text-gray-500 border-gray-500">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'mobile_money':
+        return 'Mobile Money';
+      case 'pakistani_local':
+        return 'Pakistani Local';
+      default:
+        return method;
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Local Payment Transactions</h1>
+        <Button onClick={fetchTransactions} variant="outline" className="gap-2">
+          <RefreshCcw className="h-4 w-4" />
+          Refresh
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+          <CardDescription>Filter and search local payment transactions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="search">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Search by ID, name, or account number"
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="status-filter">Status</Label>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger id="status-filter">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="RESERVED">Reserved</SelectItem>
+                  <SelectItem value="FAILED">Failed</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="payment-method-filter">Payment Method</Label>
+              <Select
+                value={paymentMethodFilter}
+                onValueChange={setPaymentMethodFilter}
+              >
+                <SelectTrigger id="payment-method-filter">
+                  <SelectValue placeholder="Filter by payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                  <SelectItem value="pakistani_local">Pakistani Local</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Local Payment Transactions</CardTitle>
+          <CardDescription>
+            Manage and process local payment transactions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading transactions...</span>
+            </div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No transactions found matching your filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Profile ID</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.map((transaction) => (
+                    <TableRow key={transaction._id}>
+                      <TableCell>{formatDate(transaction.createdAt)}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {transaction.profileId}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">
+                          {Math.abs(transaction.amount).toLocaleString()} MyPts
+                        </span>
+                        <br />
+                        <span className="text-xs text-muted-foreground">
+                          ≈ {getCurrencySymbol(transaction.metadata?.currency || 'usd')}
+                          {(Math.abs(transaction.amount) * (transaction.metadata?.valuePerMyPt || 0.024)).toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {getPaymentMethodLabel(transaction.metadata?.paymentMethod)}
+                        {transaction.metadata?.accountDetails?.provider && (
+                          <span className="block text-xs text-muted-foreground">
+                            {transaction.metadata.accountDetails.provider}
+                          </span>
+                        )}
+                        {transaction.metadata?.accountDetails?.methodType && (
+                          <span className="block text-xs text-muted-foreground">
+                            {transaction.metadata.accountDetails.methodType}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(transaction)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {transaction.status === 'RESERVED' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleApproveTransaction(transaction)}
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Transaction Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Transaction Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this transaction
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTransaction && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-sm">Transaction ID</h3>
+                  <p className="font-mono text-xs">{selectedTransaction._id}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Status</h3>
+                  <div>{getStatusBadge(selectedTransaction.status)}</div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Created At</h3>
+                  <p>{formatDateTime(selectedTransaction.createdAt)}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Updated At</h3>
+                  <p>{formatDateTime(selectedTransaction.updatedAt)}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Amount</h3>
+                  <p className="font-medium">{Math.abs(selectedTransaction.amount).toLocaleString()} MyPts</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Value</h3>
+                  <p>
+                    {getCurrencySymbol(selectedTransaction.metadata?.currency || 'usd')}
+                    {(Math.abs(selectedTransaction.amount) * (selectedTransaction.metadata?.valuePerMyPt || 0.024)).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="font-semibold mb-2">Payment Details</h3>
+                <div className="bg-muted p-3 rounded-md">
+                  {selectedTransaction.metadata?.paymentMethod === 'mobile_money' && (
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div>
+                        <span className="text-sm font-medium">Provider:</span>
+                        <span className="text-sm ml-2">{selectedTransaction.metadata.accountDetails?.provider}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Mobile Number:</span>
+                        <span className="text-sm ml-2">{selectedTransaction.metadata.accountDetails?.mobileNumber}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Account Name:</span>
+                        <span className="text-sm ml-2">{selectedTransaction.metadata.accountDetails?.accountName}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Country:</span>
+                        <span className="text-sm ml-2">{selectedTransaction.metadata.accountDetails?.country}</span>
+                      </div>
+                      {selectedTransaction.metadata.accountDetails?.additionalNotes && (
+                        <div className="col-span-2">
+                          <span className="text-sm font-medium">Additional Notes:</span>
+                          <p className="text-sm mt-1">{selectedTransaction.metadata.accountDetails.additionalNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedTransaction.metadata?.paymentMethod === 'pakistani_local' && (
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div>
+                        <span className="text-sm font-medium">Method Type:</span>
+                        <span className="text-sm ml-2">{selectedTransaction.metadata.accountDetails?.methodType}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Account Number:</span>
+                        <span className="text-sm ml-2">{selectedTransaction.metadata.accountDetails?.accountNumber}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Account Name:</span>
+                        <span className="text-sm ml-2">{selectedTransaction.metadata.accountDetails?.accountName}</span>
+                      </div>
+                      {selectedTransaction.metadata.accountDetails?.additionalDetails && (
+                        <div className="col-span-2">
+                          <span className="text-sm font-medium">Additional Details:</span>
+                          <p className="text-sm mt-1">{selectedTransaction.metadata.accountDetails.additionalDetails}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedTransaction.metadata?.paymentResult && (
+                <>
+                  <Separator />
+                  <div>
+                    <h3 className="font-semibold mb-2">Payment Result</h3>
+                    <div className="bg-muted p-3 rounded-md">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        <div>
+                          <span className="text-sm font-medium">Status:</span>
+                          <span className="text-sm ml-2">{selectedTransaction.metadata.paymentResult.status}</span>
+                        </div>
+                        {selectedTransaction.metadata.paymentResult.reference && (
+                          <div>
+                            <span className="text-sm font-medium">Reference:</span>
+                            <span className="text-sm ml-2">{selectedTransaction.metadata.paymentResult.reference}</span>
+                          </div>
+                        )}
+                        {selectedTransaction.metadata.adminNotes && (
+                          <div className="col-span-2">
+                            <span className="text-sm font-medium">Admin Notes:</span>
+                            <p className="text-sm mt-1">{selectedTransaction.metadata.adminNotes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>
+              Close
+            </Button>
+            {selectedTransaction?.status === 'RESERVED' && (
+              <Button onClick={() => {
+                setIsDetailsDialogOpen(false);
+                handleApproveTransaction(selectedTransaction);
+              }}>
+                Process Transaction
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval Dialog */}
+      <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Process Local Payment Transaction</DialogTitle>
+            <DialogDescription>
+              Confirm that you have processed this payment manually
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTransaction && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-md">
+                <div className="flex items-start">
+                  <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800">Manual Processing Required</h4>
+                    <p className="text-sm text-blue-700">
+                      This transaction requires manual processing. Please follow these steps:
+                    </p>
+                    <ol className="text-sm text-blue-700 list-decimal ml-5 mt-1">
+                      <li>Verify the payment details provided by the user</li>
+                      <li>Process the payment using the appropriate local payment method</li>
+                      <li>Enter the payment reference and any notes below</li>
+                      <li>Click "Process Transaction" to complete the transaction</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="payment-reference">Payment Reference (Required)</Label>
+                  <Input
+                    id="payment-reference"
+                    placeholder="Enter payment reference"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="admin-notes">Admin Notes (Optional)</Label>
+                  <Textarea
+                    id="admin-notes"
+                    placeholder="Enter any notes about this transaction"
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleProcessTransaction}
+              disabled={isProcessing || !paymentReference}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Process Transaction'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

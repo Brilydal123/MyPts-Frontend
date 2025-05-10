@@ -27,20 +27,28 @@ export function PendingSellTransactions({ limit = 5 }: PendingSellTransactionsPr
     setIsLoading(true);
 
     try {
-      // Call the API
+      // Call the API - get both RESERVED and COMPLETED transactions
+      // We'll filter out the COMPLETED ones in the UI if needed
       const response = await myPtsHubApi.getAllProfileTransactions({
         type: TransactionType.SELL_MYPTS,
-        status: TransactionStatus.RESERVED,
         limit
       });
 
       if (response.success && response.data) {
         if (Array.isArray(response.data.transactions)) {
-          setTransactions(response.data.transactions);
-          setCount(response.data.pagination.total);
+          // Filter to only show RESERVED transactions
+          const reservedTransactions = response.data.transactions.filter(
+            tx => tx.status === TransactionStatus.RESERVED
+          );
+          setTransactions(reservedTransactions);
+          setCount(reservedTransactions.length);
         } else if (Array.isArray(response.data)) {
-          setTransactions(response.data);
-          setCount(response.data.length);
+          // Filter to only show RESERVED transactions
+          const reservedTransactions = response.data.filter(
+            tx => tx.status === TransactionStatus.RESERVED
+          );
+          setTransactions(reservedTransactions);
+          setCount(reservedTransactions.length);
         } else {
           console.error('Unexpected response format:', response.data);
           setTransactions([]);

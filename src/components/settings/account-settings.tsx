@@ -115,8 +115,8 @@ export function AccountSettings() {
   };
 
   return (
-    <Card className="border-0 sm:border shadow-none sm:shadow">
-      <CardHeader className="px-0 sm:px-6 pt-0 sm:pt-6">
+    <Card className="border-0 sm:border shadow-none sm:shadow max-md:dark:bg-transparent">
+      <CardHeader className="sm:px-6 pt-0 sm:pt-6">
         <CardTitle>Account Settings</CardTitle>
         <CardDescription>
           Manage your account information and profile details

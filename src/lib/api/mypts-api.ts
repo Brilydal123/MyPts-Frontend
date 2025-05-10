@@ -497,6 +497,61 @@ export class MyPtsApi extends ApiClient {
   }
 
   /**
+   * Get local payment transactions (admin only)
+   */
+  async getLocalTransactions(
+    params: {
+      limit?: number;
+      offset?: number;
+      sort?: 'asc' | 'desc';
+      status?: string;
+      paymentMethod?: string;
+    } = {}
+  ): Promise<ApiResponse<MyPtsTransaction[]>> {
+    const queryParams = new URLSearchParams();
+
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+
+    if (params.offset) {
+      queryParams.append('offset', params.offset.toString());
+    }
+
+    if (params.sort) {
+      queryParams.append('sort', params.sort);
+    }
+
+    if (params.status) {
+      queryParams.append('status', params.status);
+    }
+
+    if (params.paymentMethod) {
+      queryParams.append('paymentMethod', params.paymentMethod);
+    }
+
+    return this.get<MyPtsTransaction[]>(`/my-pts/admin/local-transactions?${queryParams.toString()}`);
+  }
+
+  /**
+   * Process a local payment transaction (admin only)
+   */
+  async processLocalTransaction(
+    transactionId: string,
+    paymentReference: string,
+    adminNotes?: string
+  ): Promise<ApiResponse<{
+    transaction: MyPtsTransaction;
+    message: string;
+  }>> {
+    return this.post<any>(`/my-pts/admin/process-local-transaction`, {
+      transactionId,
+      paymentReference,
+      adminNotes
+    });
+  }
+
+  /**
    * Donate MyPts to another profile
    */
   async donateMyPts(amount: number, toProfileId: string, message?: string): Promise<ApiResponse<{
@@ -531,8 +586,61 @@ export class MyPtsApi extends ApiClient {
   }
 
   /**
-   * Award MyPts to a profile (admin only)
+   * Get profile MyPts balance directly (admin only)
+   * This is useful for debugging and troubleshooting
    */
+  async getProfileBalance(profileId: string): Promise<ApiResponse<{
+    balance: number;
+    lifetimeEarned: number;
+    lifetimeSpent: number;
+    lastTransaction: string;
+  }>> {
+    // Clean and validate the ObjectId
+    const idString = profileId.trim();
+
+    // Ensure it's a valid MongoDB ObjectId (24 hex characters)
+    if (!/^[0-9a-fA-F]{24}$/.test(idString)) {
+      console.error(`Invalid profile ID format: ${idString}`);
+      return {
+        success: false,
+        message: 'Invalid profile ID format. Must be a 24-character hex string.'
+      };
+    }
+
+    try {
+      console.log(`Fetching MyPts balance for profile ID: ${idString}`);
+
+      // Make a direct API call to the backend
+      const response = await fetch(`${API_URL}/my-pts/balance?profileId=${idString}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return {
+          success: false,
+          message: errorData.message || `Failed to fetch MyPts balance for profile ${idString}`
+        };
+      }
+
+      const data = await response.json();
+      console.log(`MyPts balance for profile ${idString}:`, data);
+
+      return {
+        success: true,
+        data: data.data || data
+      };
+    } catch (error) {
+      console.error(`Error fetching MyPts balance for profile ${idString}:`, error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch MyPts balance'
+      };
+    }
+  }
+
   /**
    * Award MyPts to a profile (admin only)
    */
@@ -546,7 +654,10 @@ export class MyPtsApi extends ApiClient {
   }>> {
     // Clean and validate the ObjectId
     const idString = profileId.trim();
+
+    // Ensure it's a valid MongoDB ObjectId (24 hex characters)
     if (!/^[0-9a-fA-F]{24}$/.test(idString)) {
+      console.error(`Invalid profile ID format: ${idString}`);
       return {
         success: false,
         message: 'Invalid profile ID format. Must be a 24-character hex string.'
@@ -555,6 +666,8 @@ export class MyPtsApi extends ApiClient {
 
     // Admin award request using standard API endpoint
     try {
+      console.log(`Sending award request for profile ID: ${idString}, amount: ${amount}`);
+
       return this.post<any>('/my-pts/award', {
         profileId: idString, // Use the cleaned ID
         amount: Number(amount),
@@ -1204,6 +1317,20 @@ export class MyPtsHubApi extends ApiClient {
     action: string;
   }>> {
     return this.post<any>('/my-pts-hub/reconcile', {
+      reason
+    });
+  }
+
+  /**
+   * Admin withdrawal of MyPts from a profile
+   */
+  async adminWithdrawMyPts(profileId: string, amount: number, reason?: string): Promise<ApiResponse<{
+    transaction: any;
+    newBalance: number;
+  }>> {
+    return this.post<any>('/my-pts/admin/withdraw', {
+      profileId,
+      amount,
       reason
     });
   }

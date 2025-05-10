@@ -1,88 +1,64 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter }
-from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/shared/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle, Clock, Info } from 'lucide-react';
 import { myPtsApi } from '@/lib/api/mypts-api';
 import { MyPtsTransaction, TransactionStatus, TransactionType } from '@/types/mypts';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 export default function TransactionDetailPage() {
   const params = useParams() || { id: null };
   const router = useRouter();
   const [transaction, setTransaction] = useState<MyPtsTransaction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [noProfileSelected, setNoProfileSelected] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  // First, check if we have a valid session and profile
+  // Session check effect
   useEffect(() => {
-    // Skip if we've already checked
     if (sessionChecked) return;
 
     const checkSession = () => {
       try {
-        // Safely check localStorage (only available in browser)
-        let profileId = null;
-        if (typeof window !== 'undefined') {
-          profileId = localStorage.getItem('selectedProfileId');
-          // Log without exposing the actual ID
-          console.log('Profile selected from localStorage:', profileId ? 'Yes' : 'No');
-        }
+        const profileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
+        console.log('Profile selected from localStorage:', profileId ? 'Yes' : 'No');
 
         if (!profileId) {
           console.warn('No profile selected, cannot fetch transaction');
           setNoProfileSelected(true);
           setIsLoading(false);
         }
-
-        // Mark session as checked to prevent infinite loops
         setSessionChecked(true);
       } catch (error) {
         console.error('Error checking session:', error);
-        // Mark session as checked even on error to prevent infinite loops
         setSessionChecked(true);
       }
     };
 
-    // Use setTimeout to ensure this runs after component is fully mounted
-    // This helps avoid issues with localStorage access during SSR/hydration
     setTimeout(checkSession, 0);
   }, [sessionChecked]);
 
-  // Then, fetch the transaction data if we have a valid session
+  // Transaction fetch effect
   useEffect(() => {
-    // Skip if we haven't checked the session yet or if we've already attempted to fetch
-    if (!sessionChecked || hasAttemptedFetch) return;
+    if (!sessionChecked || hasAttemptedFetch || noProfileSelected) return;
 
-    // Skip if no profile is selected
-    if (noProfileSelected) return;
-
-    // Create a flag to track if the component is mounted
     let isMounted = true;
 
     const fetchTransaction = async () => {
-      // Only set loading state if the component is still mounted
       if (isMounted) setIsLoading(true);
 
       try {
-        // Safely get the profile ID (only available in browser)
-        let profileId = null;
-        if (typeof window !== 'undefined') {
-          profileId = localStorage.getItem('selectedProfileId');
-        }
+        const profileId = typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null;
 
-        // Double-check that we have a profile ID
         if (!profileId) {
-          console.warn('No profile selected when trying to fetch transaction');
           if (isMounted) {
             setNoProfileSelected(true);
             setIsLoading(false);
@@ -94,10 +70,8 @@ export default function TransactionDetailPage() {
         const transactionId = params.id as string;
         console.log(`Fetching transaction with ID: ${transactionId} for selected profile`);
 
-        // Add a cache-busting parameter to prevent infinite loops
         const response = await myPtsApi.getTransaction(transactionId);
 
-        // Only update state if the component is still mounted
         if (isMounted) {
           if (response.success && response.data) {
             console.log('Transaction data received:', response.data);
@@ -110,7 +84,6 @@ export default function TransactionDetailPage() {
           }
         }
       } catch (error) {
-        // Only show error if the component is still mounted
         if (isMounted) {
           console.error('Error fetching transaction:', error);
           toast.error('Failed to fetch transaction', {
@@ -118,7 +91,6 @@ export default function TransactionDetailPage() {
           });
         }
       } finally {
-        // Only update loading state if the component is still mounted
         if (isMounted) {
           setIsLoading(false);
           setHasAttemptedFetch(true);
@@ -126,20 +98,17 @@ export default function TransactionDetailPage() {
       }
     };
 
-    // Only fetch if we have a transaction ID
     if (params.id) {
       fetchTransaction();
     } else {
-      // If no transaction ID, just mark as not loading
       setIsLoading(false);
       setHasAttemptedFetch(true);
     }
 
-    // Cleanup function to set the mounted flag to false when the component unmounts
     return () => {
       isMounted = false;
     };
-  }, [params.id, sessionChecked, hasAttemptedFetch, noProfileSelected]); // Only re-run if these dependencies change
+  }, [params.id, sessionChecked, hasAttemptedFetch, noProfileSelected]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -149,83 +118,108 @@ export default function TransactionDetailPage() {
       day: 'numeric',
       hour: 'numeric',
       minute: 'numeric',
-      second: 'numeric',
       hour12: true,
     }).format(date);
   };
 
   const getTransactionTypeLabel = (type: TransactionType) => {
-    switch (type) {
-      case TransactionType.BUY_MYPTS:
-        return 'Buy MyPts';
-      case TransactionType.SELL_MYPTS:
-        return 'Sell MyPts';
-      case TransactionType.EARN_MYPTS:
-        return 'Earn MyPts';
-      case TransactionType.PURCHASE_PRODUCT:
-        return 'Purchase Product';
-      case TransactionType.RECEIVE_PRODUCT_PAYMENT:
-        return 'Product Payment';
-      case TransactionType.DONATION_SENT:
-        return 'Donation Sent';
-      case TransactionType.DONATION_RECEIVED:
-        return 'Donation Received';
-      case TransactionType.REFUND:
-        return 'Refund';
-      case TransactionType.ADJUSTMENT:
-        return 'Adjustment';
-      default:
-        return type.replace(/_/g, ' ');
-    }
+    const labels: Record<TransactionType, string> = {
+      [TransactionType.BUY_MYPTS]: 'Buy MyPts',
+      [TransactionType.SELL_MYPTS]: 'Sell MyPts',
+      [TransactionType.EARN_MYPTS]: 'Earn MyPts',
+      [TransactionType.PURCHASE_PRODUCT]: 'Purchase Product',
+      [TransactionType.RECEIVE_PRODUCT_PAYMENT]: 'Product Payment',
+      [TransactionType.DONATION_SENT]: 'Donation Sent',
+      [TransactionType.DONATION_RECEIVED]: 'Donation Received',
+      [TransactionType.REFUND]: 'Refund',
+      [TransactionType.ADJUSTMENT]: 'Adjustment',
+      [TransactionType.EXPIRE]: 'Expired',
+    };
+    return labels[type] || type.replace(/_/g, ' ');
   };
 
   const getTransactionIcon = (_type: TransactionType, amount: number) => {
-    // We're only using the amount to determine the icon, but keeping the type parameter
-    // for potential future use based on transaction type
-    if (amount > 0) {
-      return <ArrowUpRight className="h-4 w-4 text-green-600" />;
-    } else {
-      return <ArrowDownRight className="h-4 w-4 text-red-600" />;
-    }
+    return amount > 0 ? (
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-green-50 dark:bg-green-900/20 p-2 rounded-full"
+      >
+        <ArrowUpRight className="h-5 w-5 text-green-600 dark:text-green-400" />
+      </motion.div>
+    ) : (
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-red-50 dark:bg-red-900/20 p-2 rounded-full"
+      >
+        <ArrowDownRight className="h-5 w-5 text-red-600 dark:text-red-400" />
+      </motion.div>
+    );
   };
 
   const getTransactionStatusBadge = (status: TransactionStatus) => {
-    switch (status) {
-      case TransactionStatus.COMPLETED:
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-            <CheckCircle className="h-3 w-3" />
-            Completed
-          </Badge>
-        );
-      case TransactionStatus.PENDING:
-        return (
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Pending
-          </Badge>
-        );
-      case TransactionStatus.FAILED:
-        return (
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <XCircle className="h-3 w-3" />
-            Failed
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="secondary">{status}</Badge>
-        );
-    }
+    const statusConfig: Record<TransactionStatus, { icon: any; className: string }> = {
+      [TransactionStatus.COMPLETED]: {
+        icon: CheckCircle,
+        className: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
+      },
+      [TransactionStatus.PENDING]: {
+        icon: Clock,
+        className: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800',
+      },
+      [TransactionStatus.FAILED]: {
+        icon: XCircle,
+        className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+      },
+      [TransactionStatus.RESERVED]: {
+        icon: Clock,
+        className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800',
+      },
+      [TransactionStatus.CANCELLED]: {
+        icon: XCircle,
+        className: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800',
+      },
+      [TransactionStatus.REJECTED]: {
+        icon: XCircle,
+        className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+      },
+    };
+
+    const config = statusConfig[status] || {
+      icon: Info,
+      className: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800',
+    };
+
+    return (
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Badge
+          variant="outline"
+          className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-medium ${config.className}`}
+        >
+          <config.icon className="h-3.5 w-3.5" />
+          {status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
+        </Badge>
+      </motion.div>
+    );
   };
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="max-w-5xl mx-auto px-4 py-8 space-y-8"
+      >
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             onClick={() => router.back()}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -233,17 +227,26 @@ export default function TransactionDetailPage() {
           </Button>
         </div>
 
-        <h1 className="text-3xl font-bold">Transaction Details</h1>
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="text-4xl font-bold tracking-tight"
+        >
+          Transaction Details
+        </motion.h1>
 
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden border-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl shadow-lg">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
             <CardTitle>
               {isLoading ? (
                 <Skeleton className="h-8 w-48" />
               ) : transaction ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {getTransactionIcon(transaction.type, transaction.amount)}
-                  {getTransactionTypeLabel(transaction.type)}
+                  <span className="text-xl font-semibold">
+                    {getTransactionTypeLabel(transaction.type)}
+                  </span>
                 </div>
               ) : (
                 'Transaction Not Found'
@@ -253,16 +256,17 @@ export default function TransactionDetailPage() {
               {isLoading ? (
                 <Skeleton className="h-4 w-32" />
               ) : transaction ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 mt-2">
                   {getTransactionStatusBadge(transaction.status)}
-                  <span className="text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     {formatDate(transaction.createdAt)}
                   </span>
                 </div>
               ) : null}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="p-6">
             {isLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-12 w-full" />
@@ -270,85 +274,118 @@ export default function TransactionDetailPage() {
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : transaction ? (
-              <div className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="space-y-8"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
+                    className="p-6 rounded-2xl bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20"
+                  >
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Amount</h3>
+                    <p className={`text-3xl font-bold ${transaction.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {transaction.amount > 0 ? '+' : ''}{transaction.amount.toLocaleString()} MyPts
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: 0.4 }}
+                    className="p-6 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20"
+                  >
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Balance After Transaction</h3>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                      {transaction.balance.toLocaleString()} MyPts
+                    </p>
+                  </motion.div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Transaction ID</h3>
-                    <p className="font-mono text-sm break-all">{transaction._id}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Date</h3>
-                    <p>{formatDate(transaction.createdAt)}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Amount</h3>
-                    <p className={`text-2xl font-bold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.amount > 0 ? '+' : ''}{transaction.amount.toLocaleString()} MyPts
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Transaction ID</h3>
+                    <p className="font-mono text-sm break-all bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                      {transaction._id}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Balance After Transaction</h3>
-                    <p className="text-2xl font-bold">{transaction.balance.toLocaleString()} MyPts</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
-                    <div>{getTransactionStatusBadge(transaction.status)}</div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Type</h3>
-                    <p>{getTransactionTypeLabel(transaction.type)}</p>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Date</h3>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                      {formatDate(transaction.createdAt)}
+                    </p>
                   </div>
                 </div>
 
                 {transaction.metadata && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Additional Information</h3>
-                    <div className="bg-muted p-4 rounded-md">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.5 }}
+                    className="space-y-2"
+                  >
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Additional Information</h3>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
                       <pre className="text-xs overflow-auto whitespace-pre-wrap">
                         {JSON.stringify(transaction.metadata, null, 2)}
                       </pre>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {transaction.description && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
-                    <p className="text-sm">{transaction.description}</p>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.6 }}
+                    className="space-y-2"
+                  >
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Description</h3>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+                      {transaction.description}
+                    </p>
+                  </motion.div>
                 )}
-              </div>
+              </motion.div>
             ) : noProfileSelected ? (
-              <div className="py-8 text-center">
-                <div className="mb-4 text-amber-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="py-12 text-center"
+              >
+                <div className="mb-6 text-amber-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium mb-2">No Profile Selected</h3>
-                <p className="text-muted-foreground mb-4">
+                <h3 className="text-xl font-semibold mb-3">No Profile Selected</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
                   Please select a profile to view transaction details.
                 </p>
                 <Button
                   onClick={() => router.push('/dashboard/profiles')}
-                  className="mx-auto"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
                 >
                   Go to Profiles
                 </Button>
-              </div>
+              </motion.div>
             ) : (
-              <div className="py-8 text-center text-muted-foreground">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-12 text-center text-gray-500 dark:text-gray-400"
+              >
                 Transaction not found or you don't have permission to view it.
-              </div>
+              </motion.div>
             )}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </MainLayout>
   );
 }

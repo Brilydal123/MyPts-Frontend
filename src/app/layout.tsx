@@ -5,6 +5,7 @@ import { TokenRefreshProvider } from "@/components/providers/token-refresh-provi
 import { TokenDebugProvider } from "@/components/providers/token-debug-provider";
 // import { LoadingProvider } from "@/contexts/loading-context";
 // import { ExchangeRateProvider } from "@/contexts/exchange-rate-context";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
@@ -35,14 +36,16 @@ export default function RootLayout({
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
               <TokenDebugProvider>
                 <TokenRefreshProvider>
-                  {/* <ExchangeRateProvider baseCurrency="USD"> */}
-                  {/* <LoadingProvider>/ */}
-                  <div className="font-manrope">
-                    {children}
-                  </div>
-                  <Toaster position="top-right" richColors />
-                  {/* </LoadingProvider> */}
-                  {/* </ExchangeRateProvider> */}
+                  <ProfileProvider>
+                    {/* <ExchangeRateProvider baseCurrency="USD"> */}
+                    {/* <LoadingProvider>/ */}
+                    <div className="font-manrope">
+                      {children}
+                    </div>
+                    <Toaster position="top-right" richColors />
+                    {/* </LoadingProvider> */}
+                    {/* </ExchangeRateProvider> */}
+                  </ProfileProvider>
                 </TokenRefreshProvider>
               </TokenDebugProvider>
             </ThemeProvider>

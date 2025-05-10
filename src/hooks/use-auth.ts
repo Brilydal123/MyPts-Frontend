@@ -1,17 +1,117 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, startTransition, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 
 export function useAuth() {
   const { data: session, status } = useSession();
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const [socialAuthUser, setSocialAuthUser] = useState<any>(null);
   const [isSocialAuthenticated, setIsSocialAuthenticated] = useState(false);
   const [localStorageAdmin, setLocalStorageAdmin] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      // Initialize admin status from all possible sources
+      const browserAdmin =
+        localStorage?.getItem('isAdmin') === 'true' ||
+        localStorage?.getItem('userRole') === 'admin' ||
+        document.cookie.includes('X-User-Role=admin') ||
+        document.cookie.includes('X-User-Is-Admin=true');
+      return browserAdmin;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Unified admin status verification and synchronization
+  useEffect(() => {
+    if (!mountedRef.current) return;
+
+    const verifyAndSyncAdminStatus = async () => {
+      try {
+        // Collect all admin status indicators
+        const indicators = {
+          session: session?.user?.role === 'admin' || session?.user?.isAdmin === true,
+          localStorage: localStorageAdmin,
+          social: socialAuthUser?.role === 'admin' || socialAuthUser?.isAdmin === true,
+          cookies: document.cookie.includes('X-User-Role=admin') || document.cookie.includes('X-User-Is-Admin=true')
+        };
+
+        console.log('Admin status indicators:', indicators);
+
+        // Server-side verification
+        const adminUtilsModule = await import('@/lib/admin-utils');
+        if (!adminUtilsModule?.checkAdminStatus) {
+          throw new Error('Admin utils not available');
+        }
+
+        const { isAdmin: verifiedAdmin, sources } = await adminUtilsModule.checkAdminStatus();
+
+        if (verifiedAdmin) {
+          // Synchronize admin status across all storage mechanisms
+          const accessToken = session?.accessToken || localStorage.getItem('accessToken');
+          if (accessToken) {
+            // Set secure httpOnly cookies via API
+            await fetch('/api/auth/sync-admin', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            });
+
+            // Update local storage
+            localStorage.setItem('isAdmin', 'true');
+            localStorage.setItem('userRole', 'admin');
+            localStorage.setItem('adminToken', accessToken);
+
+            // Update user data
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+              const userData = JSON.parse(userStr);
+              userData.isAdmin = true;
+              userData.role = 'admin';
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          }
+        }
+
+        setIsAdmin(verifiedAdmin);
+        if (verifiedAdmin && mountedRef.current) {
+          await adminUtilsModule.syncAdminStatus(true);
+        }
+      } catch (error) {
+        console.error('Admin verification failed:', error);
+        // Fallback to basic check if server verification fails
+        const basicStatus =
+          session?.user?.role === 'admin' ||
+          session?.user?.isAdmin === true ||
+          localStorageAdmin ||
+          socialAuthUser?.role === 'admin' ||
+          socialAuthUser?.isAdmin === true;
+        setIsAdmin(basicStatus);
+      }
+    };
+
+    verifyAndSyncAdminStatus();
+  }, [session?.user?.role, session?.user?.isAdmin, localStorageAdmin, socialAuthUser, mountedRef, session?.accessToken]);
 
   // Effect to check both NextAuth and social authentication
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return;
+
+    const initializeAuth = () => {
+      const now = Date.now();
+      const tokenExpiry = localStorage.getItem('tokenExpiry');
+      const shouldRefreshToken = tokenExpiry && now > parseInt(tokenExpiry);
       const accessToken = localStorage.getItem('accessToken');
       const nextAuthToken = localStorage.getItem('next-auth.session-token');
       const profileToken = localStorage.getItem('selectedProfileToken');
@@ -29,6 +129,51 @@ export function useAuth() {
         isAdminPage
       });
 
+      // If token needs refresh, attempt to refresh before proceeding
+      if (shouldRefreshToken && accessToken) {
+        fetch('/api/auth/frontend-refresh', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.accessToken) {
+            const newToken = data.accessToken;
+            localStorage.setItem('accessToken', newToken);
+            localStorage.setItem('tokenExpiry', String(now + 3600000)); // 1 hour expiry
+
+            // Update admin token if user has admin privileges
+            if (localStorage.getItem('isAdmin') === 'true' ||
+                document.cookie.includes('X-User-Role=admin')) {
+              localStorage.setItem('adminToken', newToken);
+              document.cookie = `X-Admin-Token=${newToken}; path=/`;
+              document.cookie = `Authorization=Bearer ${newToken}; path=/`;
+            }
+          }
+        })
+        .catch(error => console.error('Token refresh failed:', error));
+      }
+
+      // Function to set admin headers
+      const setAdminHeaders = () => {
+        if (typeof window !== 'undefined') {
+          try {
+            const adminToken = localStorage.getItem('adminToken');
+            if (adminToken) {
+              document.cookie = `X-Admin-Token=${adminToken}; path=/`;
+            }
+            document.cookie = 'X-User-Is-Admin=true; path=/';
+            document.cookie = 'X-User-Role=admin; path=/';
+          } catch (e) {
+            console.error('Error setting admin headers:', e);
+          }
+        }
+      };
+
       if (accessToken && userDataString) {
         try {
           const userData = JSON.parse(userDataString);
@@ -43,7 +188,9 @@ export function useAuth() {
             email: userData.email || 'user@example.com',
             // Ensure role is preserved for admin users
             role: userData.role || 'user',
-            isAdmin: userData.role === 'admin' || userData.isAdmin === true
+            isAdmin: userData.role === 'admin' || userData.isAdmin === true ||
+                    localStorage?.getItem('isAdmin') === 'true' ||
+                    document.cookie.includes('X-User-Is-Admin=true')
           };
 
           // Log the user data for debugging
@@ -56,8 +203,17 @@ export function useAuth() {
 
           console.log('Enhanced user data:', enhancedUserData);
 
-          setSocialAuthUser(enhancedUserData);
-          setIsSocialAuthenticated(true);
+          startTransition(() => {
+            setSocialAuthUser(enhancedUserData);
+            setIsSocialAuthenticated(true);
+            if (enhancedUserData.isAdmin) {
+              setAdminHeaders();
+              // Update admin token if needed
+              if (!localStorage.getItem('adminToken')) {
+                localStorage.setItem('adminToken', accessToken);
+              }
+            }
+          });
         } catch (e) {
           console.error('Error parsing user data:', e);
           setIsSocialAuthenticated(false);
@@ -102,19 +258,46 @@ export function useAuth() {
       if (!accessToken && !nextAuthToken && !profileToken && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
+    };
+
+    let refreshTimer: NodeJS.Timeout;
+
+    // Initial auth check
+    initializeAuth();
+
+    // Set up periodic token check
+    if (typeof window !== 'undefined') {
+      refreshTimer = setInterval(() => {
+        const tokenExpiry = localStorage.getItem('tokenExpiry');
+        if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+          initializeAuth();
+        }
+      }, 300000); // Check every 5 minutes
     }
-  }, []);
+
+    // Cleanup
+    return () => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+      mountedRef.current = false;
+    };
+  }, [setSocialAuthUser, setIsSocialAuthenticated, mountedRef]); // Dependencies are stable
+
+  // Sync headers when session changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && session?.accessToken && isAdmin) {
+      const token = session.accessToken;
+      document.cookie = `X-Admin-Token=${token}; path=/`;
+      document.cookie = 'X-User-Is-Admin=true; path=/';
+      document.cookie = 'X-User-Role=admin; path=/';
+      document.cookie = `Authorization=Bearer ${token}; path=/`;
+      localStorage.setItem('adminToken', token);
+    }
+  }, [session?.accessToken, isAdmin]);
 
   const isAuthenticated = status === 'authenticated' || isSocialAuthenticated;
   const isLoading = status === 'loading' && !isSocialAuthenticated;
-
-  // Initial admin status check from basic sources
-  let initialAdminStatus =
-    session?.user?.role === 'admin' ||
-    session?.user?.isAdmin === true ||
-    localStorageAdmin ||
-    socialAuthUser?.role === 'admin' ||
-    socialAuthUser?.isAdmin === true;
 
   // If admin status is true from storage/cookies but not in user data,
   // we need to update the user data to reflect this
@@ -143,41 +326,58 @@ export function useAuth() {
     }
   }, [socialAuthUser, localStorageAdmin]);
 
-  // Enhanced admin status check using our utility (if available in browser)
-  const [isAdmin, setIsAdmin] = useState(initialAdminStatus);
-
-  // Use effect to perform enhanced admin check
+  // Enhanced admin headers synchronization
   useEffect(() => {
-    const enhancedAdminCheck = async () => {
-      if (typeof window === 'undefined') return;
+    if (!mountedRef.current || !isAdmin || typeof window === 'undefined') return;
 
+    const accessToken = localStorage.getItem('accessToken') || session?.accessToken;
+    if (!accessToken) return;
+
+    const synchronizeAdminHeaders = async () => {
       try {
-        // Dynamically import admin utilities to avoid SSR issues
+        // First, ensure admin verification passes
         const adminUtilsModule = await import('@/lib/admin-utils');
-        if (adminUtilsModule && adminUtilsModule.checkAdminStatus) {
-          const { isAdmin: verifiedAdmin } = await adminUtilsModule.checkAdminStatus();
+        const { isAdmin: verifiedAdmin } = await adminUtilsModule.checkAdminStatus();
 
-          // If there's a change in admin status, update state
-          if (verifiedAdmin !== initialAdminStatus) {
-            console.log('Enhanced admin check updated status:', {
-              initial: initialAdminStatus,
-              verified: verifiedAdmin
-            });
-            setIsAdmin(verifiedAdmin);
+        if (verifiedAdmin) {
+          // Set admin headers through API to ensure proper HttpOnly cookies
+          await fetch('/api/auth/admin/sync-headers', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          });
 
-            // Synchronize admin status if needed
-            if (adminUtilsModule.syncAdminStatus) {
-              adminUtilsModule.syncAdminStatus(verifiedAdmin);
-            }
-          }
+          // Update local storage and cookies for client-side checks
+          localStorage.setItem('adminToken', accessToken);
+          localStorage.setItem('isAdmin', 'true');
+          localStorage.setItem('userRole', 'admin');
+
+          // Set client-side cookies with appropriate security flags
+          const secure = window.location.protocol === 'https:';
+          const sameSite = secure ? 'Strict' : 'Lax';
+
+          document.cookie = `X-Admin-Token=${accessToken}; path=/; ${secure ? 'Secure;' : ''} SameSite=${sameSite}`;
+          document.cookie = `X-User-Is-Admin=true; path=/; ${secure ? 'Secure;' : ''} SameSite=${sameSite}`;
+          document.cookie = `X-User-Role=admin; path=/; ${secure ? 'Secure;' : ''} SameSite=${sameSite}`;
+          document.cookie = `Authorization=Bearer ${accessToken}; path=/; ${secure ? 'Secure;' : ''} SameSite=${sameSite}`;
         }
-      } catch (error) {
-        console.error('Error in enhanced admin check:', error);
+      } catch (e) {
+        console.error('Error synchronizing admin headers:', e);
       }
     };
 
-    enhancedAdminCheck();
-  }, [initialAdminStatus]);
+    synchronizeAdminHeaders();
+
+    // Set up interval to refresh headers
+    const refreshInterval = setInterval(synchronizeAdminHeaders, 60000); // Refresh every minute
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [isAdmin, session?.accessToken, mountedRef]);
 
   // Debug admin status
   console.log('Admin status check (final):', {
@@ -186,8 +386,7 @@ export function useAuth() {
     localStorageAdmin,
     socialAuthUserRole: socialAuthUser?.role,
     socialAuthUserIsAdmin: socialAuthUser?.isAdmin,
-    initialAdminStatus,
-    finalAdminStatus: isAdmin
+    currentAdminStatus: isAdmin
   });
 
   const user = session?.user || socialAuthUser;
@@ -296,8 +495,8 @@ export function useAuth() {
     (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileToken') : null);
 
   // Function to force refresh user data from localStorage
-  const refreshUserData = () => {
-    if (typeof window !== 'undefined') {
+  const refreshUserData = useCallback(async () => {
+    if (typeof window !== 'undefined' && setSocialAuthUser) {
       try {
         const userDataString = localStorage.getItem('user');
         if (userDataString) {
@@ -319,14 +518,41 @@ export function useAuth() {
             isAdmin: enhancedUserData.isAdmin
           });
 
-          setSocialAuthUser(enhancedUserData);
-          setIsSocialAuthenticated(true);
+          if (mountedRef.current) {
+            // Ensure admin status is properly synced
+            const adminStatus =
+              localStorage?.getItem('isAdmin') === 'true' ||
+              localStorage?.getItem('userRole') === 'admin' ||
+              document.cookie.includes('isAdmin=true') ||
+              document.cookie.includes('X-User-Role=admin');
+
+            const finalUserData = {
+              ...enhancedUserData,
+              isAdmin: enhancedUserData.isAdmin || adminStatus,
+              role: adminStatus ? 'admin' : enhancedUserData.role
+            };
+
+            startTransition(() => {
+              setSocialAuthUser(finalUserData);
+              setIsSocialAuthenticated(true);
+            });
+
+            // Update localStorage with synced data
+            try {
+              localStorage.setItem('user', JSON.stringify(finalUserData));
+              localStorage.setItem('isAdmin', String(finalUserData.isAdmin));
+              localStorage.setItem('userRole', finalUserData.role);
+            } catch (error) {
+              console.error('Failed to update localStorage:', error);
+            }
+          }
+          console.log('Successfully updated social auth user state');
         }
       } catch (e) {
         console.error('Error refreshing user data:', e);
       }
     }
-  };
+  }, [setSocialAuthUser, setIsSocialAuthenticated, mountedRef]); // Add mountedRef to dependencies
 
   return {
     session,

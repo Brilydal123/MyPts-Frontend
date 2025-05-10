@@ -155,7 +155,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
           >
             {formatProfileName(profile)}
           </h3>
-          <div className="mt-1 flex items-center">
+          <div className="mt-1 flex items-center flex-wrap gap-1">
             <span
               className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
               style={{
@@ -169,6 +169,20 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
                 profile.profileType.charAt(0).toUpperCase() +
                 profile.profileType.slice(1)}
             </span>
+
+            {profile.secondaryId && (
+              <span
+                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-100"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                  fontWeight: 500,
+                  letterSpacing: '-0.01em',
+                  fontSize: '0.65rem'
+                }}
+              >
+                ID: {profile.secondaryId}
+              </span>
+            )}
           </div>
           {profile.description && (
             <p
@@ -189,7 +203,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
 
   return (
     <div
-      className="rounded-xl border backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-lg"
+      className="rounded-xl border backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-lg bg-red-800"
       style={{
         background: "linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(250, 250, 252, 1))",
         borderColor: "#E1E1E6",
@@ -229,7 +243,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
           >
             {profile.formattedName || formatProfileName(profile)}
           </h3>
-          <div className="mt-1 flex items-center">
+          <div className="mt-1 flex items-center flex-wrap gap-1">
             <span
               className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
               style={{
@@ -242,6 +256,19 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
                 profile.profileType.charAt(0).toUpperCase() +
                 profile.profileType.slice(1)}
             </span>
+
+            {profile.secondaryId && (
+              <span
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-100"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                  fontWeight: 500,
+                  letterSpacing: '-0.01em'
+                }}
+              >
+                ID: {profile.secondaryId}
+              </span>
+            )}
           </div>
           {profile.description && (
             <p

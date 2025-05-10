@@ -438,7 +438,7 @@ export function NotificationPreferences() {
   };
 
   return (
-    <Card className="border-0 sm:border shadow-none sm:shadow">
+    <Card className="border-0 sm:border shadow-none sm:shadow max-md:dark:bg-transparent">
       <CardHeader className="px-0 sm:px-6 pt-0 sm:pt-6">
         <div className="flex justify-between items-center">
           <div>
@@ -639,8 +639,8 @@ export function NotificationPreferences() {
             </div>
 
             {/* Push Notifications */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
+            <div className='max-md:dark:bg-transparent'>
+              <div className="flex items-center gap-2 mb-4 ">
                 <Bell className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-medium">Push Notifications</h3>
               </div>

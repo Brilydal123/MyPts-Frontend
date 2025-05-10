@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Pakistani Local</title>
+    <g id="Pakistani-Local" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Background" fill="#01411C" x="0" y="0" width="48" height="48" rx="8"></rect>
+        <g id="Pakistan-Flag" transform="translate(8.000000, 8.000000)" fill-rule="nonzero">
+            <rect id="Rectangle" fill="#FFFFFF" x="0" y="0" width="32" height="32"></rect>
+            <rect id="Rectangle" fill="#01411C" x="0" y="0" width="10" height="32"></rect>
+            <g id="Star-Crescent" transform="translate(14.000000, 6.000000)">
+                <path d="M12.5,10 C12.5,15.5228 8.02285,20 2.5,20 C3.83847,20 5.15365,19.7413 6.37318,19.2388 C10.8724,17.2874 13.75,13.1579 13.75,8.33333 C13.75,3.50879 10.8724,0 6.37318,0 C5.15365,0 3.83847,0 2.5,0 C8.02285,0 12.5,4.47715 12.5,10 Z" id="Path" fill="#FFFFFF"></path>
+                <polygon id="Star" fill="#FFFFFF" points="0 0 0.587785 1.80942 2.5 2.5 0.587785 3.19058 0 5 -0.587785 3.19058 -2.5 2.5 -0.587785 1.80942"></polygon>
+            </g>
+        </g>
+        <g id="Money" transform="translate(14.000000, 24.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <path d="M18,0 L2,0 C0.89,0 0.01,0.89 0.01,2 L0,14 C0,15.11 0.89,16 2,16 L18,16 C19.11,16 20,15.11 20,14 L20,2 C20,0.89 19.11,0 18,0 Z M18,14 L2,14 L2,8 L18,8 L18,14 Z M18,4 L2,4 L2,2 L18,2 L18,4 Z" id="Shape"></path>
+            <rect id="Rectangle" x="4" y="10" width="12" height="2"></rect>
+        </g>
+    </g>
+</svg>

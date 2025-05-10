@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { myPtsApi, myPtsValueApi } from '@/lib/api/mypts-api';
+import { myPtsApi, myPtsValueApi, myPtsHubApi } from '@/lib/api/mypts-api';
 import { profileApi } from '@/lib/api/profile-api';
 import { notificationApi } from '@/lib/api/notification-api';
 import { MyPtsBalance, MyPtsTransaction, MyPtsValue, TransactionType } from '@/types/mypts';
@@ -263,8 +263,19 @@ export function useNotifications() {
     queryKey: ['notifications'],
     queryFn: async () => {
       try {
-        const response = await notificationApi.getUserNotifications();
-        return response;
+        // Check if user is admin by looking at the URL path
+        const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+        // Use the appropriate API based on user role
+        if (isAdminPage) {
+          // Import the admin notification API
+          const { adminNotificationApi } = await import('@/lib/api/admin-notification-api');
+          const response = await adminNotificationApi.getAdminNotifications();
+          return response;
+        } else {
+          const response = await notificationApi.getUserNotifications();
+          return response;
+        }
       } catch (error) {
         console.error('Error fetching notifications:', error);
         throw new Error('Failed to fetch notifications');
@@ -274,20 +285,71 @@ export function useNotifications() {
   });
 }
 
+// Hook for admin withdrawal of MyPts
+export function useAdminWithdrawMyPts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      profileId,
+      amount,
+      reason
+    }: {
+      profileId: string;
+      amount: number;
+      reason?: string;
+    }) => {
+      const response = await myPtsHubApi.adminWithdrawMyPts(profileId, amount, reason);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to withdraw MyPts');
+      }
+      return response.data;
+    },
+    onSuccess: (data, variables) => {
+      // Show success toast
+      toast.success(`Successfully withdrew ${variables.amount} MyPts`, {
+        description: data && data.newBalance !== undefined ? `New balance: ${data.newBalance} MyPts` : 'Balance updated.'
+      });
+
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['profile', variables.profileId] });
+      queryClient.invalidateQueries({ queryKey: ['adminProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+    onError: (error: any) => {
+      // Show error toast
+      toast.error('Failed to withdraw MyPts', {
+        description: error.message || 'An unexpected error occurred'
+      });
+    }
+  });
+}
+
 // Hook for fetching unread notification count
 export function useUnreadNotificationCount() {
   return useQuery({
     queryKey: ['unreadNotificationCount'],
     queryFn: async () => {
       try {
-        const response = await notificationApi.getUnreadNotificationsCount();
-        return response.data.count;
+        // Check if user is admin by looking at the URL path
+        const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+        // Use the appropriate API based on user role
+        if (isAdminPage) {
+          // Import the admin notification API
+          const { adminNotificationApi } = await import('@/lib/api/admin-notification-api');
+          const response = await adminNotificationApi.getUnreadAdminNotificationsCount();
+          return response.data.count;
+        } else {
+          const response = await notificationApi.getUnreadNotificationsCount();
+          return response.data.count;
+        }
       } catch (error) {
         console.error('Error fetching unread notification count:', error);
         throw new Error('Failed to fetch unread notification count');
       }
     },
-    staleTime: 1 * 60 * 10000, // 10 minute
+    staleTime: 1 * 60 * 1000, // 1 minute (fixed from 10000 which was 10 minutes)
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
   });
 }
@@ -335,8 +397,19 @@ export function useMarkNotificationAsRead() {
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      const response = await notificationApi.markNotificationAsRead(notificationId);
-      return response;
+      // Check if user is admin by looking at the URL path
+      const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+      // Use the appropriate API based on user role
+      if (isAdminPage) {
+        // Import the admin notification API
+        const { adminNotificationApi } = await import('@/lib/api/admin-notification-api');
+        const response = await adminNotificationApi.markAdminNotificationAsRead(notificationId);
+        return response;
+      } else {
+        const response = await notificationApi.markNotificationAsRead(notificationId);
+        return response;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -351,8 +424,19 @@ export function useMarkAllNotificationsAsRead() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await notificationApi.markAllNotificationsAsRead();
-      return response;
+      // Check if user is admin by looking at the URL path
+      const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+      // Use the appropriate API based on user role
+      if (isAdminPage) {
+        // Import the admin notification API
+        const { adminNotificationApi } = await import('@/lib/api/admin-notification-api');
+        const response = await adminNotificationApi.markAllAdminNotificationsAsRead();
+        return response;
+      } else {
+        const response = await notificationApi.markAllNotificationsAsRead();
+        return response;
+      }
     },
     onSuccess: () => {
       toast.success('All notifications marked as read');
@@ -371,8 +455,19 @@ export function useDeleteNotification() {
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      const response = await notificationApi.deleteNotification(notificationId);
-      return response;
+      // Check if user is admin by looking at the URL path
+      const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
+      // Use the appropriate API based on user role
+      if (isAdminPage) {
+        // Import the admin notification API
+        const { adminNotificationApi } = await import('@/lib/api/admin-notification-api');
+        const response = await adminNotificationApi.deleteAdminNotification(notificationId);
+        return response;
+      } else {
+        const response = await notificationApi.deleteNotification(notificationId);
+        return response;
+      }
     },
     onSuccess: () => {
       toast.success('Notification deleted');

@@ -1,11 +1,10 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import ReferralService from '@/services/referralService';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, Trophy, Medal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useReferralLeaderboard } from '@/hooks/useReferrals';
 
 const ReferralLeaderboard: React.FC = () => {
   const {
@@ -13,10 +12,7 @@ const ReferralLeaderboard: React.FC = () => {
     isLoading,
     error,
     refetch
-  } = useQuery({
-    queryKey: ['referralLeaderboard'],
-    queryFn: () => ReferralService.getLeaderboard(10),
-  });
+  } = useReferralLeaderboard(10);
 
   // Extract leaderboard data and user position
   const leaderboardData = leaderboardResponse?.leaderboard || [];

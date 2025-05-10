@@ -326,3 +326,41 @@
 .gradient {
   @apply !bg-gradient-to-b !from-white/30 !to-transparent bg-black;
 }
+
+/* Bell notification animation */
+@keyframes bellRing {
+  0% { transform: rotate(0); }
+  10% { transform: rotate(-10deg); }
+  20% { transform: rotate(10deg); }
+  30% { transform: rotate(-10deg); }
+  40% { transform: rotate(10deg); }
+  50% { transform: rotate(-5deg); }
+  60% { transform: rotate(5deg); }
+  70% { transform: rotate(-3deg); }
+  80% { transform: rotate(3deg); }
+  100% { transform: rotate(0); }
+}
+
+.bell-ring {
+  animation: bellRing 0.8s ease-in-out;
+  animation-iteration-count: 1;
+}
+
+.bell-ring-loop {
+  animation: bellRing 0.8s ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: 5s;
+}
+
+.pulse-subtle {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

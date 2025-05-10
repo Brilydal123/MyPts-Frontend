@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 // Admin layout is provided by /admin/layout.tsx
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,73 +10,39 @@ import { Pagination } from '@/components/custom/pagination';
 import { ProfilesTable } from '@/components/admin/profiles-table';
 import { toast } from 'sonner';
 import { Search, RefreshCw } from 'lucide-react';
+import { useProfiles } from '@/hooks/useProfileData';
 
+// Main component for admin profiles page
 export default function AdminProfilesPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [profiles, setProfiles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProfiles, setTotalProfiles] = useState(0);
   const [limit, setLimit] = useState(20);
 
-  const fetchProfiles = async () => {
-    setIsLoading(true);
-    try {
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('limit', limit.toString());
+  // Use our custom hook to fetch profiles
+  const {
+    data: profilesData,
+    isLoading,
+    refetch
+  } = useProfiles({
+    page: page.toString(),
+    limit: limit.toString(),
+    name: searchTerm || undefined,
+    category: categoryFilter !== 'all' ? categoryFilter : undefined
+  });
 
-      if (searchTerm) {
-        params.append('name', searchTerm);
-      }
-
-      if (categoryFilter !== 'all') {
-        params.append('category', categoryFilter);
-      }
-
-      // Fetch profiles from API
-      const response = await fetch(`/api/admin/profiles?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch profiles');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setProfiles(data.data.profiles);
-        setTotalPages(data.data.pagination.pages);
-        setTotalProfiles(data.data.pagination.total);
-      } else {
-        toast.error('Failed to fetch profiles', {
-          description: data.message || 'An error occurred',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-      toast.error('Failed to fetch profiles', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfiles();
-  }, [page, limit, categoryFilter]);
+  const profiles = profilesData?.profiles || [];
+  const totalPages = profilesData?.pagination?.pages || 1;
+  const totalProfiles = profilesData?.pagination?.total || 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1); // Reset to first page when searching
-    fetchProfiles();
+    refetch();
   };
 
   const handleRefresh = () => {
-    fetchProfiles();
+    refetch();
   };
 
   const handlePageChange = (newPage: number) => {
@@ -145,13 +111,13 @@ export default function AdminProfilesPage() {
           <ProfilesTable
             profiles={profiles}
             isLoading={isLoading}
-            onRefresh={fetchProfiles}
+            onRefresh={refetch}
           />
 
           {totalPages > 1 && (
             <div className="mt-4 flex justify-center">
               <Pagination
-                        currentPage={page}
+                currentPage={page}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
               />

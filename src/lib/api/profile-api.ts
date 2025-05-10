@@ -5,21 +5,23 @@ import { getSession } from 'next-auth/react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 console.log('Profile API using URL:', API_URL);
 
+// Define custom headers type for better type safety
+type CustomHeaders = Record<string, string>;
+
 /**
  * Profile API service
  */
 export class ProfileApi {
-  private token: string | null = null;
   private profileCache: Map<string, any> = new Map(); // Cache for individual profiles
   private userProfilesCache: { data: any; timestamp: number } | null = null; // Cache for user profiles with timestamp
   private cacheExpiry = 60000; // Cache expiry time in ms (1 minute)
 
   /**
-   * Set the token to use for API requests
+   * Set the token to use for API requests (deprecated - use localStorage instead)
    */
-  setToken(token: string) {
-    this.token = token;
-    console.log('Token set in ProfileApi');
+  setToken(_token: string) {
+    console.log('Token set in ProfileApi (deprecated - using localStorage instead)');
+    // Token is now stored in localStorage directly
   }
 
   /**
@@ -48,12 +50,12 @@ export class ProfileApi {
   /**
    * Get headers with authentication tokens
    */
-  private async getHeaders(profileToken?: string): Promise<HeadersInit> {
+  private async getHeaders(profileToken?: string): Promise<CustomHeaders> {
     // Get token from NextAuth session
     const session = await getSession();
 
     // Create headers with content type
-    const headers: Record<string, string> = {
+    const headers: CustomHeaders = {
       'Content-Type': 'application/json',
     };
 
@@ -390,6 +392,8 @@ export class ProfileApi {
     limit?: string | number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    name?: string;
+    category?: string;
   } = {}): Promise<ApiResponse<any>> {
     try {
       const headers = await this.getHeaders();
@@ -399,6 +403,15 @@ export class ProfileApi {
       params.append('page', options.page?.toString() || '1');
       params.append('limit', options.limit?.toString() || '10');
 
+      // Add search parameters if provided
+      if (options.name) {
+        params.append('name', options.name);
+      }
+
+      if (options.category && options.category !== 'all') {
+        params.append('category', options.category);
+      }
+
       // Add sorting parameters if provided
       if (options.sortBy) {
         params.append('sortBy', options.sortBy);
@@ -407,20 +420,40 @@ export class ProfileApi {
         params.append('sortOrder', options.sortOrder);
       }
 
-      console.log(`Making GET request to ${API_URL}/admin/profiles?${params.toString()}`);
+      // Always include MyPts data
+      params.append('includeMyPts', 'true');
 
-      const response = await fetch(`${API_URL}/admin/profiles?${params.toString()}`, {
-        method: 'GET',
-        headers,
-        credentials: 'include',
+      // Use the correct endpoint path: /api/profiles/all instead of /api/admin/profiles
+      console.log(`Making GET request to ${API_URL}/profiles/all?${params.toString()}`);
+
+      // Log the headers being sent for debugging
+      console.log('Request headers:', {
+        hasAuthHeader: !!headers['Authorization'],
+        authHeaderPrefix: headers['Authorization'] ? headers['Authorization'].substring(0, 20) + '...' : 'none',
+        contentType: headers['Content-Type'] || 'application/json'
       });
 
-      console.log(`Response from /api/admin/profiles:`, {
+      const response = await fetch(`${API_URL}/profiles/all?${params.toString()}`, {
+        method: 'GET',
+        headers,
+        credentials: 'include', // Include cookies in the request
+      });
+
+      console.log(`Response from /api/profiles/all:`, {
         status: response.status,
         statusText: response.statusText
       });
 
       const data = await response.json();
+
+      // Log the response data structure for debugging
+      console.log('Response data structure:', {
+        success: data.success,
+        hasData: !!data.data,
+        hasProfiles: data.data ? !!data.data.profiles : false,
+        profilesCount: data.data && data.data.profiles ? data.data.profiles.length : 0,
+        hasPagination: data.data ? !!data.data.pagination : false
+      });
 
       if (!response.ok || !data.success) {
         return {
@@ -428,6 +461,40 @@ export class ProfileApi {
           message: data.message || 'Failed to fetch profiles',
           error: data.error,
         };
+      }
+
+      // Ensure we have the expected data structure
+      if (!data.data || !data.data.profiles) {
+        console.warn('Response missing expected data structure:', data);
+
+        // Try to handle different response formats
+        if (data.profiles) {
+          // If profiles are directly in the response
+          return {
+            success: true,
+            data: {
+              profiles: data.profiles,
+              pagination: data.pagination || {
+                total: data.profiles.length,
+                pages: 1,
+                page: 1,
+                limit: data.profiles.length
+              }
+            }
+          };
+        }
+      }
+
+      // Log profile MyPts data for debugging
+      if (data.data && data.data.profiles) {
+        console.log('Profile MyPts data in response:');
+        data.data.profiles.forEach((profile: any, index: number) => {
+          console.log(`Profile ${index + 1} (${profile._id || profile.id}):`, {
+            myPtsBalance: profile.myPtsBalance,
+            ProfileMypts: profile.ProfileMypts,
+            name: profile.name || profile.username
+          });
+        });
       }
 
       return {
@@ -450,16 +517,63 @@ export class ProfileApi {
     try {
       const headers = await this.getHeaders();
 
-      // Skip the ID filter approach since it's not working correctly
-      console.log(`Skipping ID filter approach due to backend issues`);
+      console.log(`Fetching profile with ID: ${profileId}`);
 
-      // Skip the direct profile endpoint since it's causing errors
-      console.log(`Skipping direct profile endpoint due to known issues`);
+      // First attempt: Try to get the profile directly using the ID parameter
+      console.log(`First attempt: Using ID parameter with the profiles/all endpoint`);
 
-      // Third try: Use the all profiles endpoint and filter client-side
+      const response = await fetch(`${API_URL}/profiles/all?id=${profileId}&includeMyPts=true`, {
+        method: 'GET',
+        headers,
+        credentials: 'include',
+      });
+
+      console.log(`Response from direct ID query:`, {
+        status: response.status,
+        statusText: response.statusText
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.success && data.data?.profiles && data.data.profiles.length > 0) {
+          console.log(`Found profile using direct ID query`);
+          return {
+            success: true,
+            data: data.data.profiles[0],
+          };
+        }
+      }
+
+      // Second attempt: Try to get the profile from the profiles/p/:profileId endpoint
+      console.log(`Second attempt: Using the direct profile endpoint`);
+
+      try {
+        const directResponse = await fetch(`${API_URL}/profiles/p/${profileId}?includeMyPts=true`, {
+          method: 'GET',
+          headers,
+          credentials: 'include',
+        });
+
+        if (directResponse.ok) {
+          const directData = await directResponse.json();
+
+          if (directData.success && directData.profile) {
+            console.log(`Found profile using direct profile endpoint`);
+            return {
+              success: true,
+              data: directData.profile,
+            };
+          }
+        }
+      } catch (directError) {
+        console.error(`Error in direct profile fetch:`, directError);
+      }
+
+      // Third attempt: Use the all profiles endpoint and filter client-side
       console.log(`Third attempt: Fetching all profiles and filtering client-side`);
 
-      const allProfilesResponse = await fetch(`${API_URL}/admin/profiles?limit=100`, {
+      const allProfilesResponse = await fetch(`${API_URL}/profiles/all?limit=100&includeMyPts=true`, {
         method: 'GET',
         headers,
         credentials: 'include',
@@ -470,7 +584,7 @@ export class ProfileApi {
 
       if (allProfilesResponse && allProfilesResponse.ok) {
         const allProfilesData = await allProfilesResponse.json();
-        console.log('All profiles response:', allProfilesData);
+        console.log('All profiles response status:', allProfilesData.success);
 
         if (allProfilesData.success && allProfilesData.data?.profiles) {
           const matchingProfile = allProfilesData.data.profiles.find(
@@ -478,6 +592,7 @@ export class ProfileApi {
           );
 
           if (matchingProfile) {
+            console.log(`Found profile by filtering all profiles`);
             return {
               success: true,
               data: matchingProfile,

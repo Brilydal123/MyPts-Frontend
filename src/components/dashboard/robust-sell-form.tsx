@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -49,10 +50,7 @@ import {
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CreditCardInput } from '@/components/payment/credit-card-input';
-import { ExpiryDateInput } from '@/components/payment/expiry-date-input';
-import { CVCInput } from '@/components/payment/cvc-input';
-import { CardPreview } from '@/components/payment/card-preview';
+
 import { motion } from 'framer-motion';
 
 // Define schemas for each payment method
@@ -61,22 +59,36 @@ const bankTransferSchema = z.object({
   accountNumber: z.string().min(1, 'Account number is required'),
   routingNumber: z.string().min(1, 'Routing number is required'),
   bankName: z.string().min(1, 'Bank name is required'),
+  country: z.string().min(1, 'Country is required'),
+  accountType: z.enum(['checking', 'savings']).default('checking'),
+  swiftCode: z.string().optional(),
 });
 
 const paypalSchema = z.object({
   email: z.string().email('Invalid email format').min(1, 'Email is required'),
 });
 
-const stripeSchema = z.object({
-  cardholderName: z.string().min(1, 'Cardholder name is required'),
-  cardNumber: z.string().min(1, 'Card number is required'),
-  expiryDate: z.string().min(1, 'Expiry date is required'),
-  cvc: z.string().min(1, 'CVC is required'),
-});
-
 const cryptoSchema = z.object({
   cryptoType: z.string().min(1, 'Cryptocurrency type is required'),
   walletAddress: z.string().min(1, 'Wallet address is required'),
+});
+
+const mobileMoneySchema = z.object({
+  provider: z.string().min(1, 'Provider is required'),
+  mobileNumber: z.string().min(1, 'Mobile number is required'),
+  accountName: z.string().min(1, 'Account name is required'),
+  country: z.string().min(1, 'Country is required'),
+  transactionId: z.string().optional(),
+  proofOfPayment: z.any().optional(), // For file upload
+});
+
+const pakistaniLocalSchema = z.object({
+  methodType: z.string().min(1, 'Method type is required'),
+  accountNumber: z.string().min(1, 'Account number is required'),
+  accountName: z.string().min(1, 'Account name is required'),
+  additionalDetails: z.string().optional(),
+  transactionId: z.string().optional(),
+  proofOfPayment: z.any().optional(), // For file upload
 });
 
 // Main form schema
@@ -100,7 +112,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
   const [conversionRate, setConversionRate] = useState(0);
   const [showForm, setShowForm] = useState(true);
   const [transactionId, setTransactionId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('stripe');
+  const [activeTab, setActiveTab] = useState('bank_transfer');
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // Use cached exchange rates to ensure consistency with other components
@@ -115,8 +127,10 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 0,
-      paymentMethod: 'stripe',
-      accountDetails: {},
+      paymentMethod: 'bank_transfer',
+      accountDetails: {
+        accountType: 'checking'
+      },
     },
   });
 
@@ -143,11 +157,29 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
 
   // Handle payment method change
   const handlePaymentMethodChange = (value: string) => {
-    // Only allow stripe (credit card) selection
-    if (value === 'stripe') {
+    // Allow bank_transfer, mobile_money, and pakistani_local selection
+    if (['bank_transfer', 'mobile_money', 'pakistani_local'].includes(value)) {
       setActiveTab(value);
       form.setValue('paymentMethod', value);
-      form.setValue('accountDetails', {});
+
+      // Set default values based on payment method
+      if (value === 'bank_transfer') {
+        form.setValue('accountDetails', {
+          accountType: 'checking'
+        });
+      } else if (value === 'mobile_money') {
+        form.setValue('accountDetails', {
+          provider: 'mtn',
+          country: 'NG' // Default to Nigeria
+        });
+      } else if (value === 'pakistani_local') {
+        form.setValue('accountDetails', {
+          methodType: 'easypaisa'
+        });
+      } else {
+        form.setValue('accountDetails', {});
+      }
+
       setFormErrors([]);
     }
   };
@@ -162,10 +194,12 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
         bankTransferSchema.parse(accountDetails);
       } else if (activeTab === 'paypal') {
         paypalSchema.parse(accountDetails);
-      } else if (activeTab === 'stripe') {
-        stripeSchema.parse(accountDetails);
       } else if (activeTab === 'crypto') {
         cryptoSchema.parse(accountDetails);
+      } else if (activeTab === 'mobile_money') {
+        mobileMoneySchema.parse(accountDetails);
+      } else if (activeTab === 'pakistani_local') {
+        pakistaniLocalSchema.parse(accountDetails);
       }
       return true;
     } catch (error) {
@@ -425,17 +459,25 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                                 onChange={handlePaymentMethodChange}
                                 options={[
                                   {
-                                    id: "stripe",
-                                    name: "Credit Card",
-                                    icon: "/images/payment/stripe.svg",
-                                    description: "Visa, Mastercard, Amex"
-                                  },
-                                  {
-                                    id: "bank_transfer-disabled",
+                                    id: "bank_transfer",
                                     name: "Bank Transfer",
                                     icon: "/images/payment/bank-transfer.svg",
-                                    description: "Coming Soon",
-                                    disabled: true
+                                    description: "Direct to your bank",
+                                    disabled: false
+                                  },
+                                  {
+                                    id: "mobile_money",
+                                    name: "Mobile Money",
+                                    icon: "/images/payment/mobile-money.svg",
+                                    description: "MTN Mobile Money",
+                                    disabled: false
+                                  },
+                                  {
+                                    id: "pakistani_local",
+                                    name: "Pakistani Methods",
+                                    icon: "/images/payment/pakistani-local.svg",
+                                    description: "EasyPaisa & more",
+                                    disabled: false
                                   },
                                   {
                                     id: "paypal-disabled",
@@ -457,7 +499,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                           </div>
                         </FormControl>
                         <FormDescription className="text-xs mt-1">
-                          Currently, only credit card payments are available. More options coming soon.
+                          Bank transfer, Mobile Money, and Pakistani local payment methods are available.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -468,129 +510,403 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                     {/* Hidden TabsList for functionality */}
                     <TabsList className="hidden">
                       <TabsTrigger value="bank_transfer">Bank Transfer</TabsTrigger>
+                      <TabsTrigger value="mobile_money">Mobile Money</TabsTrigger>
+                      <TabsTrigger value="pakistani_local">Pakistani Methods</TabsTrigger>
                       <TabsTrigger value="paypal">PayPal</TabsTrigger>
-                      <TabsTrigger value="stripe">Credit Card</TabsTrigger>
                       <TabsTrigger value="crypto">Cryptocurrency</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="stripe" className="mt-4">
+
+
+                    <TabsContent value="mobile_money" className="mt-4">
                       <motion.div
                         variants={tabContentVariants}
                         initial="hidden"
                         animate="visible"
                         className="space-y-4"
                       >
-                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                          {/* Card Preview for small screens - shown at top */}
-                          <div className="md:hidden mb-2 mx-auto w-full max-w-[400px]">
-                            <CardPreview
-                              cardNumber={form.watch('accountDetails.cardNumber') || ''}
-                              cardholderName={form.watch('accountDetails.cardholderName') || ''}
-                              expiryDate={form.watch('accountDetails.expiryDate') || ''}
-                              cvc={form.watch('accountDetails.cvc') || ''}
-                              flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
-                            />
-                          </div>
+                        <Alert className="bg-blue-50 border-blue-200 shadow-sm">
+                          <Info className="h-4 w-4 text-blue-600" />
+                          <AlertTitle className="text-blue-800">Mobile Money Information</AlertTitle>
+                          <AlertDescription className="text-blue-700">
+                            Please provide your mobile money details for receiving payment. Your request will be processed manually by our team.
+                          </AlertDescription>
+                        </Alert>
 
-                          <FormField
-                            control={form.control}
-                            name="accountDetails.cardholderName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Cardholder Name</FormLabel>
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.provider"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Mobile Money Provider</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value || "mtn"}
+                              >
                                 <FormControl>
-                                  <Input
-                                    placeholder="John Doe"
-                                    {...field}
-                                    onChange={(e) => {
-                                      field.onChange(e);
-                                      form.setValue('accountDetails.cardholderName', e.target.value);
-                                    }}
-                                  />
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select provider" />
+                                  </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                <SelectContent>
+                                  <SelectItem value="mtn">MTN Mobile Money</SelectItem>
+                                  <SelectItem value="airtel">Airtel Money</SelectItem>
+                                  <SelectItem value="vodafone">Vodafone Cash</SelectItem>
+                                  <SelectItem value="orange">Orange Money</SelectItem>
+                                  <SelectItem value="other">Other (specify in notes)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                          {/* Card Preview for medium screens and up - shown on the right */}
-                          <div className="hidden md:block md:row-span-3">
-                            <CardPreview
-                              cardNumber={form.watch('accountDetails.cardNumber') || ''}
-                              cardholderName={form.watch('accountDetails.cardholderName') || ''}
-                              expiryDate={form.watch('accountDetails.expiryDate') || ''}
-                              cvc={form.watch('accountDetails.cvc') || ''}
-                              flipped={!!(form.formState.errors.accountDetails?.cvc || form.formState.touchedFields.accountDetails?.cvc)}
-                            />
-                          </div>
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.mobileNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Mobile Number</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter your mobile money number" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                Include country code (e.g., +234 for Nigeria)
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                          <FormField
-                            control={form.control}
-                            name="accountDetails.cardNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Card Number</FormLabel>
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.accountName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Name on your mobile money account" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.country"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Country</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value || "NG"}
+                              >
                                 <FormControl>
-                                  <CreditCardInput
-                                    value={field.value || ''}
-                                    onChange={(value) => {
-                                      field.onChange(value);
-                                      form.setValue('accountDetails.cardNumber', value);
-                                    }}
-                                  />
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select country" />
+                                  </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                <SelectContent>
+                                  <SelectItem value="NG">Nigeria</SelectItem>
+                                  <SelectItem value="GH">Ghana</SelectItem>
+                                  <SelectItem value="KE">Kenya</SelectItem>
+                                  <SelectItem value="UG">Uganda</SelectItem>
+                                  <SelectItem value="ZA">South Africa</SelectItem>
+                                  <SelectItem value="RW">Rwanda</SelectItem>
+                                  <SelectItem value="TZ">Tanzania</SelectItem>
+                                  <SelectItem value="CM">Cameroon</SelectItem>
+                                  <SelectItem value="CI">Côte d'Ivoire</SelectItem>
+                                  <SelectItem value="SN">Senegal</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                          <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                            <FormField
-                              control={form.control}
-                              name="accountDetails.expiryDate"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Expiry Date</FormLabel>
-                                  <FormControl>
-                                    <ExpiryDateInput
-                                      value={field.value || ''}
-                                      onChange={(value) => {
-                                        field.onChange(value);
-                                        form.setValue('accountDetails.expiryDate', value);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="accountDetails.cvc"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>CVC</FormLabel>
-                                  <FormControl>
-                                    <CVCInput
-                                      value={field.value || ''}
-                                      onChange={(value) => {
-                                        field.onChange(value);
-                                        form.setValue('accountDetails.cvc', value);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.additionalNotes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Additional Notes (Optional)</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Any additional information we should know"
+                                  className="resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
                         <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Your card information is secure and encrypted</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Your mobile money information is secure and encrypted</span>
+                        </div>
+                      </motion.div>
+                    </TabsContent>
+
+                    <TabsContent value="pakistani_local" className="mt-4">
+                      <motion.div
+                        variants={tabContentVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="space-y-4"
+                      >
+                        <Alert className="bg-blue-50 border-blue-200 shadow-sm">
+                          <Info className="h-4 w-4 text-blue-600" />
+                          <AlertTitle className="text-blue-800">Pakistani Payment Methods</AlertTitle>
+                          <AlertDescription className="text-blue-700">
+                            Please provide your payment details for receiving money through Pakistani local payment methods. Your request will be processed manually by our team.
+                          </AlertDescription>
+                        </Alert>
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.methodType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Payment Method</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value || "easypaisa"}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select payment method" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="easypaisa">EasyPaisa</SelectItem>
+                                  <SelectItem value="jazzcash">JazzCash</SelectItem>
+                                  <SelectItem value="ubl">UBL</SelectItem>
+                                  <SelectItem value="hbl">HBL</SelectItem>
+                                  <SelectItem value="meezan">Meezan Bank</SelectItem>
+                                  <SelectItem value="other">Other (specify in notes)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.accountNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Number / IBAN</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter your account number or IBAN" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.accountName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Name on your account" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.additionalDetails"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Additional Details (Optional)</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Any additional information we should know"
+                                  className="resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Your payment information is secure and encrypted</span>
+                        </div>
+                      </motion.div>
+                    </TabsContent>
+
+                    <TabsContent value="bank_transfer" className="mt-4">
+                      <motion.div
+                        variants={tabContentVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="space-y-4"
+                      >
+                        <Alert className="bg-blue-50 border-blue-200 shadow-sm">
+                          <Info className="h-4 w-4 text-blue-600" />
+                          <AlertTitle className="text-blue-800">Bank Transfer Information</AlertTitle>
+                          <AlertDescription className="text-blue-700">
+                            Please provide your bank account details for receiving payment. All information is encrypted and secure.
+                          </AlertDescription>
+                        </Alert>
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.accountName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Holder Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Full name on account" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.accountNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Account Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Account number" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.routingNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Routing Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="ACH routing number" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.bankName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Bank Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Bank name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.country"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Country</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select country" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="US">United States</SelectItem>
+                                    <SelectItem value="CA">Canada</SelectItem>
+                                    <SelectItem value="GB">United Kingdom</SelectItem>
+                                    <SelectItem value="AU">Australia</SelectItem>
+                                    <SelectItem value="FR">France</SelectItem>
+                                    <SelectItem value="DE">Germany</SelectItem>
+                                    <SelectItem value="JP">Japan</SelectItem>
+                                    <SelectItem value="SG">Singapore</SelectItem>
+                                    <SelectItem value="HK">Hong Kong</SelectItem>
+                                    <SelectItem value="CN">China</SelectItem>
+                                    <SelectItem value="IN">India</SelectItem>
+                                    <SelectItem value="BR">Brazil</SelectItem>
+                                    <SelectItem value="MX">Mexico</SelectItem>
+                                    <SelectItem value="ZA">South Africa</SelectItem>
+                                    <SelectItem value="NG">Nigeria</SelectItem>
+                                    <SelectItem value="KE">Kenya</SelectItem>
+                                    <SelectItem value="GH">Ghana</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="accountDetails.swiftCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>SWIFT/BIC Code (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="For international transfers" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="accountDetails.accountType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Type</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value || "checking"}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select account type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="checking">Checking</SelectItem>
+                                  <SelectItem value="savings">Savings</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">Your bank account information is secure and encrypted</span>
                         </div>
                       </motion.div>
                     </TabsContent>
@@ -654,7 +970,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                         </span>
                       ) : (
                         <span className="flex items-center justify-center gap-2">
-                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" /> Sell {myPtsAmount > 0 ? myPtsAmount.toLocaleString() : '0'} MyPts
+                          <ArrowRightLeft className="h-4 w-4 sm:h-5 sm:w-5" /> Sell {myPtsAmount > 0 ? myPtsAmount.toLocaleString() : '0'} MyPts
                         </span>
                       )}
                     </Button>
@@ -676,7 +992,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                   transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
                   className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4"
                 >
-                  <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+                  <ArrowRightLeft className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
                 </motion.div>
                 <h3 className="text-lg sm:text-xl font-bold text-green-800 mb-1 sm:mb-2">Request Submitted!</h3>
                 <p className="text-sm sm:text-base text-green-700 mb-2 sm:mb-4">

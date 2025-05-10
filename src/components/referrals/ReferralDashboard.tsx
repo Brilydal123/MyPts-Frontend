@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import ReferralService, { ReferralStats } from "@/services/referralService";
 import { toast } from "sonner";
 import {
   Card,
@@ -22,22 +20,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedButton } from "@/components/ui/animated-button";
+import {
+  useReferralStats,
+  useInitializeReferralCode,
+  getMilestoneProgress,
+  getNextMilestoneRequirement
+} from "@/hooks/useReferrals";
 
 const ReferralDashboard: React.FC = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
+  // Use our custom hook for referral stats
   const {
     data: referralStats,
     isLoading,
     error,
     refetch,
-  } = useQuery<ReferralStats>({
-    queryKey: ["referralStats"],
-    queryFn: () => ReferralService.getReferralStats(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
-  });
+  } = useReferralStats();
+
+  // Use our custom hook for initializing referral code
+  const initializeReferralCodeMutation = useInitializeReferralCode();
 
   // Handle initialization if there's an error
   useEffect(() => {
@@ -65,62 +68,15 @@ const ReferralDashboard: React.FC = () => {
       }
 
       // Try to initialize the referral code
-      ReferralService.initializeReferralCode()
-        .then(() => {
-          toast.success("Referral code initialized successfully");
-          refetch();
-        })
-        .catch((err) => {
-          console.error("Failed to initialize referral code:", err);
-          // If this is also an auth error, we might need to redirect
-          if ((err as any)?.response?.status === 401) {
-            toast.error("Authentication error", {
-              description: "Please log in again to continue",
-            });
-          }
-        });
+      initializeReferralCodeMutation.mutate();
     }
-  }, [error, refetch]);
+  }, [error]);
 
   const handleCopyReferralCode = async () => {
     if (referralStats?.referralCode) {
       await navigator.clipboard.writeText(referralStats.referralCode);
       toast.success("Referral code copied to clipboard!");
     }
-  };
-
-  const getMilestoneProgress = (
-    currentLevel: number,
-    successfulReferrals: number
-  ): number => {
-    // Level 0 to 1: Need 3 successful referrals
-    if (currentLevel === 0) {
-      return Math.min(100, (successfulReferrals / 3) * 100);
-    }
-
-    // Level 1 to 2: Need 9 successful referrals (3 referrals each from 3 people)
-    if (currentLevel === 1) {
-      return Math.min(100, (successfulReferrals / 9) * 100);
-    }
-
-    // Higher levels would follow similar pattern
-    return 0;
-  };
-
-  const getNextMilestoneRequirement = (currentLevel: number): string => {
-    if (currentLevel === 0) {
-      return "Refer 3 profiles who each reach 1000+ MyPts";
-    }
-
-    if (currentLevel === 1) {
-      return "Each of your 3 referred profiles must refer 3 more profiles who reach 1000+ MyPts";
-    }
-
-    if (currentLevel === 2) {
-      return "Continue building your referral network to reach Level 3";
-    }
-
-    return "You've reached the maximum milestone level!";
   };
 
   if (error) {

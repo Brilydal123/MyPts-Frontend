@@ -714,7 +714,7 @@ function SellTransactions() {
                 </div>
               </div>
 
-              {selectedTransaction?.metadata?.accountDetails?.paymentMethod === 'stripe' && (
+              {selectedTransaction?.metadata?.paymentMethod === 'stripe' && (
                 <div className="bg-blue-50 p-4 rounded-md">
                   <div className="flex items-start">
                     <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
@@ -732,6 +732,46 @@ function SellTransactions() {
                         If any of these conditions are not met, the transaction will still be marked as completed,
                         but you'll need to process the payment manually.
                       </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedTransaction?.metadata?.paymentMethod === 'bank_transfer' && (
+                <div className="bg-blue-50 p-4 rounded-md">
+                  <div className="flex items-start">
+                    <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-800">Bank Transfer Information</h4>
+                      <p className="text-sm text-blue-700">
+                        This transaction will attempt to create a direct bank payout using Stripe. For this to work:
+                      </p>
+                      <ul className="text-sm text-blue-700 list-disc ml-5 mt-1">
+                        <li>Your Stripe account must have sufficient funds to cover the payout amount</li>
+                        <li>The bank account details provided by the user must be valid</li>
+                        <li>The country of the bank account must be supported by Stripe</li>
+                      </ul>
+                      <p className="text-sm text-blue-700 mt-1">
+                        If automated payout fails, the system will fall back to manual processing. You'll need to
+                        transfer the funds manually and provide a payment reference.
+                      </p>
+
+                      {selectedTransaction?.metadata?.accountDetails && (
+                        <div className="mt-2 p-2 bg-white/50 rounded border border-blue-100">
+                          <h5 className="text-xs font-semibold text-blue-800 mb-1">Bank Account Details:</h5>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <div className="text-xs"><span className="font-medium">Name:</span> {selectedTransaction.metadata.accountDetails.accountName}</div>
+                            <div className="text-xs"><span className="font-medium">Bank:</span> {selectedTransaction.metadata.accountDetails.bankName}</div>
+                            <div className="text-xs"><span className="font-medium">Account #:</span> {selectedTransaction.metadata.accountDetails.accountNumber}</div>
+                            <div className="text-xs"><span className="font-medium">Routing #:</span> {selectedTransaction.metadata.accountDetails.routingNumber}</div>
+                            <div className="text-xs"><span className="font-medium">Country:</span> {selectedTransaction.metadata.accountDetails.country}</div>
+                            <div className="text-xs"><span className="font-medium">Type:</span> {selectedTransaction.metadata.accountDetails.accountType || 'Checking'}</div>
+                            {selectedTransaction.metadata.accountDetails.swiftCode && (
+                              <div className="text-xs col-span-2"><span className="font-medium">SWIFT/BIC:</span> {selectedTransaction.metadata.accountDetails.swiftCode}</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

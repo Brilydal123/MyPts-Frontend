@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import ReferralService, { ReferralTreeNode } from '@/services/referralService';
+import { ReferralTreeNode } from '@/services/referralService';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronRight, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useReferralTree } from '@/hooks/useReferrals';
 
 // Helper function to format profile name
 const formatProfileName = (profile: any) => {
@@ -203,10 +203,7 @@ const ReferralTree: React.FC = () => {
     isLoading,
     error,
     refetch
-  } = useQuery({
-    queryKey: ['referralTree'],
-    queryFn: () => ReferralService.getReferralTree(3), // Get 3 levels deep
-  });
+  } = useReferralTree(3); // Get 3 levels deep
 
   if (isLoading) {
     return (

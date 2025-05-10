@@ -47,13 +47,13 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
   const handleViewProfile = (profile: any) => {
     // Navigate to a profile detail view in the admin section
     router.push(`/admin/profiles/${profile._id}`);
-    toast.info(`Viewing profile: ${profile.name}`);
+    toast.info(`Viewing profile: ${profile.name || profile.username || 'Unnamed Profile'}`);
   };
 
   const handleEditProfile = (profile: any) => {
     // Navigate to the profile edit page in the admin section
     router.push(`/admin/profiles/edit/${profile._id}`);
-    toast.info(`Editing profile: ${profile.name}`);
+    toast.info(`Editing profile: ${profile.name || profile.username || 'Unnamed Profile'}`);
   };
 
   const handleRewardProfile = (profile: any) => {
@@ -111,8 +111,15 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
     const category = profile.type?.category || profile.profileCategory;
     const type = profile.type?.subtype || profile.profileType;
 
+    // Format category and type for display
+    const displayCategory = category ?
+      category.charAt(0).toUpperCase() + category.slice(1).toLowerCase() : 'Unknown';
+
+    const displayType = type ?
+      type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'Unknown';
+
     let color = '';
-    switch (category?.toLowerCase()) {
+    switch ((category || '').toLowerCase()) {
       case 'individual':
         color = 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
         break;
@@ -129,9 +136,9 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
     return (
       <div className="flex flex-col gap-1">
         <Badge variant="outline" className={color}>
-          {category || 'Unknown'}
+          {displayCategory}
         </Badge>
-        <span className="text-xs text-muted-foreground">{type || 'Unknown'}</span>
+        <span className="text-xs text-muted-foreground">{displayType}</span>
       </div>
     );
   };
@@ -152,7 +159,7 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
     );
   }
 
-  if (profiles.length === 0) {
+  if (!profiles || profiles.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">No profiles found</p>
@@ -182,20 +189,20 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
                     {profile.profileImage ? (
                       <img
                         src={profile.profileImage}
-                        alt={profile.name}
+                        alt={profile.profileInformation?.username || 'Profile'}
                         className="h-8 w-8 rounded-full object-cover"
                       />
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                         <span className="text-xs font-medium">
-                          {profile.name.charAt(0).toUpperCase()}
+                          {(profile.profileInformation?.username || profile.name || 'P').charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
                     <div>
-                      <div>{profile.name}</div>
+                      <div>{profile.profileInformation?.username || profile.name || 'Unnamed Profile'}</div>
                       <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {profile.description || 'No description'}
+                        {profile.description || profile.profileInformation?.bio || 'No description'}
                       </div>
                     </div>
                   </div>
@@ -206,7 +213,12 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
                     {profile.owner ? (
                       typeof profile.owner === 'string' ?
                         profile.owner.substring(0, 8) + '...' :
-                        profile.owner._id ? profile.owner._id.substring(0, 8) + '...' : 'Unknown'
+                        profile.owner?._id ? profile.owner._id.substring(0, 8) + '...' : 'Unknown'
+                    ) : profile.profileInformation?.creator ? (
+                      typeof profile.profileInformation.creator === 'string' ?
+                        profile.profileInformation.creator.substring(0, 8) + '...' :
+                        profile.profileInformation.creator.$oid ?
+                          profile.profileInformation.creator.$oid.substring(0, 8) + '...' : 'Unknown'
                     ) : 'Unknown'}
                   </div>
                 </TableCell>
@@ -214,13 +226,25 @@ export function ProfilesTable({ profiles, isLoading, onRefresh }: ProfilesTableP
                   <div className="text-sm">
                     {profile.createdAt ? (
                       formatDistanceToNow(new Date(profile.createdAt), { addSuffix: true })
+                    ) : profile.profileInformation?.createdAt ? (
+                      formatDistanceToNow(new Date(
+                        typeof profile.profileInformation.createdAt === 'string'
+                          ? profile.profileInformation.createdAt
+                          : profile.profileInformation.createdAt.$date || profile.profileInformation.createdAt
+                      ), { addSuffix: true })
                     ) : 'Unknown'}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={profile.claimed ? "default" : "outline"}>
-                    {profile.claimed ? 'Claimed' : 'Unclaimed'}
-                  </Badge>
+                  {profile.verificationStatus ? (
+                    <Badge variant={profile.verificationStatus.isVerified ? "default" : "outline"}>
+                      {profile.verificationStatus.isVerified ? 'Verified' : 'Unverified'}
+                    </Badge>
+                  ) : (
+                    <Badge variant={profile.claimed ? "default" : "outline"}>
+                      {profile.claimed ? 'Claimed' : 'Unclaimed'}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

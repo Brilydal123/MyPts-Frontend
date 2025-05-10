@@ -15,6 +15,7 @@ import { ArrowUpRight, ArrowDownRight, Info, ChevronLeft, ChevronRight } from 'l
 interface TransactionListProps {
   transactions: MyPtsTransaction[];
   isLoading?: boolean;
+  isFetching?: boolean; // Added to show fetching state
   pagination?: {
     total: number;
     limit: number;
@@ -27,6 +28,7 @@ interface TransactionListProps {
 export function TransactionList({
   transactions,
   isLoading = false,
+  isFetching = false,
   pagination,
   onPageChange,
 }: TransactionListProps) {
@@ -118,7 +120,15 @@ export function TransactionList({
 
   return (
     <div className="space-y-3 sm:space-y-4 w-full">
-      <div className="rounded-md border transition-all duration-300 hover:shadow-lg shadow-md bg-card overflow-hidden overflow-x-auto w-full">
+      <div className={`rounded-md border transition-all duration-300 hover:shadow-lg shadow-md bg-card overflow-hidden overflow-x-auto w-full relative ${isFetching ? 'opacity-70' : ''}`}>
+        {/* Fetching indicator overlay */}
+        {isFetching && !isLoading && (
+          <div className="absolute top-0 right-0 m-2 z-10 flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium animate-pulse">
+            <div className="h-2 w-2 rounded-full bg-primary animate-ping"></div>
+            Updating...
+          </div>
+        )}
+
         <Table className="w-full">
           <TableHeader>
             <TableRow>

@@ -118,6 +118,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <CreditCard className="h-5 w-5" />,
     },
     {
+      name: "Local Transactions",
+      href: "/admin/local-transactions",
+      icon: <Globe className="h-5 w-5" />,
+    },
+    {
       name: "Supply Transactions ",
       href: "/admin/transactions",
       icon: <History className="h-5 w-5" />,

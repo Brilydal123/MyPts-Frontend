@@ -20,17 +20,19 @@ export default function TransactionsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [selectedType, setSelectedType] = useState<TransactionType | null>(null);
 
-  // Use React Query hooks based on active tab
+  // Use React Query hooks based on active tab with enhanced caching
   const {
     data: allTransactionsData,
     isLoading: isAllTransactionsLoading,
-    refetch: refetchAllTransactions
+    refetch: refetchAllTransactions,
+    isFetching: isAllTransactionsFetching
   } = useTransactions(pagination.limit, pagination.offset);
 
   const {
     data: typeTransactionsData,
     isLoading: isTypeTransactionsLoading,
-    refetch: refetchTypeTransactions
+    refetch: refetchTypeTransactions,
+    isFetching: isTypeTransactionsFetching
   } = useTransactionsByType(selectedType, pagination.limit, pagination.offset);
 
   // Determine which data to use based on active tab
@@ -43,8 +45,9 @@ export default function TransactionsPage() {
     ? allTransactionsData?.pagination
     : typeTransactionsData?.pagination;
 
-  // Combined loading state
+  // Combined loading and fetching states
   const isLoading = activeTab === 'all' ? isAllTransactionsLoading : isTypeTransactionsLoading;
+  const isFetching = activeTab === 'all' ? isAllTransactionsFetching : isTypeTransactionsFetching;
 
   // Function to refresh the current data
   const refreshData = () => {
@@ -79,11 +82,11 @@ export default function TransactionsPage() {
             onClick={refreshData}
             variant="outline"
             size="sm"
-            disabled={isLoading}
+            disabled={isLoading || isFetching}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Refreshing...' : 'Refresh'}
+            <RefreshCw className={`h-4 w-4 ${isLoading || isFetching ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Loading...' : isFetching ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
 
@@ -124,6 +127,7 @@ export default function TransactionsPage() {
                 <TransactionList
                   transactions={transactions}
                   isLoading={isLoading}
+                  isFetching={isFetching}
                   pagination={currentPagination || {
                     total: 0,
                     limit: pagination.limit,
@@ -139,6 +143,7 @@ export default function TransactionsPage() {
                   <TransactionList
                     transactions={transactions}
                     isLoading={isLoading}
+                    isFetching={isFetching}
                     pagination={currentPagination || {
                       total: 0,
                       limit: pagination.limit,

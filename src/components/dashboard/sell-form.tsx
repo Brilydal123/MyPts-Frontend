@@ -23,7 +23,7 @@ const formSchema = z.object({
       ctx.path[2]?.toString() : undefined;
 
     if (paymentMethod === 'bank_transfer') {
-      // For bank transfer, require account name, number, and bank name
+      // For bank transfer, require account name, number, routing number, and bank name
       if (!data.accountName || data.accountName.trim() === '') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -38,11 +38,26 @@ const formSchema = z.object({
           path: ['accountNumber']
         });
       }
+      if (!data.routingNumber || data.routingNumber.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Routing number is required',
+          path: ['routingNumber']
+        });
+      }
       if (!data.bankName || data.bankName.trim() === '') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Bank name is required',
           path: ['bankName']
+        });
+      }
+      // Country is required for international transfers
+      if (!data.country || data.country.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Country is required',
+          path: ['country']
         });
       }
       // Swift code is optional
@@ -184,7 +199,7 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
     const details = values.accountDetails;
 
     if (values.paymentMethod === 'bank_transfer') {
-      if (!details.accountName || !details.accountNumber || !details.bankName) {
+      if (!details.accountName || !details.accountNumber || !details.routingNumber || !details.bankName || !details.country) {
         toast.error('Missing bank details', {
           description: 'Please provide all required bank account details',
         });
@@ -263,27 +278,42 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
               name="accountDetails.accountName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account Name</FormLabel>
+                  <FormLabel>Account Holder Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Account holder name" {...field} />
+                    <Input placeholder="Full name on account" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="accountDetails.accountNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Account number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="accountDetails.accountNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Account number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="accountDetails.routingNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Routing Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ACH routing number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="accountDetails.bankName"
@@ -297,15 +327,80 @@ export function SellForm({ balance, onSuccess }: SellFormProps) {
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="accountDetails.country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="US">United States</SelectItem>
+                        <SelectItem value="CA">Canada</SelectItem>
+                        <SelectItem value="GB">United Kingdom</SelectItem>
+                        <SelectItem value="AU">Australia</SelectItem>
+                        <SelectItem value="FR">France</SelectItem>
+                        <SelectItem value="DE">Germany</SelectItem>
+                        <SelectItem value="JP">Japan</SelectItem>
+                        <SelectItem value="SG">Singapore</SelectItem>
+                        <SelectItem value="HK">Hong Kong</SelectItem>
+                        <SelectItem value="CN">China</SelectItem>
+                        <SelectItem value="IN">India</SelectItem>
+                        <SelectItem value="BR">Brazil</SelectItem>
+                        <SelectItem value="MX">Mexico</SelectItem>
+                        <SelectItem value="ZA">South Africa</SelectItem>
+                        <SelectItem value="NG">Nigeria</SelectItem>
+                        <SelectItem value="KE">Kenya</SelectItem>
+                        <SelectItem value="GH">Ghana</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="accountDetails.swiftCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SWIFT/BIC Code (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="For international transfers" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
-              name="accountDetails.swiftCode"
+              name="accountDetails.accountType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>SWIFT/BIC Code (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="SWIFT or BIC code" {...field} />
-                  </FormControl>
+                  <FormLabel>Account Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value || "checking"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select account type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="checking">Checking</SelectItem>
+                      <SelectItem value="savings">Savings</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
