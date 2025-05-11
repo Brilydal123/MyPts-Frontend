@@ -10,6 +10,7 @@ interface RewardInvoiceProps {
   onClose: () => void;
   profileData: {
     id: string;
+    secondaryId?: string;
     name: string;
     type?: string;
     category?: string;
@@ -171,6 +172,13 @@ export function RewardInvoice({
 
                     <div className="text-muted-foreground">Profile ID:</div>
                     <div className="text-xs font-mono">{profileData.id}</div>
+
+                    {profileData.secondaryId && (
+                      <>
+                        <div className="text-muted-foreground">Secondary ID:</div>
+                        <div className="text-xs font-mono font-medium">{profileData.secondaryId}</div>
+                      </>
+                    )}
 
                     {profileData.type && (
                       <>

@@ -44,7 +44,16 @@ export default function RootLayout({
                       <div className="font-manrope">
                         {children}
                       </div>
-                      <Toaster position="top-right" richColors />
+                      <Toaster
+                        position="top-center"
+                        richColors
+                        closeButton
+                        toastOptions={{
+                          style: {
+                            minWidth: '300px',
+                          },
+                        }}
+                      />
                       {/* </LoadingProvider> */}
                       {/* </ExchangeRateProvider> */}
                     </NetworkStatusProvider>

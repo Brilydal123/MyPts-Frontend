@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200px" height="200px" viewBox="0 0 200 200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <title>Mobile Money</title>
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect fill="#E6F7FF" x="0" y="0" width="200" height="200" rx="10"></rect>
+        <g transform="translate(60, 40)">
+            <rect fill="#4A90E2" x="0" y="0" width="80" height="120" rx="10"></rect>
+            <rect fill="#FFFFFF" x="10" y="10" width="60" height="80" rx="5"></rect>
+            <circle fill="#4A90E2" cx="40" cy="110" r="5"></circle>
+            <g transform="translate(20, 30)" fill="#4A90E2">
+                <circle cx="5" cy="5" r="5"></circle>
+                <circle cx="25" cy="5" r="5"></circle>
+                <circle cx="45" cy="5" r="5"></circle>
+                <circle cx="5" cy="25" r="5"></circle>
+                <circle cx="25" cy="25" r="5"></circle>
+                <circle cx="45" cy="25" r="5"></circle>
+            </g>
+            <g transform="translate(25, 70)">
+                <rect fill="#4A90E2" x="0" y="0" width="30" height="10" rx="5"></rect>
+            </g>
+        </g>
+    </g>
+</svg>

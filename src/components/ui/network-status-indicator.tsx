@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { showOfflineToast, showOnlineToast, dismissNetworkToasts } from '@/lib/network-toast';
 
 interface NetworkStatusIndicatorProps {
   className?: string;
@@ -34,22 +35,72 @@ export function NetworkStatusIndicator({
     'inline': 'relative',
   };
 
+  // Track offline state for toast management
+  const [wasOffline, setWasOffline] = useState(false);
+
   // Show the indicator when status changes
   useEffect(() => {
     setVisible(true);
-    
+
     // If autoHide is enabled and we're online, hide after delay
     if (autoHide && isOnline) {
       const timer = setTimeout(() => {
         setVisible(false);
       }, hideDelay);
-      
+
       return () => clearTimeout(timer);
     }
-    
+
     // If offline or checking, always show
     return undefined;
   }, [status, isOnline, autoHide, hideDelay]);
+
+  // Handle network status changes and toast notifications
+  useEffect(() => {
+    // Skip during SSR
+    if (typeof window === 'undefined') return;
+
+    // Create a function to handle status changes to avoid dependency array issues
+    const handleNetworkStatusChange = () => {
+      // When going offline
+      if (isOffline) {
+        setWasOffline(true);
+        showOfflineToast();
+      }
+      // When coming back online after being offline
+      else if (isOnline && wasOffline) {
+        setWasOffline(false);
+        showOnlineToast();
+      }
+      // When checking connection after being offline
+      else if (isChecking && wasOffline) {
+        // Don't dismiss the offline toast yet, but update its content
+        // to indicate we're trying to reconnect
+        import('sonner').then(({ toast }) => {
+          toast.dismiss('network-offline-toast');
+          toast.error('Reconnecting...', {
+            id: 'network-offline-toast',
+            description: 'Checking your internet connection',
+            duration: Infinity,
+          });
+        });
+      }
+    };
+
+    // Call the handler function
+    handleNetworkStatusChange();
+
+    // Cleanup function to dismiss toasts when component unmounts
+    return () => {
+      if (isOffline) {
+        // Don't dismiss offline toast on unmount if we're still offline
+        // This ensures the toast persists across page navigations
+      } else {
+        // Dismiss all network toasts if we're online
+        dismissNetworkToasts();
+      }
+    };
+  }, [status, wasOffline]); // Only depend on status and wasOffline
 
   // Always show if inline
   useEffect(() => {
@@ -61,7 +112,7 @@ export function NetworkStatusIndicator({
   // Show again briefly when user interacts with the page
   useEffect(() => {
     if (position === 'inline') return;
-    
+
     const handleUserInteraction = () => {
       if (!visible && isOnline) {
         setVisible(true);
@@ -71,10 +122,10 @@ export function NetworkStatusIndicator({
         return () => clearTimeout(timer);
       }
     };
-    
+
     window.addEventListener('click', handleUserInteraction);
     window.addEventListener('keydown', handleUserInteraction);
-    
+
     return () => {
       window.removeEventListener('click', handleUserInteraction);
       window.removeEventListener('keydown', handleUserInteraction);
@@ -91,9 +142,9 @@ export function NetworkStatusIndicator({
           transition={{ duration: 0.3 }}
           className={cn(
             'flex items-center gap-2 rounded-full px-3 py-1.5 shadow-md',
-            isOnline ? 'bg-green-100 dark:bg-green-900/30' : 
-            isChecking ? 'bg-yellow-100 dark:bg-yellow-900/30' : 
-            'bg-red-100 dark:bg-red-900/30',
+            isOnline ? 'bg-green-100 dark:bg-green-900/30' :
+              isChecking ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                'bg-red-100 dark:bg-red-900/30',
             positionClasses[position],
             className
           )}
@@ -110,20 +161,20 @@ export function NetworkStatusIndicator({
           ) : (
             <WifiOff className="h-4 w-4 text-red-600 dark:text-red-400" />
           )}
-          
+
           {showLabel && (
-            <span 
+            <span
               className={cn(
                 'text-xs font-medium',
-                isOnline ? 'text-green-700 dark:text-green-300' : 
-                isChecking ? 'text-yellow-700 dark:text-yellow-300' : 
-                'text-red-700 dark:text-red-300'
+                isOnline ? 'text-green-700 dark:text-green-300' :
+                  isChecking ? 'text-yellow-700 dark:text-yellow-300' :
+                    'text-red-700 dark:text-red-300'
               )}
             >
               {isOnline ? 'Online' : isChecking ? 'Checking...' : 'Offline'}
             </span>
           )}
-          
+
           {isOffline && (
             <Button
               variant="ghost"

@@ -122,6 +122,7 @@ export default function RewardMyPtsPage() {
   const [invoiceData, setInvoiceData] = useState<{
     profileData: {
       id: string;
+      secondaryId?: string;
       name: string;
       type?: string;
       category?: string;
@@ -439,6 +440,7 @@ export default function RewardMyPtsPage() {
       setInvoiceData({
         profileData: {
           id: profileIdStr,
+          secondaryId: selectedProfileData.secondaryId,
           name: selectedProfileData.name || 'Unknown Profile',
           type: getProfileType(selectedProfileData),
           category: selectedProfileData.category,
@@ -504,6 +506,7 @@ export default function RewardMyPtsPage() {
       setInvoiceData({
         profileData: {
           id: profileIdStr,
+          secondaryId: selectedProfileData.secondaryId,
           name: selectedProfileData.name || 'Unknown Profile',
           type: getProfileType(selectedProfileData),
           category: selectedProfileData.category,
@@ -644,7 +647,7 @@ export default function RewardMyPtsPage() {
                 <Input
                   id="search-profiles"
                   type="search"
-                  placeholder="Search by name, email, or ID..."
+                  placeholder="Search by name, email, ID, or secondary ID..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-sm sm:text-base h-10 sm:h-12"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery((e.target as HTMLInputElement).value)} /* Corrected TS error */
@@ -731,6 +734,13 @@ export default function RewardMyPtsPage() {
                                 <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-gray-400" />
                                 <span>{profile.myPtsBalance ?? profile.ProfileMypts?.currentBalance ?? profile.balance ?? 0} MyPts</span>
                               </div>
+                              {profile.secondaryId && (
+                                <div className="flex items-center mt-1 w-full">
+                                  <span className="text-[10px] sm:text-xs font-medium text-gray-600">
+                                    Secondary ID: {profile.secondaryId}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -817,6 +827,11 @@ export default function RewardMyPtsPage() {
                           <p className="text-[10px] sm:text-xs text-gray-500 truncate">
                             ID: {selectedProfileData._id || selectedProfileData.id}
                           </p>
+                          {selectedProfileData.secondaryId && (
+                            <p className="text-[10px] sm:text-xs text-gray-500 truncate font-medium">
+                              Secondary ID: {selectedProfileData.secondaryId}
+                            </p>
+                          )}
                           {/* Assuming email is available in selectedProfileData */}
                           {selectedProfileData.email && (
                             <p className="text-[10px] sm:text-xs text-gray-500 truncate">

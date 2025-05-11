@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
+import { useProfiles } from '@/contexts/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +61,7 @@ import { getCurrencySymbol } from '@/lib/currency';
 
 export default function LocalTransactionsPage() {
   const router = useRouter();
+  const { fetchProfileById, getProfile } = useProfiles();
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<any[]>([]);
@@ -72,6 +74,7 @@ export default function LocalTransactionsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
 
   // Fetch transactions on component mount
   useEffect(() => {
@@ -89,6 +92,9 @@ export default function LocalTransactionsPage() {
       const response = await myPtsApi.getLocalTransactions();
       if (response.success && response.data) {
         setTransactions(response.data);
+
+        // Load profile data for each transaction to get secondary IDs
+        await loadProfileData(response.data);
       } else {
         toast.error('Failed to fetch transactions', {
           description: response.message || 'An error occurred',
@@ -104,6 +110,64 @@ export default function LocalTransactionsPage() {
     }
   };
 
+  // Load profile data for all transactions
+  const loadProfileData = async (transactionsData: any[]) => {
+    try {
+      // Create a set of unique profile IDs
+      const profileIds = new Set(transactionsData.map(t => t.profileId));
+
+      // Fetch profile data for each unique profile ID
+      const fetchPromises = Array.from(profileIds).map(async (profileId) => {
+        try {
+          // Try to get profile from context first
+          let profile = getProfile(profileId);
+
+          // If not found, fetch it
+          if (!profile) {
+            profile = await fetchProfileById(profileId);
+          }
+
+          return { profileId, profile };
+        } catch (error) {
+          console.warn(`Error fetching profile ${profileId}:`, error);
+          return { profileId, profile: null };
+        }
+      });
+
+      // Wait for all profile fetches to complete
+      const profileResults = await Promise.all(fetchPromises);
+
+      // Create a map of profile IDs to secondary IDs
+      const profileMap = new Map();
+      profileResults.forEach(({ profileId, profile }) => {
+        if (profile) {
+          profileMap.set(profileId, profile.secondaryId || null);
+        }
+      });
+
+      // Update transactions with secondary IDs
+      const updatedTransactions = transactionsData.map(transaction => {
+        const secondaryId = profileMap.get(transaction.profileId);
+        if (secondaryId && (!transaction.metadata || !transaction.metadata.profileSecondaryId)) {
+          return {
+            ...transaction,
+            metadata: {
+              ...(transaction.metadata || {}),
+              profileSecondaryId: secondaryId
+            }
+          };
+        }
+        return transaction;
+      });
+
+      // Update state with the enhanced transactions
+      setTransactions(updatedTransactions);
+      setProfilesLoaded(true);
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+    }
+  };
+
   const applyFilters = () => {
     let filtered = [...transactions];
 
@@ -114,6 +178,7 @@ export default function LocalTransactionsPage() {
         (transaction) =>
           transaction.profileId?.toLowerCase().includes(query) ||
           transaction._id?.toLowerCase().includes(query) ||
+          transaction.metadata?.profileSecondaryId?.toLowerCase().includes(query) ||
           transaction.metadata?.accountDetails?.accountName?.toLowerCase().includes(query) ||
           transaction.metadata?.accountDetails?.mobileNumber?.toLowerCase().includes(query) ||
           transaction.metadata?.accountDetails?.accountNumber?.toLowerCase().includes(query)
@@ -135,12 +200,64 @@ export default function LocalTransactionsPage() {
     setFilteredTransactions(filtered);
   };
 
-  const handleViewDetails = (transaction: any) => {
+  const handleViewDetails = async (transaction: any) => {
+    // If the transaction doesn't have a secondary ID, try to get it from the profile context
+    if (!transaction.metadata?.profileSecondaryId) {
+      try {
+        // Try to get profile from context first
+        let profile = getProfile(transaction.profileId);
+
+        // If not found, fetch it
+        if (!profile) {
+          profile = await fetchProfileById(transaction.profileId);
+        }
+
+        if (profile && profile.secondaryId) {
+          // Update the transaction with the secondary ID
+          transaction = {
+            ...transaction,
+            metadata: {
+              ...(transaction.metadata || {}),
+              profileSecondaryId: profile.secondaryId
+            }
+          };
+        }
+      } catch (error) {
+        console.warn(`Could not fetch secondary ID for profile ${transaction.profileId}:`, error);
+      }
+    }
+
     setSelectedTransaction(transaction);
     setIsDetailsDialogOpen(true);
   };
 
-  const handleApproveTransaction = (transaction: any) => {
+  const handleApproveTransaction = async (transaction: any) => {
+    // If the transaction doesn't have a secondary ID, try to get it from the profile context
+    if (!transaction.metadata?.profileSecondaryId) {
+      try {
+        // Try to get profile from context first
+        let profile = getProfile(transaction.profileId);
+
+        // If not found, fetch it
+        if (!profile) {
+          profile = await fetchProfileById(transaction.profileId);
+        }
+
+        if (profile && profile.secondaryId) {
+          // Update the transaction with the secondary ID
+          transaction = {
+            ...transaction,
+            metadata: {
+              ...(transaction.metadata || {}),
+              profileSecondaryId: profile.secondaryId
+            }
+          };
+        }
+      } catch (error) {
+        console.warn(`Could not fetch secondary ID for profile ${transaction.profileId}:`, error);
+      }
+    }
+
     setSelectedTransaction(transaction);
     setPaymentReference('');
     setAdminNotes('');
@@ -203,19 +320,146 @@ export default function LocalTransactionsPage() {
         return 'Mobile Money';
       case 'pakistani_local':
         return 'Pakistani Local';
+      case 'local':
+        return 'Local Payment';
       default:
         return method;
     }
+  };
+
+  const getPaymentMethodImage = (method: string, provider?: string) => {
+    // Default image path
+    let imagePath = '/images/payment-methods/default-payment.png';
+
+    // Determine image based on method and provider
+    if (method === 'mobile_money') {
+      if (provider?.toLowerCase().includes('mtn')) {
+        imagePath = '/images/payment-methods/mtn-mobile-money.png';
+      } else if (provider?.toLowerCase().includes('orange')) {
+        imagePath = '/images/payment-methods/orange-money.png';
+      } else if (provider?.toLowerCase().includes('airtel')) {
+        imagePath = '/images/payment-methods/airtel.png';
+      } else {
+        imagePath = '/images/payment-methods/mobile-money.png';
+      }
+    } else if (method === 'pakistani_local') {
+      if (provider?.toLowerCase().includes('easypaisa')) {
+        imagePath = '/images/payment-methods/easypaisa-logo.png';
+      } else if (provider?.toLowerCase().includes('jazzcash')) {
+        imagePath = '/images/payment-methods/jazzcash.png';
+      } else {
+        imagePath = '/images/payment-methods/pakistani-local.png';
+      }
+    } else if (method === 'local') {
+      imagePath = '/images/payment-methods/local-payment.png';
+    }
+
+    // Return a placeholder if the image doesn't exist
+    return imagePath;
+  };
+
+  // Function to get country flag URL based on country code or name
+  const getCountryFlag = (country?: string) => {
+    if (!country) return null;
+
+    // Map common country names to ISO codes
+    const countryMap: Record<string, string> = {
+      'cameroon': 'cm',
+      'pakistan': 'pk',
+      'nigeria': 'ng',
+      'ghana': 'gh',
+      'kenya': 'ke',
+      'south africa': 'za',
+      'uganda': 'ug',
+      'tanzania': 'tz',
+      'rwanda': 'rw',
+      'zambia': 'zm',
+      'zimbabwe': 'zw',
+      'ethiopia': 'et',
+      'egypt': 'eg',
+      'morocco': 'ma',
+      'algeria': 'dz',
+      'tunisia': 'tn',
+      'senegal': 'sn',
+      'ivory coast': 'ci',
+      'cote d\'ivoire': 'ci',
+      'mali': 'ml',
+      'burkina faso': 'bf',
+      'benin': 'bj',
+      'togo': 'tg',
+      'niger': 'ne',
+      'chad': 'td',
+      'sudan': 'sd',
+      'south sudan': 'ss',
+      'somalia': 'so',
+      'djibouti': 'dj',
+      'eritrea': 'er',
+      'liberia': 'lr',
+      'sierra leone': 'sl',
+      'guinea': 'gn',
+      'guinea-bissau': 'gw',
+      'gambia': 'gm',
+      'mauritania': 'mr',
+      'libya': 'ly',
+      'congo': 'cg',
+      'dr congo': 'cd',
+      'democratic republic of congo': 'cd',
+      'central african republic': 'cf',
+      'gabon': 'ga',
+      'equatorial guinea': 'gq',
+      'burundi': 'bi',
+      'malawi': 'mw',
+      'mozambique': 'mz',
+      'angola': 'ao',
+      'namibia': 'na',
+      'botswana': 'bw',
+      'lesotho': 'ls',
+      'swaziland': 'sz',
+      'eswatini': 'sz',
+      'madagascar': 'mg',
+      'mauritius': 'mu',
+      'comoros': 'km',
+      'seychelles': 'sc',
+      'cape verde': 'cv',
+      'sao tome and principe': 'st'
+    };
+
+    // Try to get the country code
+    let countryCode = country.toLowerCase();
+
+    // If it's a full country name, convert to code
+    if (countryMap[countryCode]) {
+      countryCode = countryMap[countryCode];
+    }
+
+    // If it's already a 2-letter code, use it directly
+    if (countryCode.length === 2) {
+      return `https://flagcdn.com/w80/${countryCode}.png`;
+    }
+
+    // If we couldn't determine the country code, return null
+    return null;
   };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Local Payment Transactions</h1>
-        <Button onClick={fetchTransactions} variant="outline" className="gap-2">
-          <RefreshCcw className="h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => loadProfileData(transactions)}
+            variant="outline"
+            className="gap-2"
+            disabled={isLoading || !profilesLoaded}
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Refresh Profiles
+          </Button>
+          <Button onClick={fetchTransactions} variant="outline" className="gap-2">
+            <RefreshCcw className="h-4 w-4" />
+            Refresh All
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -231,7 +475,7 @@ export default function LocalTransactionsPage() {
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder="Search by ID, name, or account number"
+                  placeholder="Search by ID, Secondary ID, name, or account number"
                   className="pl-8"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -290,6 +534,11 @@ export default function LocalTransactionsPage() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="ml-2">Loading transactions...</span>
             </div>
+          ) : !profilesLoaded ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading profile data...</span>
+            </div>
           ) : filteredTransactions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No transactions found matching your filters.
@@ -301,6 +550,7 @@ export default function LocalTransactionsPage() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Profile ID</TableHead>
+                    <TableHead>Secondary ID</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Status</TableHead>
@@ -314,6 +564,9 @@ export default function LocalTransactionsPage() {
                       <TableCell className="font-mono text-xs">
                         {transaction.profileId}
                       </TableCell>
+                      <TableCell className="font-mono text-xs font-medium">
+                        {transaction.metadata?.profileSecondaryId || '-'}
+                      </TableCell>
                       <TableCell>
                         <span className="font-medium">
                           {Math.abs(transaction.amount).toLocaleString()} MyPts
@@ -325,17 +578,56 @@ export default function LocalTransactionsPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        {getPaymentMethodLabel(transaction.metadata?.paymentMethod)}
-                        {transaction.metadata?.accountDetails?.provider && (
-                          <span className="block text-xs text-muted-foreground">
-                            {transaction.metadata.accountDetails.provider}
-                          </span>
-                        )}
-                        {transaction.metadata?.accountDetails?.methodType && (
-                          <span className="block text-xs text-muted-foreground">
-                            {transaction.metadata.accountDetails.methodType}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-white shadow-sm border border-gray-200 flex items-center justify-center p-1">
+                            <img
+                              src={getPaymentMethodImage(
+                                transaction.metadata?.paymentMethod,
+                                transaction.metadata?.accountDetails?.provider
+                              )}
+                              alt={getPaymentMethodLabel(transaction.metadata?.paymentMethod)}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                // If image fails to load, replace with a default icon
+                                (e.target as HTMLImageElement).src = '/images/payment-methods/default-payment.png';
+                              }}
+                            />
+                          </div>
+                          <div className="flex-grow">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">
+                                {getPaymentMethodLabel(transaction.metadata?.paymentMethod)}
+                              </span>
+
+                              {/* Country flag */}
+                              {transaction.metadata?.accountDetails?.country && getCountryFlag(transaction.metadata.accountDetails.country) && (
+                                <div className="w-5 h-3.5 overflow-hidden rounded-sm border border-gray-200 shadow-sm ml-1">
+                                  <img
+                                    src={getCountryFlag(transaction.metadata.accountDetails.country) || undefined}
+                                    alt={transaction.metadata.accountDetails.country}
+                                    className="w-full h-full object-cover"
+                                    title={transaction.metadata.accountDetails.country}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {transaction.metadata?.accountDetails?.provider && (
+                              <span className="block text-xs text-muted-foreground">
+                                {transaction.metadata.accountDetails.provider}
+                                {transaction.metadata?.accountDetails?.country && !getCountryFlag(transaction.metadata.accountDetails.country) && (
+                                  <span className="ml-1">({transaction.metadata.accountDetails.country})</span>
+                                )}
+                              </span>
+                            )}
+
+                            {transaction.metadata?.accountDetails?.methodType && (
+                              <span className="block text-xs text-muted-foreground">
+                                {transaction.metadata.accountDetails.methodType}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(transaction.status)}</TableCell>
                       <TableCell>
@@ -389,6 +681,14 @@ export default function LocalTransactionsPage() {
                   <div>{getStatusBadge(selectedTransaction.status)}</div>
                 </div>
                 <div>
+                  <h3 className="font-semibold text-sm">Profile ID</h3>
+                  <p className="font-mono text-xs">{selectedTransaction.profileId}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Secondary ID</h3>
+                  <p className="font-mono text-xs">{selectedTransaction.metadata?.profileSecondaryId || '-'}</p>
+                </div>
+                <div>
                   <h3 className="font-semibold text-sm">Created At</h3>
                   <p>{formatDateTime(selectedTransaction.createdAt)}</p>
                 </div>
@@ -414,6 +714,57 @@ export default function LocalTransactionsPage() {
               <div>
                 <h3 className="font-semibold mb-2">Payment Details</h3>
                 <div className="bg-muted p-3 rounded-md">
+                  {/* Payment Method with Image */}
+                  <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-200">
+                    <div className="w-14 h-14 rounded-md overflow-hidden flex-shrink-0 bg-white shadow-sm border border-gray-200 flex items-center justify-center p-1.5">
+                      <img
+                        src={getPaymentMethodImage(
+                          selectedTransaction.metadata?.paymentMethod,
+                          selectedTransaction.metadata?.accountDetails?.provider
+                        )}
+                        alt={getPaymentMethodLabel(selectedTransaction.metadata?.paymentMethod)}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          // If image fails to load, replace with a default icon
+                          (e.target as HTMLImageElement).src = '/images/payment-methods/default-payment.png';
+                        }}
+                      />
+                    </div>
+                    <div className="flex-grow">
+                      <div className="flex items-center gap-1">
+                        <p className="font-medium">
+                          {getPaymentMethodLabel(selectedTransaction.metadata?.paymentMethod)}
+                        </p>
+
+                        {/* Country flag */}
+                        {selectedTransaction.metadata?.accountDetails?.country && getCountryFlag(selectedTransaction.metadata.accountDetails.country) && (
+                          <div className="w-6 h-4 overflow-hidden rounded-sm border border-gray-200 shadow-sm ml-1">
+                            <img
+                              src={getCountryFlag(selectedTransaction.metadata.accountDetails.country) || undefined}
+                              alt={selectedTransaction.metadata.accountDetails.country}
+                              className="w-full h-full object-cover"
+                              title={selectedTransaction.metadata.accountDetails.country}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center">
+                        {selectedTransaction.metadata?.accountDetails?.provider && (
+                          <span className="block text-xs text-muted-foreground">
+                            {selectedTransaction.metadata.accountDetails.provider}
+                          </span>
+                        )}
+
+                        {selectedTransaction.metadata?.accountDetails?.country && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({selectedTransaction.metadata.accountDetails.country})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   {selectedTransaction.metadata?.paymentMethod === 'mobile_money' && (
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       <div>
@@ -541,6 +892,78 @@ export default function LocalTransactionsPage() {
                     </ol>
                   </div>
                 </div>
+              </div>
+
+              {/* Payment Method Display */}
+              <div className="bg-gray-50 p-4 rounded-md">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-md overflow-hidden flex-shrink-0 bg-white shadow-sm border border-gray-200 flex items-center justify-center p-1.5">
+                    <img
+                      src={getPaymentMethodImage(
+                        selectedTransaction.metadata?.paymentMethod,
+                        selectedTransaction.metadata?.accountDetails?.provider
+                      )}
+                      alt={getPaymentMethodLabel(selectedTransaction.metadata?.paymentMethod)}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        // If image fails to load, replace with a default icon
+                        (e.target as HTMLImageElement).src = '/images/payment-methods/default-payment.png';
+                      }}
+                    />
+                  </div>
+                  <div className="flex-grow">
+                    <div className="flex items-center gap-1">
+                      <p className="font-medium">
+                        {getPaymentMethodLabel(selectedTransaction.metadata?.paymentMethod)}
+                      </p>
+
+                      {/* Country flag */}
+                      {selectedTransaction.metadata?.accountDetails?.country && getCountryFlag(selectedTransaction.metadata.accountDetails.country) && (
+                        <div className="w-6 h-4 overflow-hidden rounded-sm border border-gray-200 shadow-sm ml-1">
+                          <img
+                            src={getCountryFlag(selectedTransaction.metadata.accountDetails.country) || undefined}
+                            alt={selectedTransaction.metadata.accountDetails.country}
+                            className="w-full h-full object-cover"
+                            title={selectedTransaction.metadata.accountDetails.country}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center">
+                      {selectedTransaction.metadata?.accountDetails?.provider && (
+                        <span className="block text-xs text-muted-foreground">
+                          {selectedTransaction.metadata.accountDetails.provider}
+                        </span>
+                      )}
+
+                      {selectedTransaction.metadata?.accountDetails?.country && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({selectedTransaction.metadata.accountDetails.country})
+                        </span>
+                      )}
+                    </div>
+
+                    {selectedTransaction.metadata?.accountDetails?.methodType && (
+                      <span className="block text-xs text-muted-foreground">
+                        {selectedTransaction.metadata.accountDetails.methodType}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Account Details Summary */}
+                {selectedTransaction.metadata?.accountDetails?.accountName && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-sm font-medium">Account Details:</p>
+                    <p className="text-sm">
+                      {selectedTransaction.metadata.accountDetails.accountName}
+                      {selectedTransaction.metadata.accountDetails.accountNumber && (
+                        <span className="ml-1">({selectedTransaction.metadata.accountDetails.accountNumber})</span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">

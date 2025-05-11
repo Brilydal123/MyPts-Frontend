@@ -121,7 +121,7 @@ export default function SelectProfilePage() {
   if (status === 'authenticated' || isSocialAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-xl">
           <h1 className="text-2xl font-bold mb-6 text-center">Select a Profile</h1>
           <NewProfileSelector />
           {/* <div className="mt-8">

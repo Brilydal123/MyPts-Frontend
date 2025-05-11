@@ -508,29 +508,103 @@ export class MyPtsApi extends ApiClient {
       paymentMethod?: string;
     } = {}
   ): Promise<ApiResponse<MyPtsTransaction[]>> {
-    const queryParams = new URLSearchParams();
+    try {
+      console.log('Fetching local payment transactions...');
 
-    if (params.limit) {
-      queryParams.append('limit', params.limit.toString());
+      // Build query parameters for the backend API
+      const queryParams = new URLSearchParams();
+
+      if (params.limit) {
+        queryParams.append('limit', params.limit.toString());
+      } else {
+        queryParams.append('limit', '100'); // Default to a higher limit to get all transactions
+      }
+
+      if (params.offset) {
+        queryParams.append('offset', params.offset.toString());
+      }
+
+      if (params.sort) {
+        queryParams.append('sort', params.sort);
+      }
+
+      if (params.status) {
+        queryParams.append('status', params.status);
+      }
+
+      // Always filter for local payment methods
+      queryParams.append('paymentMethod', 'mobile_money,pakistani_local,local');
+
+      // Add a timestamp to prevent caching
+      queryParams.append('_t', Date.now().toString());
+
+      // Log the URL we're calling
+      console.log(`Calling backend API: /my-pts/admin/transactions?${queryParams.toString()}`);
+
+      // Call the regular transactions endpoint with filters
+      const response = await this.get<any>(`/my-pts/admin/transactions?${queryParams.toString()}`);
+
+      console.log('Response status for /my-pts/admin/transactions?:', response.success ? 'Success' : 'Failed');
+      console.log('Response from /my-pts/admin/transactions?:', response);
+
+      // If the response is successful, filter the transactions to only include those with local payment methods
+      if (response.success && response.data && response.data.transactions) {
+        const localTransactions = response.data.transactions.filter((transaction: any) => {
+          const paymentMethod = transaction.metadata?.paymentMethod;
+          return paymentMethod === 'mobile_money' ||
+                 paymentMethod === 'pakistani_local' ||
+                 paymentMethod === 'local';
+        });
+
+        console.log(`Filtered ${response.data.transactions.length} transactions to ${localTransactions.length} local transactions`);
+
+        // Fetch profile details for each transaction to get secondary IDs
+        try {
+          // Create a map of profile IDs to avoid duplicate requests
+          const profileIds = new Set(localTransactions.map((t: any) => t.profileId));
+
+          // For each unique profile ID, fetch the profile details
+          for (const profileId of profileIds) {
+            try {
+              const profileResponse = await this.get<any>(`/profiles/${profileId}`);
+
+              if (profileResponse.success && profileResponse.data) {
+                const secondaryId = profileResponse.data.secondaryId || profileResponse.data.profile?.secondaryId;
+
+                // Update all transactions with this profile ID
+                localTransactions.forEach((transaction: any) => {
+                  if (transaction.profileId === profileId) {
+                    if (!transaction.metadata) {
+                      transaction.metadata = {};
+                    }
+                    transaction.metadata.profileSecondaryId = secondaryId;
+                  }
+                });
+              }
+            } catch (profileError) {
+              console.warn(`Could not fetch profile details for ${profileId}:`, profileError);
+            }
+          }
+        } catch (error) {
+          console.warn('Error fetching profile details for secondary IDs:', error);
+        }
+
+        // Return the filtered transactions with secondary IDs
+        return {
+          success: true,
+          data: localTransactions
+        };
+      }
+
+      // If we couldn't filter, return the response as is
+      return response;
+    } catch (error) {
+      console.error('Error fetching local transactions:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch local transactions'
+      };
     }
-
-    if (params.offset) {
-      queryParams.append('offset', params.offset.toString());
-    }
-
-    if (params.sort) {
-      queryParams.append('sort', params.sort);
-    }
-
-    if (params.status) {
-      queryParams.append('status', params.status);
-    }
-
-    if (params.paymentMethod) {
-      queryParams.append('paymentMethod', params.paymentMethod);
-    }
-
-    return this.get<MyPtsTransaction[]>(`/my-pts/admin/local-transactions?${queryParams.toString()}`);
   }
 
   /**
@@ -544,11 +618,26 @@ export class MyPtsApi extends ApiClient {
     transaction: MyPtsTransaction;
     message: string;
   }>> {
-    return this.post<any>(`/my-pts/admin/process-local-transaction`, {
-      transactionId,
-      paymentReference,
-      adminNotes
-    });
+    try {
+      console.log(`Processing local transaction: ${transactionId}`);
+
+      // Call the backend API directly to process the sell transaction
+      const response = await this.post<any>(`/my-pts/admin/process-sell`, {
+        transactionId,
+        paymentReference,
+        notes: adminNotes // Backend expects 'notes' instead of 'adminNotes'
+      });
+
+      console.log('Process transaction response:', response);
+
+      return response;
+    } catch (error) {
+      console.error('Error processing local transaction:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to process local transaction'
+      };
+    }
   }
 
   /**

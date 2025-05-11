@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200px" height="200px" viewBox="0 0 200 200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <title>Pakistani Local Payment</title>
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect fill="#F0F9E8" x="0" y="0" width="200" height="200" rx="10"></rect>
+        <g transform="translate(40, 40)">
+            <rect fill="#01411C" x="0" y="0" width="120" height="120" rx="10"></rect>
+            <circle fill="#FFFFFF" cx="95" cy="25" r="15"></circle>
+            <path d="M95,10 L98,20 L108,20 L100,26 L103,36 L95,30 L87,36 L90,26 L82,20 L92,20 Z" fill="#01411C"></path>
+            <rect fill="#FFFFFF" x="20" y="70" width="80" height="10" rx="5"></rect>
+            <rect fill="#FFFFFF" x="20" y="90" width="60" height="10" rx="5"></rect>
+        </g>
+    </g>
+</svg>

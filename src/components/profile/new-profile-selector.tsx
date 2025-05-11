@@ -11,6 +11,30 @@ import { AnimatedButton } from '@/components/ui/animated-button';
 import { GoogleAvatar } from '@/components/shared/google-avatar';
 import { Card } from '../ui/card';
 import { useProfileSelector } from '@/hooks/useProfileSelector';
+import { countries } from '@/components/ui/country-selector-data';
+
+// Helper function to get country flag from country name or code
+const getCountryFlag = (countryNameOrCode: string | undefined): string => {
+  if (!countryNameOrCode) return '';
+
+  // Try to find the country by name first
+  const countryByName = countries.find(
+    c => c.name.toLowerCase() === countryNameOrCode.toLowerCase()
+  );
+
+  if (countryByName) return countryByName.flag;
+
+  // If not found by name, try by code (assuming countryNameOrCode might be a 2-letter code)
+  if (countryNameOrCode.length === 2) {
+    const countryByCode = countries.find(
+      c => c.code.toLowerCase() === countryNameOrCode.toLowerCase()
+    );
+    if (countryByCode) return countryByCode.flag;
+  }
+
+  // If still not found, return a globe icon placeholder
+  return '🌐';
+};
 
 export function NewProfileSelector() {
   const router = useRouter();
@@ -23,62 +47,79 @@ export function NewProfileSelector() {
     selectProfileMutation
   } = useProfileSelector();
 
-  // Loading state - Apple-like design
+  // Loading state - Apple-like design with Framer Motion
   if (isLoading) {
     return (
-      <Card className='w-full max-w-md mx-auto'>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-md mx-auto px-4"
-        >
-          <div className="mb-8 text-center">
-            <p className="text-sm text-gray-500">Choose a profile to continue with MyPts</p>
-          </div>
-
-          <div className="space-y-3 mb-8">
-            {/* Just one loading skeleton for a cleaner look */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <Card className='w-full max-w-xl mx-auto max-md:max-w-full'>
+          <div className="w-full max-w-md mx-auto px-4">
             <motion.div
-              className="p-5 border border-gray-100 rounded-xl backdrop-blur-sm"
-              initial={{ opacity: 0, y: 15, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{
-                duration: 0.5,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              style={{
-                borderRadius: "16px",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)"
-              }}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 flex">
-                  {/* Avatar skeleton */}
-                  <Skeleton className="h-10 w-10 rounded-full mr-3 flex-shrink-0" />
-
-                  <div>
-                    <Skeleton className="h-5 w-[180px] mb-2 rounded-md" />
-                    <Skeleton className="h-4 w-[100px] mb-3 rounded-md" />
-                    <div className="flex items-center mt-4">
-                      <Skeleton className="h-9 w-9 rounded-full mr-3" />
-                      <Skeleton className="h-5 w-[100px] rounded-md" />
-                    </div>
-                  </div>
-                </div>
-                <Skeleton className="h-8 w-8 rounded-full" />
+              <div className="mb-8 text-center">
+                <p className="text-sm text-gray-500">Choose a profile to continue with MyPts</p>
               </div>
             </motion.div>
-          </div>
 
-          <Skeleton className="h-12 w-full rounded-xl mb-4" />
-        </motion.div>
-      </Card>
+            <div className="space-y-3 mb-8">
+              {/* Just one loading skeleton for a cleaner look */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+              >
+                <div
+                  className="p-5 border border-gray-100 rounded-xl backdrop-blur-sm"
+                  style={{
+                    borderRadius: "16px",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)"
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 flex">
+                      {/* Avatar skeleton */}
+                      <Skeleton className="h-10 w-10 rounded-full mr-3 flex-shrink-0" />
+
+                      <div>
+                        <Skeleton className="h-5 w-[180px] mb-2 rounded-md" />
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <Skeleton className="h-4 w-[100px] rounded-md" />
+                          <Skeleton className="h-4 w-[80px] rounded-md" />
+                          <Skeleton className="h-4 w-[120px] rounded-md" /> {/* Country flag skeleton */}
+                        </div>
+                        <div className="flex items-center mt-4">
+                          <Skeleton className="h-9 w-9 rounded-full mr-3" />
+                          <Skeleton className="h-5 w-[100px] rounded-md" />
+                        </div>
+                      </div>
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            >
+              <Skeleton className="h-12 w-full rounded-xl mb-4" />
+            </motion.div>
+          </div>
+        </Card>
+      </motion.div>
     );
   }
 
-  // No profiles found - Apple-like design
+  // No profiles found - Apple-like design with Framer Motion
   if (profiles.length === 0) {
     return (
       <motion.div
@@ -87,16 +128,26 @@ export function NewProfileSelector() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-md mx-auto px-4"
       >
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight mb-2">No Profiles Found</h1>
-          <p className="text-sm text-gray-500">You don't have any profiles yet</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight mb-2">No Profiles Found</h1>
+            <p className="text-sm text-gray-500">You don't have any profiles yet</p>
+            <div className="flex items-center justify-center mt-2">
+              <span className="text-2xl mr-2">🌎</span>
+              <span className="text-sm text-gray-500">Create a profile to get started</span>
+            </div>
+          </div>
+        </motion.div>
 
         <div className="mb-8 flex justify-center">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ delay: 0.3, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="w-32 h-32 rounded-full flex items-center justify-center"
           >
             <GoogleAvatar
@@ -111,7 +162,7 @@ export function NewProfileSelector() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ delay: 0.4, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
           <Button
             onClick={() => router.push("/create-profile")}
@@ -126,12 +177,12 @@ export function NewProfileSelector() {
 
   // Profile list - Apple-like design
   return (
-    <Card className='w-full max-w-md max-md:max-w-full mx-auto'>
+    <Card className='w-full max-w-xl max-md:max-w-full mx-auto'>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} // Apple-like spring easing
-        className="w-full max-w-md mx-auto px-4 max-md:px-1"
+        className="w-full max-w-xl max-md:max-w-full mx-auto px-4 max-md:px-1"
       >
         <div className="mb-8 text-center">
           <p className="text-sm text-gray-500">Choose a profile to continue with MyPts</p>
@@ -201,7 +252,7 @@ export function NewProfileSelector() {
                         <h3 className="font-medium text-base" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}>{profile.name}</h3>
                       </div>
 
-                      <div className="mt-1 flex items-center">
+                      <div className="mt-1 flex items-center flex-wrap gap-2">
                         <span
                           className="inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
                           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}
@@ -211,12 +262,74 @@ export function NewProfileSelector() {
 
                         {'secondaryId' in profile && profile.secondaryId && (
                           <span
-                            className="ml-2 inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-100"
+                            className="inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-100"
                             style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}
                           >
                             ID: {profile.secondaryId}
                           </span>
                         )}
+
+                        {/* Country flag display - safely access country data */}
+                        {(() => {
+                          // Try to get country from various possible locations in the profile object
+                          let country =
+                            // @ts-ignore - Handle potential missing properties
+                            profile.profileLocation?.country ||
+                            // @ts-ignore - Handle potential missing properties
+                            profile._rawProfile?.profileLocation?.country ||
+                            // @ts-ignore - Handle potential missing properties
+                            profile.countryOfResidence ||
+                            // @ts-ignore - Handle potential missing properties
+                            profile.country;
+
+                          // If country is not found in profile, try to get it from localStorage
+                          if (!country && typeof window !== 'undefined') {
+                            try {
+                              // Try to get user data from localStorage
+                              const userDataStr = localStorage.getItem('user');
+                              if (userDataStr) {
+                                const userData = JSON.parse(userDataStr);
+                                if (userData.countryOfResidence) {
+                                  country = userData.countryOfResidence;
+                                  console.log('Found country in localStorage:', country);
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error parsing user data from localStorage:', error);
+                            }
+                          }
+
+                          // Debug output
+                          console.log('Profile data:', {
+                            id: profile.id,
+                            name: profile.name,
+                            country: country,
+                            // Use optional chaining and type assertions to avoid TypeScript errors
+                            profileLocation: (profile as any).profileLocation,
+                            countryOfResidence: (profile as any).countryOfResidence,
+                            _rawProfile: (profile as any)._rawProfile
+                          });
+
+                          if (country) {
+                            return (
+                              <span
+                                className="inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100"
+                                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}
+                                title={country}
+                              >
+                                <span className="mr-1">{getCountryFlag(country)}</span>
+                                {country}
+                              </span>
+                            );
+                          }
+
+                          // If we still don't have a country, add a hidden flag for debugging
+                          return (
+                            <span className="hidden">
+                              No country found for profile {profile.id}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       {/* Balance display - Simple Apple-like design */}

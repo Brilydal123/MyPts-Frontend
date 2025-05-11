@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, startTransition, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { safeAuthCall, safeAuthAction } from '@/lib/auth/auth-error-handler';
 
 export function useAuth() {
   const { data: session, status } = useSession();
@@ -46,27 +47,66 @@ export function useAuth() {
 
         console.log('Admin status indicators:', indicators);
 
-        // Server-side verification
-        const adminUtilsModule = await import('@/lib/admin-utils');
+        // Server-side verification with error handling
+        const adminUtilsModule = await safeAuthCall(
+          async () => import('@/lib/admin-utils'),
+          {
+            checkAdminStatus: async () => ({
+              isAdmin: false,
+              sources: {
+                isAdminFromStorage: false,
+                isAdminFromCookies: false,
+                isAdminFromUserData: false,
+                isAdminFromSession: false,
+                isAdminFromNextData: false
+              }
+            }),
+            syncAdminStatus: (_isAdmin: boolean) => {},
+            verifyAndSyncAdminStatus: async () => false
+          },
+          'Admin utils import'
+        );
+
         if (!adminUtilsModule?.checkAdminStatus) {
-          throw new Error('Admin utils not available');
+          console.warn('Admin utils not available, using fallback');
+          setIsAdmin(false);
+          return;
         }
 
-        const { isAdmin: verifiedAdmin, sources } = await adminUtilsModule.checkAdminStatus();
+        // Check admin status with error handling
+        const { isAdmin: verifiedAdmin } = await safeAuthCall(
+          async () => adminUtilsModule.checkAdminStatus(),
+          {
+            isAdmin: false,
+            sources: {
+              isAdminFromStorage: false,
+              isAdminFromCookies: false,
+              isAdminFromUserData: false,
+              isAdminFromSession: false,
+              isAdminFromNextData: false
+            }
+          },
+          'Admin status check'
+        );
 
         if (verifiedAdmin) {
           // Synchronize admin status across all storage mechanisms
           const accessToken = session?.accessToken || localStorage.getItem('accessToken');
           if (accessToken) {
-            // Set secure httpOnly cookies via API
-            await fetch('/api/auth/sync-admin', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
+            // Set secure httpOnly cookies via API - use safeAuthAction to handle errors gracefully
+            await safeAuthAction(
+              async () => {
+                await fetch('/api/auth/sync-admin', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                  },
+                  credentials: 'include'
+                });
               },
-              credentials: 'include'
-            });
+              'Admin sync'
+            );
 
             // Update local storage
             localStorage.setItem('isAdmin', 'true');
@@ -86,7 +126,7 @@ export function useAuth() {
 
         setIsAdmin(verifiedAdmin);
         if (verifiedAdmin && mountedRef.current) {
-          await adminUtilsModule.syncAdminStatus(true);
+          adminUtilsModule.syncAdminStatus(true);
         }
       } catch (error) {
         console.error('Admin verification failed:', error);
@@ -131,31 +171,41 @@ export function useAuth() {
 
       // If token needs refresh, attempt to refresh before proceeding
       if (shouldRefreshToken && accessToken) {
-        fetch('/api/auth/frontend-refresh', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.accessToken) {
-            const newToken = data.accessToken;
-            localStorage.setItem('accessToken', newToken);
-            localStorage.setItem('tokenExpiry', String(now + 3600000)); // 1 hour expiry
+        // Use safeAuthAction to handle errors gracefully
+        safeAuthAction(async () => {
+          try {
+            const response = await fetch('/api/auth/frontend-refresh', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            });
 
-            // Update admin token if user has admin privileges
-            if (localStorage.getItem('isAdmin') === 'true' ||
-                document.cookie.includes('X-User-Role=admin')) {
-              localStorage.setItem('adminToken', newToken);
-              document.cookie = `X-Admin-Token=${newToken}; path=/`;
-              document.cookie = `Authorization=Bearer ${newToken}; path=/`;
+            const data = await response.json();
+
+            if (data.accessToken) {
+              const newToken = data.accessToken;
+              localStorage.setItem('accessToken', newToken);
+              localStorage.setItem('tokenExpiry', String(now + 3600000)); // 1 hour expiry
+
+              // Update admin token if user has admin privileges
+              if (localStorage.getItem('isAdmin') === 'true' ||
+                  document.cookie.includes('X-User-Role=admin')) {
+                localStorage.setItem('adminToken', newToken);
+                document.cookie = `X-Admin-Token=${newToken}; path=/`;
+                document.cookie = `Authorization=Bearer ${newToken}; path=/`;
+              }
+
+              console.log('Token refreshed successfully');
             }
+          } catch (error) {
+            console.error('Token refresh failed:', error);
+            // Set a shorter expiry to try again soon
+            localStorage.setItem('tokenExpiry', String(now + 300000)); // 5 minutes
           }
-        })
-        .catch(error => console.error('Token refresh failed:', error));
+        }, 'Token refresh');
       }
 
       // Function to set admin headers
@@ -335,20 +385,62 @@ export function useAuth() {
 
     const synchronizeAdminHeaders = async () => {
       try {
-        // First, ensure admin verification passes
-        const adminUtilsModule = await import('@/lib/admin-utils');
-        const { isAdmin: verifiedAdmin } = await adminUtilsModule.checkAdminStatus();
+        // First, ensure admin verification passes with error handling
+        const adminUtilsModule = await safeAuthCall(
+          async () => import('@/lib/admin-utils'),
+          {
+            checkAdminStatus: async () => ({
+              isAdmin: false,
+              sources: {
+                isAdminFromStorage: false,
+                isAdminFromCookies: false,
+                isAdminFromUserData: false,
+                isAdminFromSession: false,
+                isAdminFromNextData: false
+              }
+            }),
+            syncAdminStatus: (_isAdmin: boolean) => {},
+            verifyAndSyncAdminStatus: async () => false
+          },
+          'Admin utils import (headers sync)'
+        );
+
+        if (!adminUtilsModule?.checkAdminStatus) {
+          console.warn('Admin utils not available for headers sync, skipping');
+          return;
+        }
+
+        // Check admin status with error handling
+        const { isAdmin: verifiedAdmin } = await safeAuthCall(
+          async () => adminUtilsModule.checkAdminStatus(),
+          {
+            isAdmin: false,
+            sources: {
+              isAdminFromStorage: false,
+              isAdminFromCookies: false,
+              isAdminFromUserData: false,
+              isAdminFromSession: false,
+              isAdminFromNextData: false
+            }
+          },
+          'Admin status check (headers sync)'
+        );
 
         if (verifiedAdmin) {
-          // Set admin headers through API to ensure proper HttpOnly cookies
-          await fetch('/api/auth/admin/sync-headers', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
+          // Set admin headers through API to ensure proper HttpOnly cookies - use safeAuthAction to handle errors gracefully
+          await safeAuthAction(
+            async () => {
+              await fetch('/api/auth/admin/sync-headers', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+              });
             },
-            credentials: 'include'
-          });
+            'Admin headers sync'
+          );
 
           // Update local storage and cookies for client-side checks
           localStorage.setItem('adminToken', accessToken);

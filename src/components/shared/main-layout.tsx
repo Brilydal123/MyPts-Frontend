@@ -303,10 +303,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                     </div>
                   </div>
 
-                  {/* User network status */}
-                  <div className="px-3">
-                    <NetworkStatusIndicator position="inline" showLabel={true} autoHide={false} />
-                  </div>
+                  {/* User network status removed */}
                 </div>
               )}
               {!sidebarOpen && (
@@ -357,8 +354,8 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Global search component - available throughout the app */}
       <GlobalSearch defaultOpen={false} />
 
-      {/* Network status indicator */}
-      <NetworkStatusIndicator position="bottom-right" />
+      {/* Network status indicator - more subtle */}
+      <NetworkStatusIndicator position="bottom-right" showLabel={false} autoHide={true} hideDelay={2000} />
 
       {/* Route change loading indicator */}
       {/* <RouteChangeLoading /> */}
