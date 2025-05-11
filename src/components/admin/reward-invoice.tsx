@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Printer, X } from "lucide-react";
+import { Download, Printer, X, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 interface RewardInvoiceProps {
@@ -31,6 +31,7 @@ interface RewardInvoiceProps {
       name?: string;
       email?: string;
     };
+    isProcessing?: boolean;
   };
 }
 
@@ -79,28 +80,41 @@ export function RewardInvoice({
             <Card className="border-0 shadow-none">
               <CardHeader className="flex flex-row items-center justify-between pb-2 print:pb-4">
                 <div>
-                  <CardTitle className="text-xl font-bold print:text-2xl">MyPts Award Invoice</CardTitle>
+                  <CardTitle className="text-xl font-bold print:text-2xl">
+                    {transactionData.isProcessing ? (
+                      <div className="flex items-center">
+                        <span>Processing Award</span>
+                        <Loader2 className="ml-2 h-5 w-5 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      "MyPts Award Invoice"
+                    )}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground print:text-base">
                     Transaction ID: {transactionData.id}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 print:hidden">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handlePrint}
-                    title="Print Invoice"
-                  >
-                    <Printer className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleDownload}
-                    title="Download as PDF"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  {!transactionData.isProcessing && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handlePrint}
+                        title="Print Invoice"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleDownload}
+                        title="Download as PDF"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                   <Button
                     variant="outline"
                     size="icon"
@@ -113,19 +127,32 @@ export function RewardInvoice({
               </CardHeader>
 
               <CardContent className="space-y-6 pt-2">
+                {transactionData.isProcessing && (
+                  <div className="rounded-lg border border-blue-200 p-4 bg-blue-50 mb-4">
+                    <div className="flex items-center">
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin text-blue-500" />
+                      <h3 className="font-semibold text-blue-700 text-sm">Processing Your Award Request</h3>
+                    </div>
+                    <p className="text-blue-600 text-xs mt-1">
+                      Please wait while we process your award of {formatNumber(transactionData.amount)} MyPts.
+                      This may take a few moments to complete.
+                    </p>
+                  </div>
+                )}
+
                 {/* Transaction Details */}
                 <div className="rounded-lg border p-4 bg-muted/20">
                   <h3 className="font-semibold mb-2 text-sm">Transaction Details</h3>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div className="text-muted-foreground">Date & Time:</div>
                     <div>{formatDate(transactionData.timestamp)}</div>
-                    
+
                     <div className="text-muted-foreground">Amount:</div>
                     <div className="font-medium">{formatNumber(transactionData.amount)} MyPts</div>
-                    
+
                     <div className="text-muted-foreground">Reason:</div>
                     <div>{transactionData.reason}</div>
-                    
+
                     {transactionData.admin?.name && (
                       <>
                         <div className="text-muted-foreground">Awarded By:</div>
@@ -141,17 +168,17 @@ export function RewardInvoice({
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div className="text-muted-foreground">Profile Name:</div>
                     <div className="font-medium">{profileData.name}</div>
-                    
+
                     <div className="text-muted-foreground">Profile ID:</div>
                     <div className="text-xs font-mono">{profileData.id}</div>
-                    
+
                     {profileData.type && (
                       <>
                         <div className="text-muted-foreground">Type:</div>
                         <div>{profileData.type}</div>
                       </>
                     )}
-                    
+
                     {profileData.category && (
                       <>
                         <div className="text-muted-foreground">Category:</div>
@@ -182,7 +209,7 @@ export function RewardInvoice({
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Reserve Supply</p>
                       <div className="flex items-center justify-between">
@@ -200,7 +227,7 @@ export function RewardInvoice({
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Circulating Supply</p>
                       <div className="flex items-center justify-between">
@@ -233,8 +260,16 @@ export function RewardInvoice({
                   variant="default"
                   onClick={onClose}
                   className="bg-black hover:bg-slate-700 text-white"
+                  disabled={transactionData.isProcessing}
                 >
-                  Close Invoice
+                  {transactionData.isProcessing ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </div>
+                  ) : (
+                    "Close Invoice"
+                  )}
                 </Button>
               </CardFooter>
             </Card>

@@ -730,47 +730,52 @@ export class MyPtsValueApi extends ApiClient {
       // Log the response for debugging
       console.log('MyPts value response:', response);
 
-      // If the response is successful, handle special currency cases
+      // If the response is successful, map the backend response to the frontend interface
       if (response.success && response.data) {
-        // Handle case where valuePerPts is missing
-        if (!response.data.valuePerPts && !response.data.valuePerMyPt) {
-          console.warn('MyPts value is 0 or undefined, using fallback value');
-          response.data.valuePerPts = 0.024; // Default fallback value
-          response.data.symbol = response.data.symbol || response.data.baseSymbol || '$';
+        // Use type assertion to access backend model properties
+        const backendData = response.data as any;
+
+        // Map backend model to frontend interface if needed
+        if (backendData.baseValue !== undefined) {
+          console.log('Mapping backend response to frontend interface');
+
+          // Map baseValue to valuePerPts and valuePerMyPt for frontend compatibility
+          response.data.valuePerPts = backendData.baseValue;
+          response.data.valuePerMyPt = backendData.baseValue;
+          response.data.symbol = backendData.baseSymbol || '$';
+          response.data.lastUpdated = backendData.effectiveDate || backendData.updatedAt || new Date().toISOString();
+
+          console.log('Using current MyPts value from API:', backendData.baseValue);
         }
 
-        // Create a direct conversion map for currencies that have a fixed value per MyPt
-        const directConversions: Record<string, number> = {
-          'XAF': 13.61,  // 1 MyPt = 13.61 XAF
-          'EUR': 0.0208, // 1 MyPt = 0.0208 EUR
-          'GBP': 0.0179, // 1 MyPt = 0.0179 GBP
-          'NGN': 38.26,  // 1 MyPt = 38.26 NGN
-          'PKR': 6.74    // 1 MyPt = 6.74 PKR
-        };
-
-        // We no longer update the exchange rates from the API
-        // Instead, we'll use the direct conversion values when needed
-        // This avoids confusion between the two different types of rates
+        // Log the value being used
+        console.log('MyPts value being used:', response.data.valuePerPts || response.data.valuePerMyPt);
       }
 
       return response;
     } catch (error) {
       console.error('Error getting MyPts value:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to get MyPts value',
-        data: {
-          valuePerPts: 0.024, // Fallback value
-          valuePerMyPt: 0.024, // Fallback value
-          baseCurrency: 'USD',
-          baseSymbol: '$',
-          symbol: '$',
-          lastUpdated: new Date().toISOString(),
-          exchangeRates: [],
-          totalSupply: 0,
-          totalValueUSD: 0
+      // Instead of using hardcoded fallbacks, try to fetch from a different endpoint
+      try {
+        console.log('Attempting to fetch MyPts value from alternative endpoint...');
+
+        // Try the direct API endpoint as a fallback
+        const fallbackResponse = await fetch(`${API_URL}/my-pts-value/current`);
+
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          console.log('Successfully fetched from alternative endpoint:', fallbackData);
+
+          if (fallbackData.success && fallbackData.data) {
+            return fallbackData;
+          }
         }
-      };
+      } catch (fallbackError) {
+        console.error('Error fetching from alternative endpoint:', fallbackError);
+      }
+
+      // If all else fails, throw an error to trigger a retry
+      throw new Error('Failed to get MyPts value. Please try again later.');
     }
   }
 

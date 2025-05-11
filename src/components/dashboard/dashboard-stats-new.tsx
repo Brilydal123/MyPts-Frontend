@@ -113,22 +113,12 @@ export function DashboardStats({
           iconBgColor="bg-[#f5f5f7] dark:bg-[#2c2c2e]"
           value={currency === 'XAF' ? valuePerMyPt.toFixed(5) : valuePerMyPt.toFixed(6)}
           unit={currency}
-          subtitle={
-            <div className="flex items-center gap-1">
-              <span>{`${formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt ${isLoadingRates ? '(Loading rates...)' : usingFallbackRates ? '(Fallback rates)' : '(Live rates)'}`}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 rounded-full hover:bg-primary/10 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsExchangeRateModalOpen(true);
-                }}
-              >
-                <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
-              </Button>
-            </div>
-          }
+          subtitle={formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true }) + " per MyPt"}
+          action={{
+            icon: <Eye className="h-3.5 w-3.5" />,
+            label: isLoadingRates ? 'Loading rates...' : usingFallbackRates ? 'View rates (fallback)' : 'View rates (live)',
+            onClick: () => setIsExchangeRateModalOpen(true)
+          }}
           trend={{
             value: `${change.percentage.toFixed(2)}%`,
             isPositive: change.isPositive,

@@ -115,9 +115,10 @@ export default function RewardMyPtsPage() {
   const [awardApiError, setAwardApiError] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<string>('default');
   const [selectedProfileData, setSelectedProfileData] = useState<any | null>(null);
-  
+
   // State for invoice data
   const [showInvoice, setShowInvoice] = useState(false);
+  const [isProcessingAward, setIsProcessingAward] = useState(false);
   const [invoiceData, setInvoiceData] = useState<{
     profileData: {
       id: string;
@@ -142,6 +143,7 @@ export default function RewardMyPtsPage() {
         name?: string;
         email?: string;
       };
+      isProcessing?: boolean;
     };
   } | null>(null);
 
@@ -373,29 +375,105 @@ export default function RewardMyPtsPage() {
     setIsAwarding(true);
     setAwardSuccess(false);
     setAwardApiError(null); // Reset error state at the beginning
+    setIsProcessingAward(true);
 
     try {
-      // Ensure profileId is a string for the API call
-      const profileIdStr = selectedProfileId.toString();
+      // Ensure we have the selected profile data
+      if (!selectedProfileData) {
+        throw new Error("Selected profile data is missing");
+      }
+
+      // Get the profile ID, ensuring we use the correct format
+      // Use the _id property if available, otherwise use id
+      const rawProfileId = selectedProfileData._id || selectedProfileData.id;
+      const profileIdStr = rawProfileId.toString();
       const reasonText = reason.trim() || "Admin reward";
 
-      console.log(`Attempting to award ${amount} MyPts to profile ${profileIdStr}`);
+      // Check if the profile ID is in the correct format (24 character hex string)
+      const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(profileIdStr);
 
-      // Get profile balance before award
-      const profileBeforeResponse = await profileApi.getProfileById(profileIdStr, true);
-      const profileBalanceBefore = profileBeforeResponse.data?.myPtsBalance || 0;
-      
+      // Log detailed information about the profile ID
+      console.log('Profile ID details:', {
+        rawId: rawProfileId,
+        stringId: profileIdStr,
+        idType: typeof rawProfileId,
+        idLength: profileIdStr.length,
+        isValidObjectId: isValidObjectId,
+        secondaryId: selectedProfileData.secondaryId,
+        fullProfileData: selectedProfileData
+      });
+
+      // If the profile ID is not in the correct format, try to use the secondaryId
+      if (!isValidObjectId && selectedProfileData.secondaryId) {
+        console.log('Using secondaryId instead of invalid ObjectId');
+        throw new Error('Invalid profile ID format. Please try selecting the profile again.');
+      }
+
+      // Ensure the profile ID is a valid MongoDB ObjectId
+      if (!/^[0-9a-fA-F]{24}$/.test(profileIdStr)) {
+        throw new Error(`Invalid profile ID format: ${profileIdStr}. Must be a 24-character hex string.`);
+      }
+
+      console.log(`Attempting to award ${amount} MyPts to profile ${profileIdStr}`);
+      console.log('Using profile data from state:', selectedProfileData);
+
+      // Get the current balance from the selected profile data
+      // Try different possible locations for the balance
+      const profileBalanceBefore =
+        selectedProfileData.myPtsBalance ||
+        selectedProfileData.ProfileMypts?.currentBalance ||
+        selectedProfileData.balance ||
+        0;
+
       // Get hub state before award
       const hubStateBefore = await myPtsHubApi.getHubState();
       const hubDataBefore = hubStateBefore.data || {
         reserveSupply: 0,
         circulatingSupply: 0
       };
-      
+
       console.log('Profile balance before award:', profileBalanceBefore);
       console.log('Hub state before award:', hubDataBefore);
 
+      // Show the invoice with processing state before starting the award process
+      setInvoiceData({
+        profileData: {
+          id: profileIdStr,
+          name: selectedProfileData.name || 'Unknown Profile',
+          type: getProfileType(selectedProfileData),
+          category: selectedProfileData.category,
+          balanceBefore: profileBalanceBefore,
+          balanceAfter: profileBalanceBefore + Number(amount) // Estimated after balance
+        },
+        hubData: {
+          reserveSupplyBefore: hubDataBefore.reserveSupply,
+          reserveSupplyAfter: hubDataBefore.reserveSupply - Number(amount), // Estimated after values
+          circulatingSupplyBefore: hubDataBefore.circulatingSupply,
+          circulatingSupplyAfter: hubDataBefore.circulatingSupply + Number(amount) // Estimated after values
+        },
+        transactionData: {
+          id: 'Processing...',
+          amount: Number(amount),
+          reason: reasonText,
+          timestamp: new Date(),
+          admin: {
+            name: typeof window !== 'undefined' ? localStorage.getItem('userName') || 'Admin' : 'Admin',
+            email: typeof window !== 'undefined' ? localStorage.getItem('userEmail') || undefined : undefined
+          },
+          isProcessing: true
+        }
+      });
+
+      // Show the invoice immediately
+      setShowInvoice(true);
+
       // Use our mutation to award MyPts
+      console.log('Using award mutation with these parameters:', {
+        profileId: profileIdStr,
+        amount: Number(amount),
+        reason: reasonText
+      });
+
       const awardResponse = await awardMyPtsMutation.mutateAsync({
         profileId: profileIdStr,
         amount: Number(amount),
@@ -405,28 +483,30 @@ export default function RewardMyPtsPage() {
       setAwardedAmount(amount);
       setAwardSuccess(true);
 
-      // Get profile balance after award
-      await refreshMyPtsBalanceMutation.mutateAsync(profileIdStr);
-      const profileAfterResponse = await profileApi.getProfileById(profileIdStr, true);
-      const profileBalanceAfter = profileAfterResponse.data?.myPtsBalance || 0;
-      
+      // Get the new balance from the response or calculate it
+      const profileBalanceAfter = awardResponse.data?.newBalance ||
+        awardResponse.data?.balance ||
+        (profileBalanceBefore + Number(amount));
+
+      console.log('New balance after award:', profileBalanceAfter);
+
       // Get hub state after award
       const hubStateAfter = await myPtsHubApi.getHubState();
       const hubDataAfter = hubStateAfter.data || {
         reserveSupply: 0,
         circulatingSupply: 0
       };
-      
+
       console.log('Profile balance after award:', profileBalanceAfter);
       console.log('Hub state after award:', hubDataAfter);
-      
-      // Prepare invoice data
+
+      // Update invoice data with actual values after award is complete
       setInvoiceData({
         profileData: {
           id: profileIdStr,
-          name: profileAfterResponse.data?.name || 'Unknown Profile',
-          type: getProfileType(profileAfterResponse.data),
-          category: profileAfterResponse.data?.category,
+          name: selectedProfileData.name || 'Unknown Profile',
+          type: getProfileType(selectedProfileData),
+          category: selectedProfileData.category,
           balanceBefore: profileBalanceBefore,
           balanceAfter: profileBalanceAfter
         },
@@ -437,35 +517,90 @@ export default function RewardMyPtsPage() {
           circulatingSupplyAfter: hubDataAfter.circulatingSupply
         },
         transactionData: {
-          id: awardResponse.data?.transaction?.id || 'Unknown',
+          id: awardResponse.data?.transaction?.id || awardResponse.data?.transaction?._id || 'Unknown',
           amount: Number(amount),
           reason: reasonText,
           timestamp: new Date(),
           admin: {
             name: typeof window !== 'undefined' ? localStorage.getItem('userName') || 'Admin' : 'Admin',
             email: typeof window !== 'undefined' ? localStorage.getItem('userEmail') || undefined : undefined
-          }
+          },
+          isProcessing: false
         }
       });
-      
-      // Show the invoice
-      setShowInvoice(true);
 
-      // Refresh the selected profile data
+      // Update the selected profile data with the new balance
       if (selectedProfileData) {
-        // Refetch the profile data
-        refetchProfile();
+        // Update the local state with the new balance
+        const updatedProfileData = {
+          ...selectedProfileData,
+          myPtsBalance: profileBalanceAfter,
+          balance: profileBalanceAfter,
+          ProfileMypts: {
+            ...(selectedProfileData.ProfileMypts || {}),
+            currentBalance: profileBalanceAfter,
+            lifetimeMypts: (selectedProfileData.ProfileMypts?.lifetimeMypts || 0) + Number(amount)
+          }
+        };
 
-        // Also refetch all profiles to update the list
-        refetchAllProfiles();
+        setSelectedProfileData(updatedProfileData);
+
+        // Refetch all profiles to update the list in the background
+        // This ensures the list is updated but doesn't block the UI
+        setTimeout(() => {
+          refetchAllProfiles();
+        }, 1000);
       }
     } catch (error: any) {
       console.error("Award MyPts failed:", error);
-      const errorMessage = error?.data?.message || error?.message || "An unexpected error occurred.";
+
+      // Try to extract the most useful error message
+      let errorMessage = "An unexpected error occurred.";
+
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      // Log detailed error information
+      console.error('Detailed error information:', {
+        errorObject: error,
+        errorMessage,
+        profileId: selectedProfileData?._id || selectedProfileData?.id,
+        amount,
+        reason
+      });
+
       setAwardSuccess(false);
       setAwardApiError(errorMessage);
+
+      // Close the invoice if there's an error
+      setShowInvoice(false);
+
+      // Show a more detailed error message
+      toast.error(`Award failed: ${errorMessage}`);
+
+      // If the error is related to profile not found, suggest reselecting the profile
+      if (errorMessage.includes('profile not found') || errorMessage.includes('not owned by user')) {
+        toast.error('Please try selecting the profile again', {
+          description: 'The profile may have been deleted or you may not have permission to award MyPts to it.',
+          duration: 5000
+        });
+      }
+
+      // If the error is related to authentication, suggest logging in again
+      if (errorMessage.includes('Unauthorized') || errorMessage.includes('Authentication token')) {
+        toast.error('Your session may have expired', {
+          description: 'Please try logging out and logging back in.',
+          duration: 5000
+        });
+      }
     } finally {
       setIsAwarding(false);
+      setIsProcessingAward(false);
     }
   };
 
@@ -511,7 +646,7 @@ export default function RewardMyPtsPage() {
                   type="search"
                   placeholder="Search by name, email, or ID..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-sm sm:text-base h-10 sm:h-12"
-                  value={searchQuery} 
+                  value={searchQuery}
                   onChange={(e) => setSearchQuery((e.target as HTMLInputElement).value)} /* Corrected TS error */
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
@@ -813,7 +948,7 @@ export default function RewardMyPtsPage() {
                         </AlertDescription>
                       </Alert>
                     )}
-                    
+
                     {/* View Invoice Button (only show after successful award) */}
                     {awardSuccess && invoiceData && (
                       <motion.div

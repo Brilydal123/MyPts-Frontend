@@ -5,6 +5,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { GlobalSearch } from "@/components/shared/global-search";
 
 import { Button } from "@/components/ui/button";
+import { NetworkStatusIndicator } from "@/components/ui/network-status-indicator";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut as LogOutIcon, Settings as SettingsIcon } from "lucide-react";
 import Image from "next/image";
@@ -286,18 +287,25 @@ export function MainLayout({ children }: MainLayoutProps) {
 
               {/* User profile at the very bottom */}
               {sidebarOpen && (
-                <div className="flex items-center p-3 mt-2">
-                  <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || (isAdmin ? "Admin" : "User")}
-                    size={32}
-                    className="mr-3"
-                  />
-                  <div className="text-sm">
-                    <p className="font-medium text-white dark:text-gray-200">
-                      {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
-                    </p>
-                    <p className="text-white dark:text-gray-400 text-xs truncate">{user?.email}</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center p-3">
+                    <GoogleAvatar
+                      profileImageUrl={user?.profileImage || ""}
+                      fallbackText={user?.fullName || user?.name || (isAdmin ? "Admin" : "User")}
+                      size={32}
+                      className="mr-3"
+                    />
+                    <div className="text-sm">
+                      <p className="font-medium text-white dark:text-gray-200">
+                        {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                      </p>
+                      <p className="text-white dark:text-gray-400 text-xs truncate">{user?.email}</p>
+                    </div>
+                  </div>
+
+                  {/* User network status */}
+                  <div className="px-3">
+                    <NetworkStatusIndicator position="inline" showLabel={true} autoHide={false} />
                   </div>
                 </div>
               )}
@@ -348,6 +356,9 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Global search component - available throughout the app */}
       <GlobalSearch defaultOpen={false} />
+
+      {/* Network status indicator */}
+      <NetworkStatusIndicator position="bottom-right" />
 
       {/* Route change loading indicator */}
       {/* <RouteChangeLoading /> */}

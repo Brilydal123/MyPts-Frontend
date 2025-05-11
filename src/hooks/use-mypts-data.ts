@@ -73,9 +73,23 @@ export function useMyPtsValue() {
       if (!response.success) {
         throw new Error(response.message || 'Failed to fetch value data');
       }
+
+      // Log the value being used in the hook
+      if (response.data) {
+        console.log('MyPts value from API:',
+          response.data.valuePerPts ||
+          response.data.valuePerMyPt ||
+          (response.data as any).baseValue
+        );
+      }
+
       return response.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes - reduced to get fresher data
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Refetch when component mounts
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 

@@ -72,9 +72,8 @@ export function BalanceCard({
 
   // State to store the calculated value per MyPt
   const [valuePerMyPt, setValuePerMyPt] = useState<number>(() => {
-    // Initialize with value from balance
-    // Use a consistent base value (0.024 USD per MyPt is the standard)
-    return 0.024;
+    // Initialize with value from balance if available
+    return balance.value?.valuePerMyPt || 0;
   });
 
   // State to store the formatted total value
@@ -91,16 +90,26 @@ export function BalanceCard({
     }
   };
 
-  // Update the value per MyPt when exchange rates or currency changes
+  // Update the value per MyPt when exchange rates, currency, or balance changes
   useEffect(() => {
     let newValue: number;
     let useFallback = false;
 
-    // Define a consistent base value for MyPts in USD (0.024 USD per MyPt is the standard)
-    const baseValueInUsd = 0.024;
+    // First, try to use the value from the balance object (from API)
+    if (balance.value?.valuePerMyPt) {
+      console.log('Using valuePerMyPt from balance:', balance.value.valuePerMyPt);
+      newValue = balance.value.valuePerMyPt;
+      useFallback = false;
+    }
+    // If balance doesn't have the value, use exchange rates
+    else if (exchangeRates) {
+      // Get the base value from the balance if available
+      const baseValueInUsd = balance.value?.valuePerMyPt ||
+        (balance as any)?.value?.baseValue ||
+        (balance as any)?.baseValue;
 
-    // If we have exchange rates from the API
-    if (exchangeRates) {
+      console.log('Using baseValueInUsd for conversion:', baseValueInUsd);
+
       // If the selected currency is USD, use the base value
       if (currency === 'USD') {
         newValue = baseValueInUsd;
@@ -121,15 +130,15 @@ export function BalanceCard({
         }
       }
     } else {
-      // No exchange rates, use the base value
-      newValue = baseValueInUsd;
+      // No exchange rates, use the value from balance
+      newValue = balance.value?.valuePerMyPt || 0;
       useFallback = true;
     }
 
     // Update state
     setValuePerMyPt(newValue);
     setUsingFallbackRates(useFallback);
-  }, [exchangeRates, currency]);
+  }, [exchangeRates, currency, balance]);
 
   // Update the formatted total value when valuePerMyPt or balance changes
   useEffect(() => {

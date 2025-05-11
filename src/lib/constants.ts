@@ -8,7 +8,7 @@ export const REQUEST_TIMEOUT = 60000; // 10 seconds
 // Enable mock mode when server is not available
 export const ENABLE_MOCK_MODE = true; // Set to false in production
 // MyPts value constants
-export const DEFAULT_MYPTS_VALUE = 0.024; // Default value per MyPt in USD
+export const DEFAULT_MYPTS_VALUE = 0.0251123654235; // Updated value per MyPt in USD
 
 // Currency conversion rates (direct conversions)
 export const DIRECT_CONVERSIONS: Record<string, { value: number, symbol: string }> = {
