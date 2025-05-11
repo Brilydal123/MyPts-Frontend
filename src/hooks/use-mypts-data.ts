@@ -493,3 +493,40 @@ export function useDeleteNotification() {
     },
   });
 }
+
+// Mutation hook for updating profile basic info (username and description)
+export function useUpdateProfileBasicInfo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      profileId,
+      username,
+      description
+    }: {
+      profileId: string;
+      username: string;
+      description?: string;
+    }) => {
+      const response = await profileApi.updateProfileBasicInfo(profileId, { username, description });
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to update profile basic info');
+      }
+      return response.data;
+    },
+    onSuccess: (data, variables) => {
+      // Show success toast
+      toast.success('Profile information updated successfully');
+
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['profileInfo', variables.profileId] });
+      queryClient.invalidateQueries({ queryKey: ['profileInfo'] });
+    },
+    onError: (error: any) => {
+      // Show error toast
+      toast.error('Failed to update profile information', {
+        description: error.message || 'An unexpected error occurred'
+      });
+    }
+  });
+}

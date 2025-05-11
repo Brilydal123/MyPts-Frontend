@@ -48,20 +48,20 @@ export function useAuth() {
         console.log('Admin status indicators:', indicators);
 
         // Server-side verification with error handling
-        const adminUtilsModule = await safeAuthCall(
+        const adminUtilsModule = await safeAuthCall<typeof import('@/lib/admin-utils')>(
           async () => import('@/lib/admin-utils'),
           {
             checkAdminStatus: async () => ({
               isAdmin: false,
-              sources: {
-                isAdminFromStorage: false,
-                isAdminFromCookies: false,
-                isAdminFromUserData: false,
-                isAdminFromSession: false,
-                isAdminFromNextData: false
+              sources: {} as {
+                isAdminFromStorage: boolean;
+                isAdminFromCookies: boolean;
+                isAdminFromUserData: boolean;
+                isAdminFromSession: boolean;
+                isAdminFromNextData: boolean;
               }
             }),
-            syncAdminStatus: (_isAdmin: boolean) => {},
+            syncAdminStatus: () => {},
             verifyAndSyncAdminStatus: async () => false
           },
           'Admin utils import'
@@ -78,12 +78,12 @@ export function useAuth() {
           async () => adminUtilsModule.checkAdminStatus(),
           {
             isAdmin: false,
-            sources: {
-              isAdminFromStorage: false,
-              isAdminFromCookies: false,
-              isAdminFromUserData: false,
-              isAdminFromSession: false,
-              isAdminFromNextData: false
+            sources: {} as {
+              isAdminFromStorage: boolean;
+              isAdminFromCookies: boolean;
+              isAdminFromUserData: boolean;
+              isAdminFromSession: boolean;
+              isAdminFromNextData: boolean;
             }
           },
           'Admin status check'
@@ -126,6 +126,7 @@ export function useAuth() {
 
         setIsAdmin(verifiedAdmin);
         if (verifiedAdmin && mountedRef.current) {
+          // Call syncAdminStatus without await since it doesn't return a promise
           adminUtilsModule.syncAdminStatus(true);
         }
       } catch (error) {
@@ -386,20 +387,20 @@ export function useAuth() {
     const synchronizeAdminHeaders = async () => {
       try {
         // First, ensure admin verification passes with error handling
-        const adminUtilsModule = await safeAuthCall(
+        const adminUtilsModule = await safeAuthCall<typeof import('@/lib/admin-utils')>(
           async () => import('@/lib/admin-utils'),
           {
             checkAdminStatus: async () => ({
               isAdmin: false,
-              sources: {
-                isAdminFromStorage: false,
-                isAdminFromCookies: false,
-                isAdminFromUserData: false,
-                isAdminFromSession: false,
-                isAdminFromNextData: false
+              sources: {} as {
+                isAdminFromStorage: boolean;
+                isAdminFromCookies: boolean;
+                isAdminFromUserData: boolean;
+                isAdminFromSession: boolean;
+                isAdminFromNextData: boolean;
               }
             }),
-            syncAdminStatus: (_isAdmin: boolean) => {},
+            syncAdminStatus: () => {},
             verifyAndSyncAdminStatus: async () => false
           },
           'Admin utils import (headers sync)'
@@ -415,12 +416,12 @@ export function useAuth() {
           async () => adminUtilsModule.checkAdminStatus(),
           {
             isAdmin: false,
-            sources: {
-              isAdminFromStorage: false,
-              isAdminFromCookies: false,
-              isAdminFromUserData: false,
-              isAdminFromSession: false,
-              isAdminFromNextData: false
+            sources: {} as {
+              isAdminFromStorage: boolean;
+              isAdminFromCookies: boolean;
+              isAdminFromUserData: boolean;
+              isAdminFromSession: boolean;
+              isAdminFromNextData: boolean;
             }
           },
           'Admin status check (headers sync)'

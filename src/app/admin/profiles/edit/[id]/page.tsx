@@ -126,37 +126,46 @@ export default function EditProfilePage({ params, searchParams }: PageProps) {
     try {
       console.log('Submitting form with values:', values);
 
-      const payload = {
-        name: values.name,
-        description: values.description,
+      // First, update the basic info (username and description) using our new API endpoint
+      const basicInfoResponse = await profileApi.updateProfileBasicInfo(profileId, {
+        username: values.name,
+        description: values.description || ''
+      });
+
+      if (!basicInfoResponse.success) {
+        throw new Error(basicInfoResponse.message || 'Failed to update basic profile information');
+      }
+
+      // Then update the profile type information using the admin API
+      const typePayload = {
         type: {
           category: values.profileCategory,
           subtype: values.profileType,
         },
       };
 
-      const response = await fetch(`/api/admin/profiles/${profileId}`, {
+      const typeResponse = await fetch(`/api/admin/profiles/${profileId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(typePayload),
         credentials: 'include',
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
+      if (!typeResponse.ok) {
+        throw new Error('Failed to update profile type information');
       }
 
-      const data = await response.json();
+      const typeData = await typeResponse.json();
 
-      if (data.success) {
+      if (typeData.success) {
         toast.success('Profile updated successfully');
         // Navigate back to profile detail page
         router.push(`/admin/profiles/${profileId}`);
       } else {
-        toast.error('Failed to update profile', {
-          description: data.message || 'An error occurred',
+        toast.error('Failed to update profile type', {
+          description: typeData.message || 'An error occurred',
         });
       }
     } catch (error) {

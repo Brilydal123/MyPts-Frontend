@@ -137,23 +137,28 @@ export default function LocalTransactionsPage() {
       // Wait for all profile fetches to complete
       const profileResults = await Promise.all(fetchPromises);
 
-      // Create a map of profile IDs to secondary IDs
+      // Create a map of profile IDs to profile data
       const profileMap = new Map();
       profileResults.forEach(({ profileId, profile }) => {
         if (profile) {
-          profileMap.set(profileId, profile.secondaryId || null);
+          // Store the profile data we need
+          profileMap.set(profileId, {
+            secondaryId: profile.secondaryId || null,
+            name: profile.name || profile.username || null
+          });
         }
       });
 
-      // Update transactions with secondary IDs
+      // Update transactions with profile data
       const updatedTransactions = transactionsData.map(transaction => {
-        const secondaryId = profileMap.get(transaction.profileId);
-        if (secondaryId && (!transaction.metadata || !transaction.metadata.profileSecondaryId)) {
+        const profileData = profileMap.get(transaction.profileId);
+        if (profileData) {
           return {
             ...transaction,
             metadata: {
               ...(transaction.metadata || {}),
-              profileSecondaryId: secondaryId
+              profileSecondaryId: profileData.secondaryId || transaction.metadata?.profileSecondaryId,
+              profileName: profileData.name
             }
           };
         }
@@ -178,6 +183,7 @@ export default function LocalTransactionsPage() {
         (transaction) =>
           transaction.profileId?.toLowerCase().includes(query) ||
           transaction._id?.toLowerCase().includes(query) ||
+          transaction.metadata?.profileName?.toLowerCase().includes(query) ||
           transaction.metadata?.profileSecondaryId?.toLowerCase().includes(query) ||
           transaction.metadata?.accountDetails?.accountName?.toLowerCase().includes(query) ||
           transaction.metadata?.accountDetails?.mobileNumber?.toLowerCase().includes(query) ||
@@ -201,8 +207,8 @@ export default function LocalTransactionsPage() {
   };
 
   const handleViewDetails = async (transaction: any) => {
-    // If the transaction doesn't have a secondary ID, try to get it from the profile context
-    if (!transaction.metadata?.profileSecondaryId) {
+    // If the transaction doesn't have profile data, try to get it from the profile context
+    if (!transaction.metadata?.profileSecondaryId || !transaction.metadata?.profileName) {
       try {
         // Try to get profile from context first
         let profile = getProfile(transaction.profileId);
@@ -212,18 +218,19 @@ export default function LocalTransactionsPage() {
           profile = await fetchProfileById(transaction.profileId);
         }
 
-        if (profile && profile.secondaryId) {
-          // Update the transaction with the secondary ID
+        if (profile) {
+          // Update the transaction with the profile data
           transaction = {
             ...transaction,
             metadata: {
               ...(transaction.metadata || {}),
-              profileSecondaryId: profile.secondaryId
+              profileSecondaryId: profile.secondaryId || transaction.metadata?.profileSecondaryId,
+              profileName: profile.name || profile.username || transaction.metadata?.profileName
             }
           };
         }
       } catch (error) {
-        console.warn(`Could not fetch secondary ID for profile ${transaction.profileId}:`, error);
+        console.warn(`Could not fetch profile data for profile ${transaction.profileId}:`, error);
       }
     }
 
@@ -232,8 +239,8 @@ export default function LocalTransactionsPage() {
   };
 
   const handleApproveTransaction = async (transaction: any) => {
-    // If the transaction doesn't have a secondary ID, try to get it from the profile context
-    if (!transaction.metadata?.profileSecondaryId) {
+    // If the transaction doesn't have profile data, try to get it from the profile context
+    if (!transaction.metadata?.profileSecondaryId || !transaction.metadata?.profileName) {
       try {
         // Try to get profile from context first
         let profile = getProfile(transaction.profileId);
@@ -243,18 +250,19 @@ export default function LocalTransactionsPage() {
           profile = await fetchProfileById(transaction.profileId);
         }
 
-        if (profile && profile.secondaryId) {
-          // Update the transaction with the secondary ID
+        if (profile) {
+          // Update the transaction with the profile data
           transaction = {
             ...transaction,
             metadata: {
               ...(transaction.metadata || {}),
-              profileSecondaryId: profile.secondaryId
+              profileSecondaryId: profile.secondaryId || transaction.metadata?.profileSecondaryId,
+              profileName: profile.name || profile.username || transaction.metadata?.profileName
             }
           };
         }
       } catch (error) {
-        console.warn(`Could not fetch secondary ID for profile ${transaction.profileId}:`, error);
+        console.warn(`Could not fetch profile data for profile ${transaction.profileId}:`, error);
       }
     }
 
@@ -359,8 +367,8 @@ export default function LocalTransactionsPage() {
   };
 
   // Function to get country flag URL based on country code or name
-  const getCountryFlag = (country?: string) => {
-    if (!country) return null;
+  const getCountryFlag = (country?: string): string => {
+    if (!country) return '/images/flags/placeholder-flag.png';
 
     // Map common country names to ISO codes
     const countryMap: Record<string, string> = {
@@ -437,8 +445,8 @@ export default function LocalTransactionsPage() {
       return `https://flagcdn.com/w80/${countryCode}.png`;
     }
 
-    // If we couldn't determine the country code, return null
-    return null;
+    // If we couldn't determine the country code, return a placeholder
+    return '/images/flags/placeholder-flag.png';
   };
 
   return (
@@ -549,7 +557,7 @@ export default function LocalTransactionsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead>Profile ID</TableHead>
+                    <TableHead>Profile</TableHead>
                     <TableHead>Secondary ID</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Payment Method</TableHead>
@@ -561,8 +569,15 @@ export default function LocalTransactionsPage() {
                   {filteredTransactions.map((transaction) => (
                     <TableRow key={transaction._id}>
                       <TableCell>{formatDate(transaction.createdAt)}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {transaction.profileId}
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">
+                            {transaction.metadata?.profileName || 'Unknown'}
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {transaction.profileId}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="font-mono text-xs font-medium">
                         {transaction.metadata?.profileSecondaryId || '-'}
@@ -603,7 +618,7 @@ export default function LocalTransactionsPage() {
                               {transaction.metadata?.accountDetails?.country && getCountryFlag(transaction.metadata.accountDetails.country) && (
                                 <div className="w-5 h-3.5 overflow-hidden rounded-sm border border-gray-200 shadow-sm ml-1">
                                   <img
-                                    src={getCountryFlag(transaction.metadata.accountDetails.country) || undefined}
+                                    src={getCountryFlag(transaction.metadata.accountDetails.country)}
                                     alt={transaction.metadata.accountDetails.country}
                                     className="w-full h-full object-cover"
                                     title={transaction.metadata.accountDetails.country}
@@ -681,8 +696,9 @@ export default function LocalTransactionsPage() {
                   <div>{getStatusBadge(selectedTransaction.status)}</div>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Profile ID</h3>
-                  <p className="font-mono text-xs">{selectedTransaction.profileId}</p>
+                  <h3 className="font-semibold text-sm">Profile</h3>
+                  <p className="font-medium">{selectedTransaction.metadata?.profileName || 'Unknown'}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{selectedTransaction.profileId}</p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Secondary ID</h3>
@@ -740,7 +756,7 @@ export default function LocalTransactionsPage() {
                         {selectedTransaction.metadata?.accountDetails?.country && getCountryFlag(selectedTransaction.metadata.accountDetails.country) && (
                           <div className="w-6 h-4 overflow-hidden rounded-sm border border-gray-200 shadow-sm ml-1">
                             <img
-                              src={getCountryFlag(selectedTransaction.metadata.accountDetails.country) || undefined}
+                              src={getCountryFlag(selectedTransaction.metadata.accountDetails.country)}
                               alt={selectedTransaction.metadata.accountDetails.country}
                               className="w-full h-full object-cover"
                               title={selectedTransaction.metadata.accountDetails.country}
@@ -882,7 +898,10 @@ export default function LocalTransactionsPage() {
                   <div>
                     <h4 className="text-sm font-medium text-blue-800">Manual Processing Required</h4>
                     <p className="text-sm text-blue-700">
-                      This transaction requires manual processing. Please follow these steps:
+                      Processing transaction for <strong>{selectedTransaction.metadata?.profileName || 'Unknown'}</strong>
+                      {selectedTransaction.metadata?.profileSecondaryId &&
+                        <span className="font-mono"> (ID: {selectedTransaction.metadata.profileSecondaryId})</span>
+                      }
                     </p>
                     <ol className="text-sm text-blue-700 list-decimal ml-5 mt-1">
                       <li>Verify the payment details provided by the user</li>
@@ -921,7 +940,7 @@ export default function LocalTransactionsPage() {
                       {selectedTransaction.metadata?.accountDetails?.country && getCountryFlag(selectedTransaction.metadata.accountDetails.country) && (
                         <div className="w-6 h-4 overflow-hidden rounded-sm border border-gray-200 shadow-sm ml-1">
                           <img
-                            src={getCountryFlag(selectedTransaction.metadata.accountDetails.country) || undefined}
+                            src={getCountryFlag(selectedTransaction.metadata.accountDetails.country)}
                             alt={selectedTransaction.metadata.accountDetails.country}
                             className="w-full h-full object-cover"
                             title={selectedTransaction.metadata.accountDetails.country}

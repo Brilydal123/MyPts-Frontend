@@ -236,9 +236,20 @@ export default function ProfileDetailPage({ params, searchParams }: PageProps) {
             Back
           </Button>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
-            <h1 className="text-2xl sm:text-3xl font-bold">
-              {profile.profileInformation?.username || profile.name || 'Unnamed Profile'}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                {profile.profileInformation?.username || profile.name || 'Unnamed Profile'}
+              </h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleEditProfile}
+                title="Edit profile"
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+            </div>
             <div className="flex items-center gap-2">
               {getProfileTypeBadge()}
               {profile.verificationStatus ? (
@@ -293,8 +304,19 @@ export default function ProfileDetailPage({ params, searchParams }: PageProps) {
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium">Description</p>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <p className="font-medium">Description</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={handleEditProfile}
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
                 <p className="text-muted-foreground">{profile.description || 'No description provided'}</p>
               </div>
             </div>

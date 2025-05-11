@@ -78,7 +78,7 @@ export function useProfileSelector() {
           if (userData) {
             const defaultProfile = {
               id: userData.id + '_default',
-              name: userData.fullName || userData.username || 'My Profile',
+              name: userData.fullName,
               username: userData.username || '',
               description: 'Default profile',
               profileType: 'personal',

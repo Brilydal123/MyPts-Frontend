@@ -42,7 +42,6 @@ import { TransactionStatus } from '@/components/dashboard/transaction-status';
 import { PaymentMethodSelector } from '@/components/payment/payment-method-selector';
 import {
   AlertCircle,
-  CreditCard,
   HelpCircle,
   Info,
   DollarSign,
@@ -448,7 +447,7 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                   <FormField
                     control={form.control}
                     name="paymentMethod"
-                    render={({ field }) => (
+                    render={() => (
                       <FormItem>
                         <FormLabel className="text-base font-medium">Payment Method</FormLabel>
                         <FormControl>
@@ -468,15 +467,15 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                                   {
                                     id: "mobile_money",
                                     name: "Mobile Money",
-                                    icon: "/images/payment/mobile-money.svg",
+                                    icon: "/images/payment-methods/mtn-mobile-money.png",
                                     description: "MTN Mobile Money",
                                     disabled: false
                                   },
                                   {
                                     id: "pakistani_local",
                                     name: "Pakistani Methods",
-                                    icon: "/images/payment/pakistani-local.svg",
-                                    description: "EasyPaisa & more",
+                                    icon: "/images/payment-methods/pakistani-local.png",
+                                    description: "EasyPaisa & JazzCash",
                                     disabled: false
                                   },
                                   {
@@ -548,10 +547,24 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="mtn">MTN Mobile Money</SelectItem>
-                                  <SelectItem value="airtel">Airtel Money</SelectItem>
-                                  <SelectItem value="vodafone">Vodafone Cash</SelectItem>
-                                  <SelectItem value="orange">Orange Money</SelectItem>
+                                  <SelectItem value="mtn">
+                                    <div className="flex items-center gap-2">
+                                      <img src="/images/payment-methods/mtn.png" alt="MTN" className="h-4 w-4 object-contain" />
+                                      MTN Mobile Money
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="airtel">
+                                    <div className="flex items-center gap-2">
+                                      <img src="/images/payment-methods/airtel.png" alt="Airtel" className="h-4 w-4 object-contain" />
+                                      Airtel Money
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="orange">
+                                    <div className="flex items-center gap-2">
+                                      <img src="/images/payment-methods/orange-money.png" alt="Orange" className="h-4 w-4 object-contain" />
+                                      Orange Money
+                                    </div>
+                                  </SelectItem>
                                   <SelectItem value="other">Other (specify in notes)</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -682,8 +695,18 @@ export function RobustSellForm({ balance, onSuccess, currency, onCurrencyChange 
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="easypaisa">EasyPaisa</SelectItem>
-                                  <SelectItem value="jazzcash">JazzCash</SelectItem>
+                                  <SelectItem value="easypaisa">
+                                    <div className="flex items-center gap-2">
+                                      <img src="/images/payment-methods/easypaisa.png" alt="EasyPaisa" className="h-4 w-4 object-contain" />
+                                      EasyPaisa
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="jazzcash">
+                                    <div className="flex items-center gap-2">
+                                      <img src="/images/payment-methods/jazzcash.png" alt="JazzCash" className="h-4 w-4 object-contain" />
+                                      JazzCash
+                                    </div>
+                                  </SelectItem>
                                   <SelectItem value="ubl">UBL</SelectItem>
                                   <SelectItem value="hbl">HBL</SelectItem>
                                   <SelectItem value="meezan">Meezan Bank</SelectItem>

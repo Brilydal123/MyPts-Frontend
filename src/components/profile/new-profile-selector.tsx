@@ -249,7 +249,10 @@ export function NewProfileSelector() {
 
                     <div>
                       <div className="flex items-center ">
-                        <h3 className="font-medium text-base" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}>{profile.name}</h3>
+                        <h3 className="font-medium text-base" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}>
+                          {/* Display only the user's name without the profile type suffix */}
+                          {profile.name.replace(/ (Personal|Professional|Business|Academic|Medical|Emergency|Group|Team|Family) Profile$/, '')}
+                        </h3>
                       </div>
 
                       <div className="mt-1 flex items-center flex-wrap gap-2">
@@ -295,20 +298,9 @@ export function NewProfileSelector() {
                                 }
                               }
                             } catch (error) {
-                              console.error('Error parsing user data from localStorage:', error);
+                              // console.error('Error parsing user data from localStorage:', error);
                             }
                           }
-
-                          // Debug output
-                          console.log('Profile data:', {
-                            id: profile.id,
-                            name: profile.name,
-                            country: country,
-                            // Use optional chaining and type assertions to avoid TypeScript errors
-                            profileLocation: (profile as any).profileLocation,
-                            countryOfResidence: (profile as any).countryOfResidence,
-                            _rawProfile: (profile as any)._rawProfile
-                          });
 
                           if (country) {
                             return (

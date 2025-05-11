@@ -201,8 +201,8 @@ export class ProfileApi {
           baseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
         }
 
-        // Format the name as "Name ProfileType Profile"
-        profile.formattedName = `${baseName} ${profileType} Profile`;
+        // Format the name (just the name without profile type)
+        profile.formattedName = baseName;
 
         // Cache individual profiles
         if (profile._id) {
@@ -308,8 +308,8 @@ export class ProfileApi {
           baseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
         }
 
-        // Format the name as "Name ProfileType Profile"
-        profile.formattedName = `${baseName} ${profileType} Profile`;
+        // Format the name (just the name without profile type)
+        profile.formattedName = baseName;
 
         // Cache the profile
         this.cacheProfile(profileId, profile);
@@ -506,6 +506,74 @@ export class ProfileApi {
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to fetch profiles',
+      };
+    }
+  }
+
+  /**
+   * Update profile basic information (username and description)
+   */
+  async updateProfileBasicInfo(
+    profileId: string,
+    data: { username: string; description?: string }
+  ): Promise<ApiResponse<any>> {
+    try {
+      const headers = await this.getHeaders();
+      console.log(`Making PUT request to ${API_URL}/profiles/p/${profileId}/basic-info`, {
+        headers,
+        data
+      });
+
+      const response = await fetch(`${API_URL}/profiles/p/${profileId}/basic-info`, {
+        method: 'PUT',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+
+      console.log(`Response from /profiles/p/${profileId}/basic-info:`, {
+        status: response.status,
+        statusText: response.statusText
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: responseData.message || 'Failed to update profile basic info',
+          error: responseData.error,
+        };
+      }
+
+      // Update the cache with the new profile data
+      if (responseData.success && responseData.profile) {
+        this.cacheProfile(profileId, responseData.profile);
+
+        // Also update the profile in the user profiles cache if it exists
+        if (this.userProfilesCache) {
+          const profiles = this.userProfilesCache.data;
+          const profileIndex = profiles.findIndex((p: any) => p._id === profileId);
+
+          if (profileIndex !== -1) {
+            profiles[profileIndex] = responseData.profile;
+            this.userProfilesCache = {
+              data: profiles,
+              timestamp: Date.now()
+            };
+          }
+        }
+      }
+
+      return {
+        success: true,
+        data: responseData.profile,
+      };
+    } catch (error) {
+      console.error(`Error in updateProfileBasicInfo:`, error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update profile basic info',
       };
     }
   }

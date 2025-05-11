@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { useProfileInfo } from "@/hooks/use-mypts-data";
 import { countries } from "@/components/ui/country-selector-data";
+import { ProfileEditForm } from "./profile-edit-form";
+import { Pencil } from "lucide-react";
 
 // Helper function to get country flag from country name or code
 const getCountryFlag = (countryNameOrCode: string | undefined): string => {
@@ -31,28 +35,25 @@ const getCountryFlag = (countryNameOrCode: string | undefined): string => {
 const formatProfileName = (profile: any) => {
   if (!profile) return '';
 
-  // Extract profile type for display
+  // Get the base name (either username or name)
+  let baseName = profile.name;
+
+  // Extract profile type for display (for use in badges, not in the name)
   const profileType = profile.profileType
     ? profile.profileType.charAt(0).toUpperCase() + profile.profileType.slice(1)
     : profile.type?.subtype
       ? profile.type.subtype.charAt(0).toUpperCase() + profile.type.subtype.slice(1)
       : '';
 
-  // Get the base name (either username or name)
-  let baseName = profile.name;
-
-  // If the name already includes the profile type and "Profile", return it as is
-  if (baseName && baseName.includes(profileType) && baseName.includes('Profile')) {
-    return baseName;
-  }
-
-  // Extract just the name part (without profile type and "Profile")
+  // Clean up the name if needed
   if (baseName) {
     // Remove any existing "Profile" suffix
     baseName = baseName.replace(/\s+Profile$/i, '');
 
-    // Remove any existing profile type
-    baseName = baseName.replace(new RegExp(`\\s+${profileType}\\s*`, 'i'), ' ');
+    // Remove any existing profile type suffix
+    if (profileType) {
+      baseName = baseName.replace(new RegExp(`\\s+${profileType}\\s*$`, 'i'), '');
+    }
 
     // Trim any extra spaces
     baseName = baseName.trim();
@@ -63,25 +64,46 @@ const formatProfileName = (profile: any) => {
     }
   }
 
-  // Format the name as "Name ProfileType Profile"
-  return `${baseName} ${profileType} `;
+  // Return just the name without appending the profile type
+  return baseName;
 };
 
 interface ProfileInfoProps {
   profileId?: string;
   compact?: boolean;
+  editable?: boolean;
 }
 
-export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
+export function ProfileInfo({ profileId, compact = false, editable = false }: ProfileInfoProps) {
+  // State for edit mode
+  const [isEditing, setIsEditing] = useState(false);
+
   // Use React Query hook for profile data
   const {
     data: profile,
     isLoading: loading,
     error: queryError,
+    refetch,
   } = useProfileInfo(profileId);
 
   // Convert query error to string for display
   const error = queryError ? (queryError as Error).message : null;
+
+  // Handle edit button click
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  // Handle successful edit
+  const handleEditSuccess = () => {
+    setIsEditing(false);
+    refetch(); // Refresh the profile data
+  };
 
   if (loading) {
     if (compact) {
@@ -150,6 +172,19 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
     );
   }
 
+  // If editing, show the edit form
+  if (isEditing && profile) {
+    return (
+      <div className="rounded-xl border backdrop-blur-sm p-4">
+        <ProfileEditForm
+          profileId={profileId}
+          onCancel={handleCancelEdit}
+          onSuccess={handleEditSuccess}
+        />
+      </div>
+    );
+  }
+
   if (compact && profile) {
     return (
       <div
@@ -168,17 +203,31 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
             {formatProfileName(profile).charAt(0) || "P"}
           </AvatarFallback>
         </Avatar>
-        <div>
-          <h3
-            className="text-sm font-medium"
-            style={{
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
-              fontWeight: 500,
-              letterSpacing: '-0.01em'
-            }}
-          >
-            {formatProfileName(profile)}
-          </h3>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <h3
+              className="text-sm font-medium"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
+                fontWeight: 500,
+                letterSpacing: '-0.01em'
+              }}
+            >
+              {formatProfileName(profile)}
+            </h3>
+
+            {editable && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 ml-2"
+                onClick={handleEditClick}
+                title="Edit profile"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
           <div className="mt-1 flex items-center flex-wrap gap-1">
             <span
               className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
@@ -276,7 +325,7 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
 
   return (
     <div
-      className="rounded-xl border backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-lg bg-red-800"
+      className="rounded-xl border backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-lg"
       style={{
         background: "linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(250, 250, 252, 1))",
         borderColor: "#E1E1E6",
@@ -285,16 +334,31 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
         WebkitBackdropFilter: "blur(20px)"
       }}
     >
-      <h3
-        className="text-lg font-medium mb-4"
-        style={{
-          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
-          fontWeight: 600,
-          letterSpacing: '-0.02em'
-        }}
-      >
-        Profile Information
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3
+          className="text-lg font-medium"
+          style={{
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
+            fontWeight: 600,
+            letterSpacing: '-0.02em'
+          }}
+        >
+          Profile Information
+        </h3>
+
+        {editable && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2"
+            onClick={handleEditClick}
+          >
+            <Pencil className="h-3.5 w-3.5 mr-1" />
+            Edit
+          </Button>
+        )}
+      </div>
+
       <div className="flex items-center space-x-4">
         <Avatar
           className="h-14 w-14 ring-2 ring-blue-100"

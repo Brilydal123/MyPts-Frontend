@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +28,7 @@ export function PaymentMethodSelector({
   };
 
   return (
-    <div className="flex justify-center md:gap-[2rem] max-md:gap-[1rem] items-center place-items-center">
+    <div className="flex flex-wrap gap-3 items-center justify-center">
       {options.map((option) => (
         <PaymentMethodCard
           key={option.id}
@@ -61,7 +60,7 @@ function PaymentMethodCard({
       whileTap={{ scale: isDisabled ? 1 : 0.98 }}
       onClick={() => !isDisabled && onSelect(option.id)}
       className={cn(
-        "relative rounded-lg border p-1.5 transition-all duration-200 flex flex-col items-center justify-center h-[60px] w-fit",
+        "relative rounded-lg border p-3 transition-all duration-200 flex items-center justify-center h-[60px] w-[70px]",
         isDisabled
           ? "cursor-not-allowed border-muted bg-muted/20 opacity-70"
           : "cursor-pointer",
@@ -92,27 +91,18 @@ function PaymentMethodCard({
       )}
 
       {isDisabled && (
-        <div className="absolute -top-1 -right-1 bg-muted-foreground text-[8px] text-white px-1 py-0.5 rounded-sm font-medium max-md:text-[5px]">
+        <div className="absolute -top-1 -right-1 bg-muted-foreground text-[9px] text-white px-1.5 py-0.5 rounded-sm font-medium">
           Soon
         </div>
       )}
 
-      <div className="relative h-5 w-8 mb-0.5">
-        <Image
+      <div className="h-10 w-16 flex items-center justify-center">
+        <img
           src={option.icon}
           alt={option.name}
-          fill
-          className="object-contain"
+          title={option.name}
+          className={`h-full max-h-10 w-auto object-contain ${option.icon.endsWith('.svg') ? '' : 'rounded-sm'}`}
         />
-      </div>
-
-      <div className="text-center">
-        <h3 className="font-bold max-md:font-extrabold text-[11px] max-md:text-[6px]">{option.name}</h3>
-        {option.description && (
-          <p className="text-[9px] max-md:text-[5px] text-muted-foreground mt-0 leading-tight">
-            {option.description}
-          </p>
-        )}
       </div>
     </motion.div>
   );
