@@ -2,6 +2,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfileInfo } from "@/hooks/use-mypts-data";
+import { countries } from "@/components/ui/country-selector-data";
+
+// Helper function to get country flag from country name or code
+const getCountryFlag = (countryNameOrCode: string | undefined): string => {
+  if (!countryNameOrCode) return '';
+
+  // Try to find the country by name first
+  const countryByName = countries.find(
+    c => c.name.toLowerCase() === countryNameOrCode.toLowerCase()
+  );
+
+  if (countryByName) return countryByName.flag;
+
+  // If not found by name, try by code (assuming countryNameOrCode might be a 2-letter code)
+  if (countryNameOrCode.length === 2) {
+    const countryByCode = countries.find(
+      c => c.code.toLowerCase() === countryNameOrCode.toLowerCase()
+    );
+    if (countryByCode) return countryByCode.flag;
+  }
+
+  // If still not found, return a globe icon placeholder
+  return '🌐';
+};
 
 // Helper function to format profile name
 const formatProfileName = (profile: any) => {
@@ -183,6 +207,55 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
                 ID: {profile.secondaryId}
               </span>
             )}
+
+            {/* Country flag display */}
+            {(() => {
+              // Try to get country from various possible locations in the profile object
+              const country =
+                // @ts-ignore - Handle potential missing properties
+                profile.profileLocation?.country ||
+                // @ts-ignore - Handle potential missing properties
+                profile._rawProfile?.profileLocation?.country ||
+                // @ts-ignore - Handle potential missing properties
+                profile.countryOfResidence ||
+                // @ts-ignore - Handle potential missing properties
+                profile.country;
+
+              // If country is not found in profile, try to get it from localStorage
+              let userCountry = '';
+              if (!country && typeof window !== 'undefined') {
+                try {
+                  const userDataStr = localStorage.getItem('user');
+                  if (userDataStr) {
+                    const userData = JSON.parse(userDataStr);
+                    userCountry = userData.countryOfResidence || '';
+                  }
+                } catch (error) {
+                  console.error('Error parsing user data from localStorage:', error);
+                }
+              }
+
+              const displayCountry = country || userCountry;
+
+              if (displayCountry) {
+                return (
+                  <span
+                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                      fontWeight: 500,
+                      letterSpacing: '-0.01em',
+                      fontSize: '0.65rem'
+                    }}
+                    title={displayCountry}
+                  >
+                    <span className="mr-1">{getCountryFlag(displayCountry)}</span>
+                    {displayCountry}
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </div>
           {profile.description && (
             <p
@@ -269,6 +342,54 @@ export function ProfileInfo({ profileId, compact = false }: ProfileInfoProps) {
                 ID: {profile.secondaryId}
               </span>
             )}
+
+            {/* Country flag display */}
+            {(() => {
+              // Try to get country from various possible locations in the profile object
+              const country =
+                // @ts-ignore - Handle potential missing properties
+                profile.profileLocation?.country ||
+                // @ts-ignore - Handle potential missing properties
+                profile._rawProfile?.profileLocation?.country ||
+                // @ts-ignore - Handle potential missing properties
+                profile.countryOfResidence ||
+                // @ts-ignore - Handle potential missing properties
+                profile.country;
+
+              // If country is not found in profile, try to get it from localStorage
+              let userCountry = '';
+              if (!country && typeof window !== 'undefined') {
+                try {
+                  const userDataStr = localStorage.getItem('user');
+                  if (userDataStr) {
+                    const userData = JSON.parse(userDataStr);
+                    userCountry = userData.countryOfResidence || '';
+                  }
+                } catch (error) {
+                  console.error('Error parsing user data from localStorage:', error);
+                }
+              }
+
+              const displayCountry = country || userCountry;
+
+              if (displayCountry) {
+                return (
+                  <span
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100"
+                    style={{
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                      fontWeight: 500,
+                      letterSpacing: '-0.01em'
+                    }}
+                    title={displayCountry}
+                  >
+                    <span className="mr-1">{getCountryFlag(displayCountry)}</span>
+                    {displayCountry}
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </div>
           {profile.description && (
             <p
