@@ -17,6 +17,13 @@ export interface ProfileData {
   balance: number;
   formattedBalance: string;
   profileImage?: string;
+  countryOfResidence?: string;
+  profileLocation?: {
+    country?: string;
+    city?: string;
+    stateOrProvince?: string;
+  };
+  _rawProfile?: any; // For accessing raw profile data if needed
 }
 
 export function useProfileSelector() {
@@ -171,6 +178,49 @@ export function useProfileSelector() {
       profile.image ||
       "";
 
+    // Extract country information from various possible locations
+    // Check all possible paths where country information might be stored
+    const countryOfResidence = profile.countryOfResidence ||
+      profile.country ||
+      profile.profileLocation?.country ||
+      profile.personalInfo?.countryOfResidence ||
+      profile.user?.countryOfResidence ||
+      (profile.creator?.countryOfResidence) ||
+      (profile.owner?.countryOfResidence) ||
+      (profile.profileInformation?.location?.country);
+
+    // Extract profile location information
+    const profileLocation = {
+      country: profile.profileLocation?.country || countryOfResidence,
+      city: profile.profileLocation?.city,
+      stateOrProvince: profile.profileLocation?.stateOrProvince
+    };
+
+    // Log country information for debugging
+    console.log(`Profile ${profile._id || profile.id} country data:`, {
+      countryOfResidence,
+      profileLocationCountry: profileLocation.country,
+      rawCountryOfResidence: profile.countryOfResidence,
+      rawCountry: profile.country,
+      rawProfileLocationCountry: profile.profileLocation?.country,
+      rawPersonalInfoCountry: profile.personalInfo?.countryOfResidence,
+      rawUserCountry: profile.user?.countryOfResidence
+    });
+
+    // If we still don't have country information, try to get it from user data in localStorage
+    let userCountry = null;
+    if (!countryOfResidence && !profileLocation.country && typeof window !== 'undefined') {
+      try {
+        const userDataStr = localStorage.getItem('user');
+        if (userDataStr) {
+          const userData = JSON.parse(userDataStr);
+          userCountry = userData.countryOfResidence;
+        }
+      } catch (error) {
+        console.error('Error parsing user data from localStorage:', error);
+      }
+    }
+
     return {
       id: profile._id || profile.id,
       secondaryId: profile.secondaryId || null,
@@ -181,6 +231,9 @@ export function useProfileSelector() {
       balance: profile.balance?.balance || profile.balanceInfo?.balance || 0,
       formattedBalance: profile.formattedBalance || `${(profile.balance?.balance || profile.balanceInfo?.balance || 0).toLocaleString()} MyPts`,
       profileImage: profileImage,
+      countryOfResidence: countryOfResidence || userCountry,
+      profileLocation: profileLocation,
+      _rawProfile: profile // Store the raw profile data for access to all properties
     };
   };
 

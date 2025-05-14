@@ -2,56 +2,49 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { GoogleAvatar } from '@/components/shared/google-avatar';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { Loader2, User, Mail, Phone, Shield, Key, LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 export function AccountSettings() {
   const { data: session, update } = useSession();
-  const { user, logout, isAuthenticated, isSocialAuthenticated } = useAuth();
-  const router = useRouter();
+  const { user, isSocialAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Cast user to any to access extended properties
+  const userWithExtendedProps = user as any;
+
   const [formData, setFormData] = useState({
-    name: user?.fullName || user?.name || '',
-    email: user?.email || '',
-    phone: user?.phoneNumber || '',
-    twoFactorEnabled: user?.isTwoFactorEnabled || false,
-    profileImage: user?.profileImage || user?.image || ''
+    name: userWithExtendedProps?.fullName || userWithExtendedProps?.name || '',
+    email: userWithExtendedProps?.email || '',
+    phone: userWithExtendedProps?.phoneNumber || '',
+    twoFactorEnabled: userWithExtendedProps?.isTwoFactorEnabled || false,
+    profileImage: userWithExtendedProps?.profileImage || userWithExtendedProps?.image || ''
   });
 
   // Update form data when user changes
   useEffect(() => {
     if (user) {
+      // Cast user to any to access extended properties
+      const userWithExtendedProps = user as any;
+
       setFormData({
-        name: user.fullName || user.name || '',
-        email: user.email || '',
-        phone: user.phoneNumber || '',
-        twoFactorEnabled: user.isTwoFactorEnabled || false,
-        profileImage: user.profileImage || user.image || ''
+        name: userWithExtendedProps.fullName || userWithExtendedProps.name || '',
+        email: userWithExtendedProps.email || '',
+        phone: userWithExtendedProps.phoneNumber || '',
+        twoFactorEnabled: userWithExtendedProps.isTwoFactorEnabled || false,
+        profileImage: userWithExtendedProps.profileImage || userWithExtendedProps.image || ''
       });
     }
   }, [user]);
-
-  // Get user initials for avatar fallback
-  const getInitials = (name: string) => {
-    if (!name) return 'U';
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

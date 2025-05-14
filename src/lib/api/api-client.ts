@@ -125,38 +125,38 @@ apiClientInstance.interceptors.response.use(
             try {
               // Import the checkSessionErrors function
               const { checkSessionErrors } = await import('./auth-helper');
-              
+
               // Check if NextAuth session already has errors
               const sessionError = await checkSessionErrors();
-              
+
               if (sessionError) {
                 console.error('NextAuth session already has errors:', sessionError);
                 // Session already has errors, redirect to login
                 redirectToLogin();
                 return Promise.reject(new Error(`Session error: ${sessionError}`));
               }
-              
+
               // Get a new session which will trigger NextAuth's jwt callback
               // and its internal token refresh mechanism via /api/auth/frontend-refresh
               const { getSession } = await import('next-auth/react');
-              
+
               // Note: We're calling getSession() without parameters to get a fresh session
               // This should still trigger the jwt callback in NextAuth.js
               const newSession = await getSession();
-              
+
               if (newSession?.error) {
                 console.error('NextAuth refresh failed:', newSession.error);
                 // NextAuth refresh failed, redirect to login
                 redirectToLogin();
                 return Promise.reject(new Error(`NextAuth refresh failed: ${newSession.error}`));
               }
-              
+
               if (newSession?.accessToken) {
                 console.log('NextAuth token refresh successful, retrying original request');
-                
+
                 // Update the Authorization header for the failed request with the new token
                 error.config.headers.Authorization = `Bearer ${newSession.accessToken}`;
-                
+
                 // Retry the original request with the new token
                 return axios(error.config);
               } else {
@@ -209,7 +209,7 @@ function redirectToLogin() {
   if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
     // Store the current location to redirect back after login
     localStorage.setItem('redirectAfterLogin', window.location.pathname);
-    
+
     // Store the current profile ID to use after login
     const profileId = localStorage.getItem('selectedProfileId');
     if (profileId) {

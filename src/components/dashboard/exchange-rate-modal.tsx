@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, TrendingUp, TrendingDown } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
 interface ExchangeRateModalProps {
@@ -14,6 +14,8 @@ interface ExchangeRateModalProps {
   currency: string;
   valuePerMyPt: number;
   isUsingFallbackRates: boolean;
+  previousValuePerMyPt?: number;
+  percentageChange?: number;
 }
 
 export function ExchangeRateModal({
@@ -22,6 +24,8 @@ export function ExchangeRateModal({
   currency,
   valuePerMyPt,
   isUsingFallbackRates,
+  previousValuePerMyPt,
+  percentageChange,
 }: ExchangeRateModalProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -84,6 +88,22 @@ export function ExchangeRateModal({
                 <p className="text-sm text-muted-foreground mt-2">
                   {formatCurrency(valuePerMyPt, currency)}
                 </p>
+
+                {previousValuePerMyPt && percentageChange !== undefined && (
+                  <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                    <p className="text-sm font-medium mb-2">Change from previous value:</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Previous value:</p>
+                        <p className="font-medium">{formatCurrency(previousValuePerMyPt, currency)}</p>
+                      </div>
+                      <div className={`flex items-center font-medium ${percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {percentageChange >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                        {percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(2)}%
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

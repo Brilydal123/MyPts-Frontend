@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import AUTH_CONFIG from "@/lib/auth/config";
 
-const publicRoutes = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/error"];
-const authRequiredButPublicRoutes = ["/complete-profile"]; // Routes that require auth but shouldn't redirect to dashboard
+// Public routes that don't require authentication
+const publicRoutes = AUTH_CONFIG.publicRoutes;
+
+// Routes that require authentication but shouldn't redirect to dashboard
+const authRequiredButPublicRoutes = AUTH_CONFIG.authRequiredButPublicRoutes;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -159,10 +163,23 @@ export async function middleware(request: NextRequest) {
     } : null
   });
 
-  // Special handling for select-profile page - redirect admin users directly to admin dashboard
-  if (isAuthenticated && pathname === "/select-profile" && isAdmin) {
-    console.log("Admin user detected in middleware, bypassing profile selection");
-    return NextResponse.redirect(new URL("/admin", request.url));
+  // Special handling for admin users - bypass profile selection and go directly to admin dashboard
+  if (isAuthenticated && isAdmin) {
+    // If admin user is trying to access profile selection, login, or any non-admin page, redirect to admin dashboard
+    if (pathname === "/select-profile" || pathname === "/login" || pathname === "/" ||
+        pathname === "/dashboard" || pathname.startsWith("/profile")) {
+      console.log("Admin user detected in middleware, redirecting to admin dashboard");
+
+      // Create a response with the redirect
+      const response = NextResponse.redirect(new URL("/admin", request.url));
+
+      // Set admin cookies in the response to ensure they're available on the next request
+      response.cookies.set("isAdmin", "true", { path: "/", maxAge: 2592000 });
+      response.cookies.set("X-User-Role", "admin", { path: "/", maxAge: 2592000 });
+      response.cookies.set("X-User-Is-Admin", "true", { path: "/", maxAge: 2592000 });
+
+      return response;
+    }
   }
 
   // Redirect authenticated users away from auth pages
@@ -176,6 +193,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/buy/:path*",
     "/sell/:path*",
@@ -183,6 +201,8 @@ export const config = {
     "/transactions/:path*",
     "/settings/:path*",
     "/admin/:path*",
+    "/profile/:path*",
+    "/select-profile",
     "/login",
     "/register",
     "/complete-profile",

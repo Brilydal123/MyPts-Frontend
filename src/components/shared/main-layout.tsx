@@ -7,6 +7,7 @@ import { GlobalSearch } from "@/components/shared/global-search";
 import { Button } from "@/components/ui/button";
 import { NetworkStatusIndicator } from "@/components/ui/network-status-indicator";
 import { useAuth } from "@/hooks/use-auth";
+import { useUser } from "@/contexts/UserContext";
 import { LogOut as LogOutIcon, Settings as SettingsIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,10 +20,33 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user: authUser, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user: contextUser } = useUser();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Combine user data from both contexts, prioritizing UserContext
+  const user = contextUser || authUser;
+
+  // Debug user data
+  useEffect(() => {
+    if (user) {
+      // Safe access to user properties with type checking
+      const userData = {
+        fullName: typeof user === 'object' && 'fullName' in user ? user.fullName :
+          (typeof user === 'object' && 'name' in user ? user.name : undefined),
+        name: typeof user === 'object' && 'name' in user ? user.name : undefined,
+        username: typeof user === 'object' && 'username' in user ? user.username : undefined,
+        email: typeof user === 'object' && 'email' in user ? user.email : undefined,
+        countryOfResidence: typeof user === 'object' && 'countryOfResidence' in user ? user.countryOfResidence : undefined,
+        isAdmin: isAdmin,
+        source: contextUser ? 'UserContext' : 'AuthContext'
+      };
+
+      console.log('MainLayout - User data from combined sources:', userData);
+    }
+  }, [user, contextUser, isAdmin]);
 
   if (!isAuthenticated) {
     return null;
@@ -164,16 +188,29 @@ export function MainLayout({ children }: MainLayoutProps) {
                   {/* User profile at the very bottom */}
                   <div className="flex items-center p-3 mt-2">
                     <GoogleAvatar
-                      profileImageUrl={user?.profileImage || ""}
-                      fallbackText={user?.fullName || user?.name || "User"}
+                      profileImageUrl={
+                        user && typeof user === 'object' && 'profileImage' in user ? (user.profileImage as string) || "" :
+                          user && typeof user === 'object' && 'image' in user ? (user.image as string) || "" :
+                            ""
+                      }
+                      fallbackText={
+                        user && typeof user === 'object' && 'fullName' in user ? (user.fullName as string) || "" :
+                          user && typeof user === 'object' && 'name' in user ? (user.name as string) || "" :
+                            user && typeof user === 'object' && 'username' in user ? (user.username as string) || "" :
+                              user && typeof user === 'object' && 'email' in user && user.email ? user.email.split('@')[0] : "User"
+                      }
                       size={32}
                       className="mr-3"
                     />
                     <div className="text-sm">
                       <p className="font-medium text-white dark:text-gray-200">
-                        {user?.fullName || user?.name || "User"}
+                        {user && typeof user === 'object' && 'fullName' in user ? (user.fullName as string) || "" :
+                          user && typeof user === 'object' && 'name' in user ? (user.name as string) || "" :
+                            "User"}
                       </p>
-                      <p className="text-white dark:text-gray-400 text-xs">{user?.email}</p>
+                      <p className="text-white dark:text-gray-400 text-xs">
+                        {user && typeof user === 'object' && 'email' in user ? user.email : ""}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -290,16 +327,30 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center p-3">
                     <GoogleAvatar
-                      profileImageUrl={user?.profileImage || ""}
-                      fallbackText={user?.fullName || user?.name || (isAdmin ? "Admin" : "User")}
+                      profileImageUrl={
+                        user && typeof user === 'object' && 'profileImage' in user ? (user.profileImage as string) || "" :
+                          user && typeof user === 'object' && 'image' in user ? (user.image as string) || "" :
+                            ""
+                      }
+                      fallbackText={
+                        user && typeof user === 'object' && 'fullName' in user ? (user.fullName as string) || "" :
+                          user && typeof user === 'object' && 'name' in user ? (user.name as string) || "" :
+                            isAdmin ? "Admin" : "User"
+                      }
                       size={32}
                       className="mr-3"
                     />
                     <div className="text-sm">
                       <p className="font-medium text-white dark:text-gray-200">
-                        {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                        {user && typeof user === 'object' && 'fullName' in user ? user.fullName :
+                          user && typeof user === 'object' && 'name' in user ? user.name :
+                            user && typeof user === 'object' && 'username' in user ? user.username :
+                              user && typeof user === 'object' && 'email' in user && user.email ? user.email.split('@')[0] :
+                                "User"}
                       </p>
-                      <p className="text-white dark:text-gray-400 text-xs truncate">{user?.email}</p>
+                      <p className="text-white dark:text-gray-400 text-xs truncate">
+                        {user && typeof user === 'object' && 'email' in user ? user.email : ""}
+                      </p>
                     </div>
                   </div>
 
@@ -309,8 +360,16 @@ export function MainLayout({ children }: MainLayoutProps) {
               {!sidebarOpen && (
                 <div className="flex justify-center p-2 mt-2">
                   <GoogleAvatar
-                    profileImageUrl={user?.profileImage || ""}
-                    fallbackText={user?.fullName || user?.name || (isAdmin ? "Admin" : "User")}
+                    profileImageUrl={
+                      user && typeof user === 'object' && 'profileImage' in user ? (user.profileImage as string) || "" :
+                        user && typeof user === 'object' && 'image' in user ? (user.image as string) || "" :
+                          ""
+                    }
+                    fallbackText={
+                      user && typeof user === 'object' && 'fullName' in user ? (user.fullName as string) || "" :
+                        user && typeof user === 'object' && 'name' in user ? (user.name as string) || "" :
+                          isAdmin ? "Admin" : "User"
+                    }
                     size={32}
                   />
                 </div>

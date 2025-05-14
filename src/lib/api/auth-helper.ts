@@ -15,18 +15,36 @@ export const getAuthToken = async (): Promise<string | null> => {
   // This will trigger the NextAuth.js jwt callback which handles token refresh
   try {
     console.log('Getting auth token from NextAuth session...');
+
+    // Force a session refresh to ensure we have the latest data
     const session = await getSession();
-    
+
     // Check for session errors first (from our token refresh logic)
     if (session?.error) {
       console.error(`NextAuth session error: ${session.error}`);
       // Don't return null here - we'll check other sources first
-    } 
-    
+    }
+
     // If we have a valid accessToken in the session, use it
     if (session?.accessToken) {
       console.log('Found valid accessToken in NextAuth session');
+
+      // Sync the token to localStorage for backup
+      localStorage.setItem('accessToken', session.accessToken);
+
+      // If we have a profileId, sync that too
+      if (session.profileId) {
+        localStorage.setItem('selectedProfileId', session.profileId);
+      }
+
+      // If we have a profileToken, sync that too
+      if (session.profileToken) {
+        localStorage.setItem('selectedProfileToken', session.profileToken);
+      }
+
       return session.accessToken;
+    } else {
+      console.log('No accessToken found in NextAuth session');
     }
   } catch (error) {
     console.error('Error getting NextAuth session:', error);
@@ -71,14 +89,20 @@ export const isUserAdmin = async (): Promise<boolean> => {
     return false;
   }
 
-  console.log('Checking admin status from all sources...');
+  // Only log in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('Checking admin status from all sources...');
+  }
 
   // Check admin status from localStorage
   const storedIsAdmin = localStorage?.getItem('isAdmin') === 'true';
   const storedUserRole = localStorage?.getItem('userRole') === 'admin';
 
   if (storedIsAdmin || storedUserRole) {
-    console.log('Admin status found in localStorage');
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('Admin status found in localStorage');
+    }
     return true;
   }
 
@@ -88,7 +112,10 @@ export const isUserAdmin = async (): Promise<boolean> => {
   const cookieUserIsAdmin = document.cookie.includes('X-User-Is-Admin=true');
 
   if (cookieIsAdmin || cookieUserRole || cookieUserIsAdmin) {
-    console.log('Admin status found in cookies');
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('Admin status found in cookies');
+    }
     return true;
   }
 
@@ -98,7 +125,10 @@ export const isUserAdmin = async (): Promise<boolean> => {
     if (userDataStr) {
       const userData = JSON.parse(userDataStr);
       if (userData.role === 'admin' || userData.isAdmin === true) {
-        console.log('Admin status found in user data');
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Admin status found in user data');
+        }
         return true;
       }
     }
@@ -112,7 +142,10 @@ export const isUserAdmin = async (): Promise<boolean> => {
     if (session?.user) {
       const isAdmin = session.user.role === 'admin' || session.user.isAdmin === true;
       if (isAdmin) {
-        console.log('Admin status found in NextAuth session');
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Admin status found in NextAuth session');
+        }
         return true;
       }
     }
@@ -125,11 +158,17 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const user = window.__NEXT_DATA__.props.pageProps.session.user;
     const isAdmin = user.role === 'admin' || user.isAdmin === true;
     if (isAdmin) {
-      console.log('Admin status found in window.__NEXT_DATA__');
+      // Only log in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Admin status found in window.__NEXT_DATA__');
+      }
       return true;
     }
   }
 
-  console.log('No admin status found in any source');
+  // Only log in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('No admin status found in any source');
+  }
   return false;
 };

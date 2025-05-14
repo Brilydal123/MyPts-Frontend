@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useUser } from "@/contexts/UserContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,15 +10,6 @@ import { GoogleAvatar } from "@/components/shared/google-avatar";
 import { NotificationCenter } from "@/components/shared/notification-center";
 import { GlobalSearch } from "@/components/shared/global-search";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Search,
   ChevronLeft as ChevronLeftIcon,
@@ -47,13 +39,31 @@ export function Navbar({
   mobileMenuOpen,
   onMobileMenuToggle,
 }: NavbarProps) {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user: authUser, isAuthenticated, isAdmin, logout, session } = useAuth();
+  const { user: contextUser } = useUser();
   const router = useRouter();
 
   // Force authentication state to true on admin pages
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith('/admin');
   const effectiveIsAuthenticated = isAuthenticated || isAdminPage || isAdmin;
+
+  // Combine user data from both contexts, prioritizing UserContext
+  const user = contextUser || authUser;
+
+  // Cast user to any to safely access extended properties
+  const userAsAny = user as any;
+
+  // Ensure we have the most up-to-date user information
+  const displayUser = {
+    name: userAsAny?.fullName || userAsAny?.name || session?.user?.name || userAsAny?.username ||
+      (userAsAny?.email ? userAsAny.email.split('@')[0] : "") || "User",
+    email: userAsAny?.email || session?.user?.email || "",
+    image: userAsAny?.profileImage || userAsAny?.image || session?.user?.image || "",
+    isAdmin: isAdmin || userAsAny?.isAdmin || userAsAny?.role === 'admin' ||
+      session?.user?.isAdmin || session?.user?.role === 'admin',
+    countryOfResidence: userAsAny?.countryOfResidence || ""
+  };
 
   // Handle logout
   const handleLogout = async () => {
@@ -68,15 +78,20 @@ export function Navbar({
   // Debug user data
   useEffect(() => {
     if (user) {
-      console.log('Navbar - User data:', {
-        fullName: user.fullName,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        isAdmin: isAdmin
+      // Cast user to any for debugging
+      const userAsAny = user as any;
+
+      console.log('Navbar - User data from combined sources:', {
+        fullName: userAsAny.fullName,
+        name: userAsAny.name,
+        username: userAsAny.username,
+        email: userAsAny.email,
+        countryOfResidence: userAsAny.countryOfResidence,
+        isAdmin: isAdmin,
+        source: contextUser ? 'UserContext' : 'AuthContext'
       });
     }
-  }, [user, isAdmin]);
+  }, [user, contextUser, isAdmin]);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -198,8 +213,8 @@ export function Navbar({
                       transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
                       <GoogleAvatar
-                        profileImageUrl={user?.profileImage || user?.image || ""}
-                        fallbackText={user?.fullName || user?.name || "User"}
+                        profileImageUrl={displayUser.image}
+                        fallbackText={displayUser.name}
                         size={32}
                       />
                     </motion.div>
@@ -278,16 +293,16 @@ export function Navbar({
                         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
                           <div className="flex items-center gap-3">
                             <GoogleAvatar
-                              profileImageUrl={user?.profileImage || user?.image || ""}
-                              fallbackText={user?.fullName || user?.name || "User"}
+                              profileImageUrl={displayUser.image}
+                              fallbackText={displayUser.name}
                               size={40}
                             />
                             <div className="flex flex-col">
                               <p className="text-sm font-medium">
-                                {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                                {displayUser.name}
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px] sm:max-w-[220px]">
-                                {user?.email || ""}
+                                {displayUser.email}
                               </p>
                             </div>
                           </div>
@@ -328,7 +343,7 @@ export function Navbar({
                             <span className="text-sm">Settings</span>
                           </button>
 
-                          {isAdmin && (
+                          {displayUser.isAdmin && (
                             <button
                               className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                               onClick={() => {

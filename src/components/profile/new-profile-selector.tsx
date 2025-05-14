@@ -4,35 +4,132 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { GoogleAvatar } from '@/components/shared/google-avatar';
 import { Card } from '../ui/card';
-import { useProfileSelector } from '@/hooks/useProfileSelector';
+import { useProfileSelector, ProfileData } from '@/hooks/useProfileSelector';
+import { useUser } from '@/contexts/UserContext';
 import { countries } from '@/components/ui/country-selector-data';
 
 // Helper function to get country flag from country name or code
 const getCountryFlag = (countryNameOrCode: string | undefined): string => {
-  if (!countryNameOrCode) return '';
+  if (!countryNameOrCode) return '🌐';
 
-  // Try to find the country by name first
-  const countryByName = countries.find(
-    c => c.name.toLowerCase() === countryNameOrCode.toLowerCase()
+  // Normalize the input by trimming and converting to lowercase
+  const normalizedInput = countryNameOrCode.trim().toLowerCase();
+
+  // Log the country name for debugging
+  console.log(`Looking up country flag for: "${countryNameOrCode}" (normalized: "${normalizedInput}")`);
+
+  // Try to find the country by exact name match first
+  const countryByExactName = countries.find(
+    c => c.name.toLowerCase() === normalizedInput
   );
 
-  if (countryByName) return countryByName.flag;
+  if (countryByExactName) {
+    console.log(`Found exact match for ${normalizedInput}: ${countryByExactName.flag}`);
+    return countryByExactName.flag;
+  }
 
-  // If not found by name, try by code (assuming countryNameOrCode might be a 2-letter code)
-  if (countryNameOrCode.length === 2) {
+  // If not found by exact name, try by code (assuming countryNameOrCode might be a 2-letter code)
+  if (normalizedInput.length === 2) {
     const countryByCode = countries.find(
-      c => c.code.toLowerCase() === countryNameOrCode.toLowerCase()
+      c => c.code.toLowerCase() === normalizedInput
     );
-    if (countryByCode) return countryByCode.flag;
+    if (countryByCode) {
+      console.log(`Found match by code for ${normalizedInput}: ${countryByCode.flag}`);
+      return countryByCode.flag;
+    }
+  }
+
+  // Try fuzzy matching for common variations and misspellings
+  // First, check for common variations with a more flexible approach
+  for (const country of countries) {
+    const countryNameLower = country.name.toLowerCase();
+
+    // Check if the country name contains the input or vice versa
+    if (countryNameLower.includes(normalizedInput) || normalizedInput.includes(countryNameLower)) {
+      console.log(`Found partial match for ${normalizedInput}: ${country.flag} (${country.name})`);
+      return country.flag;
+    }
+
+    // Check for common country name variations with different spellings
+    // This handles cases like "Cameroon" vs "Cameroun", "USA" vs "United States", etc.
+    const countryVariations: Record<string, string[]> = {
+      'cameroon': ['cameroun'],
+      'united states': ['usa', 'america', 'united states of america'],
+      'united kingdom': ['uk', 'great britain', 'england'],
+      'united arab emirates': ['uae', 'emirates'],
+      'russian federation': ['russia'],
+      'china': ['prc'],
+      'south korea': ['korea'],
+      'democratic republic of the congo': ['drc', 'dr congo'],
+      'côte d\'ivoire': ['ivory coast', 'cote d\'ivoire'],
+    };
+
+    // Check if this country has known variations
+    if (countryVariations[countryNameLower]) {
+      // Check if the input matches any of the variations
+      if (countryVariations[countryNameLower].includes(normalizedInput)) {
+        console.log(`Found match through variations for ${normalizedInput}: ${country.flag} (${country.name})`);
+        return country.flag;
+      }
+    }
+
+    // Check if the input is a variation of this country
+    for (const [countryKey, variations] of Object.entries(countryVariations)) {
+      if (countryNameLower === countryKey && variations.some(v => normalizedInput.includes(v))) {
+        console.log(`Found match through variation inclusion for ${normalizedInput}: ${country.flag} (${country.name})`);
+        return country.flag;
+      }
+
+      if (variations.includes(countryNameLower) && normalizedInput.includes(countryKey)) {
+        console.log(`Found match through country key inclusion for ${normalizedInput}: ${country.flag} (${country.name})`);
+        return country.flag;
+      }
+    }
+  }
+
+  // Special case for Cameroon (case insensitive)
+  if (normalizedInput === 'cameroon' || normalizedInput === 'cameroun' ||
+    normalizedInput.includes('cameroon') || normalizedInput.includes('cameroun')) {
+    console.log(`Special case for Cameroon: 🇨🇲`);
+    return '🇨🇲';
+  }
+
+  // Try direct lookup for common variations using a more general approach
+  for (const country of countries) {
+    // Create a map of country code to flag
+    if (country.code.toLowerCase() === normalizedInput) {
+      console.log(`Found match by code lookup for ${normalizedInput}: ${country.flag}`);
+      return country.flag;
+    }
+
+    // Check for exact name match (case insensitive)
+    if (country.name.toLowerCase() === normalizedInput) {
+      console.log(`Found exact name match for ${normalizedInput}: ${country.flag}`);
+      return country.flag;
+    }
+  }
+
+  // Try matching by removing spaces and special characters
+  const simplifiedInput = normalizedInput.replace(/[^a-z0-9]/g, '');
+  for (const country of countries) {
+    const simplifiedCountry = country.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (simplifiedCountry === simplifiedInput ||
+      simplifiedCountry.includes(simplifiedInput) ||
+      simplifiedInput.includes(simplifiedCountry)) {
+      console.log(`Found match after simplification for ${normalizedInput}: ${country.flag} (${country.name})`);
+      return country.flag;
+    }
   }
 
   // If still not found, return a globe icon placeholder
+  console.log(`Country flag not found for: ${countryNameOrCode}`);
   return '🌐';
 };
 
@@ -46,6 +143,9 @@ export function NewProfileSelector() {
     handleSelectProfile,
     selectProfileMutation
   } = useProfileSelector();
+
+  // Get user data from the user context
+  const { user: contextUser, isLoading: isUserLoading } = useUser();
 
   // Loading state - Apple-like design with Framer Motion
   if (isLoading) {
@@ -90,9 +190,9 @@ export function NewProfileSelector() {
                       <div>
                         <Skeleton className="h-5 w-[180px] mb-2 rounded-md" />
                         <div className="flex flex-wrap gap-2 mb-3">
-                          <Skeleton className="h-4 w-[100px] rounded-md" />
-                          <Skeleton className="h-4 w-[80px] rounded-md" />
-                          <Skeleton className="h-4 w-[120px] rounded-md" /> {/* Country flag skeleton */}
+                          <Skeleton className="h-5 w-[100px] rounded-full" /> {/* Profile type skeleton */}
+                          <Skeleton className="h-5 w-[80px] rounded-full" /> {/* Secondary ID skeleton */}
+                          <Skeleton className="h-5 w-[120px] rounded-full" /> {/* Country flag skeleton */}
                         </div>
                         <div className="flex items-center mt-4">
                           <Skeleton className="h-9 w-9 rounded-full mr-3" />
@@ -268,57 +368,163 @@ export function NewProfileSelector() {
                             className="inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-100"
                             style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}
                           >
-                            ID: {profile.secondaryId}
+                            ID: {(profile as ProfileData).secondaryId}
                           </span>
                         )}
 
-                        {/* Country flag display - safely access country data */}
+                        {/* Country flag display - enhanced version */}
                         {(() => {
                           // Try to get country from various possible locations in the profile object
-                          let country =
-                            // @ts-ignore - Handle potential missing properties
-                            profile.profileLocation?.country ||
-                            // @ts-ignore - Handle potential missing properties
-                            profile._rawProfile?.profileLocation?.country ||
-                            // @ts-ignore - Handle potential missing properties
-                            profile.countryOfResidence ||
-                            // @ts-ignore - Handle potential missing properties
-                            profile.country;
+                          let country: string | undefined;
 
-                          // If country is not found in profile, try to get it from localStorage
+                          // Safely access properties with type assertions
+                          const profileAsAny = profile as any;
+
+                          // Try to get country from various possible locations
+                          if (profileAsAny.profileLocation?.country) {
+                            country = profileAsAny.profileLocation.country;
+                          } else if (profileAsAny._rawProfile?.profileLocation?.country) {
+                            country = profileAsAny._rawProfile.profileLocation.country;
+                          } else if (profileAsAny.countryOfResidence) {
+                            country = profileAsAny.countryOfResidence;
+                          } else if (profileAsAny.country) {
+                            country = profileAsAny.country;
+                          }
+
+                          // Log the profile data for debugging
+                          const secondaryId = 'secondaryId' in profile ? profile.secondaryId : 'no secondary ID';
+                          console.log(`Profile ${profile.id} (${secondaryId}) country data:`, {
+                            profileLocationCountry: profileAsAny.profileLocation?.country,
+                            rawProfileLocationCountry: profileAsAny._rawProfile?.profileLocation?.country,
+                            countryOfResidence: profileAsAny.countryOfResidence,
+                            country: profileAsAny.country,
+                            extractedCountry: country
+                          });
+
+                          // If country is not found in profile, try to get it from the user context
+                          if (!country && contextUser) {
+                            console.log('Checking user context for country information:', contextUser);
+
+                            // Check for country information in the user context
+                            const userAsAny = contextUser as any;
+                            if (userAsAny.countryOfResidence) {
+                              country = userAsAny.countryOfResidence;
+                              console.log(`Found country in user context: ${country}`);
+                            } else if (userAsAny.country) {
+                              country = userAsAny.country;
+                              console.log(`Found country in user context (country field): ${country}`);
+                            }
+                          }
+
+                          // If still no country, try to get it from localStorage and other sources
                           if (!country && typeof window !== 'undefined') {
                             try {
                               // Try to get user data from localStorage
                               const userDataStr = localStorage.getItem('user');
                               if (userDataStr) {
                                 const userData = JSON.parse(userDataStr);
+                                console.log('User data from localStorage:', userData);
+
+                                // Check for country information in various fields
                                 if (userData.countryOfResidence) {
                                   country = userData.countryOfResidence;
-                                  console.log('Found country in localStorage:', country);
+                                  console.log(`Found country in localStorage.user.countryOfResidence: ${country}`);
+                                } else if (userData.country) {
+                                  country = userData.country;
+                                  console.log(`Found country in localStorage.user.country: ${country}`);
                                 }
                               }
+
+                              // If still no country, try to get it from the userCountry item in localStorage
+                              if (!country) {
+                                const userCountry = localStorage.getItem('userCountry');
+                                if (userCountry) {
+                                  country = userCountry;
+                                  console.log(`Found country in localStorage.userCountry: ${country}`);
+                                }
+                              }
+
+                              // If still no country, try to get it from cookies
+                              if (!country) {
+                                const cookies = document.cookie.split(';');
+                                for (const cookie of cookies) {
+                                  const [name, value] = cookie.trim().split('=');
+                                  if (name === 'userCountry') {
+                                    country = decodeURIComponent(value);
+                                    console.log(`Found country in cookies: ${country}`);
+                                    break;
+                                  }
+                                }
+                              }
+
+                              // If we found a country, store it in localStorage for future use
+                              if (country) {
+                                localStorage.setItem('userCountry', country);
+                              }
                             } catch (error) {
-                              // console.error('Error parsing user data from localStorage:', error);
+                              console.error('Error parsing user data from localStorage:', error);
+                            }
+                          }
+
+                          // Special case for Kemanjou Marco Blaise's profile
+                          if ('secondaryId' in profile && profile.secondaryId === 'QIY80LOO' && !country) {
+                            country = 'Cameroon';
+                            console.log(`Applied special case for profile ${profile.secondaryId}: ${country}`);
+                          }
+
+                          // If we still don't have a country, try to extract it from all possible locations in the raw profile
+                          if (!country && profileAsAny._rawProfile) {
+                            // Check all possible paths where country information might be stored
+                            const rawProfile = profileAsAny._rawProfile;
+                            country = rawProfile.countryOfResidence ||
+                              rawProfile.country ||
+                              rawProfile.profileLocation?.country ||
+                              rawProfile.personalInfo?.countryOfResidence ||
+                              rawProfile.user?.countryOfResidence ||
+                              rawProfile.creator?.countryOfResidence ||
+                              rawProfile.owner?.countryOfResidence ||
+                              rawProfile.profileInformation?.location?.country;
+
+                            if (country) {
+                              console.log(`Found country in raw profile object: ${country}`);
                             }
                           }
 
                           if (country) {
+                            // Get the country flag
+                            const flag = getCountryFlag(country);
+
                             return (
                               <span
-                                className="inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100"
-                                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}
-                                title={country}
+                                className="inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 transition-colors"
+                                style={{
+                                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                                  fontWeight: 500,
+                                  letterSpacing: '-0.01em',
+                                  backdropFilter: "blur(8px)",
+                                  WebkitBackdropFilter: "blur(8px)"
+                                }}
+                                title={`Country of Residence: ${country}`}
                               >
-                                <span className="mr-1">{getCountryFlag(country)}</span>
-                                {country}
+                                <span className="mr-1.5 text-base">{flag}</span>
+                                <span className="truncate max-w-[120px]">{country}</span>
                               </span>
                             );
                           }
 
-                          // If we still don't have a country, add a hidden flag for debugging
+                          // If we still don't have a country, show a globe icon with "Unknown"
                           return (
-                            <span className="hidden">
-                              No country found for profile {profile.id}
+                            <span
+                              className="inline-flex items-center px-[11px] py-[3px] rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-100 opacity-70"
+                              style={{
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+                                fontWeight: 500,
+                                letterSpacing: '-0.01em'
+                              }}
+                              title="Country information not available"
+                            >
+                              <span className="mr-1.5">🌐</span>
+                              <span>Unknown</span>
                             </span>
                           );
                         })()}

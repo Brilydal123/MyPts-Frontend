@@ -127,6 +127,15 @@ export function GoogleAuthCallback() {
             // Store user data in localStorage
             localStorage.setItem("user", JSON.stringify(response.user));
 
+            // Store country information separately for easier access
+            if (response.user.countryOfResidence) {
+              localStorage.setItem("userCountry", response.user.countryOfResidence);
+              console.log(`Stored admin user country in localStorage: ${response.user.countryOfResidence}`);
+
+              // Also store in a cookie for cross-page access
+              document.cookie = `userCountry=${encodeURIComponent(response.user.countryOfResidence)}; path=/; max-age=2592000; SameSite=Lax`;
+            }
+
             // If user has a default profile, store the ID
             if (response.user.profileId) {
               localStorage.setItem("selectedProfileId", response.user.profileId);
@@ -141,6 +150,15 @@ export function GoogleAuthCallback() {
           // For non-admin users, continue with normal flow
           // Store user data in localStorage
           localStorage.setItem("user", JSON.stringify(response.user));
+
+          // Store country information separately for easier access
+          if (response.user.countryOfResidence) {
+            localStorage.setItem("userCountry", response.user.countryOfResidence);
+            console.log(`Stored user country in localStorage: ${response.user.countryOfResidence}`);
+
+            // Also store in a cookie for cross-page access
+            document.cookie = `userCountry=${encodeURIComponent(response.user.countryOfResidence)}; path=/; max-age=2592000; SameSite=Lax`;
+          }
 
           // If user has a default profile, store the ID but don't set the token yet
           // The profile token will be generated when the user selects a profile

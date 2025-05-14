@@ -140,9 +140,10 @@ class ApiClient {
       // Clear the timeout
       clearTimeout(timeoutId);
 
-      // Log response status
-      console.log(`Response status for ${endpoint}:`, response.status);
-      console.log(`Response from ${endpoint}:`, { status: response.status, statusText: response.statusText });
+      // Log response status only in development or for non-200 responses
+      if (process.env.NODE_ENV === 'development' || response.status !== 200) {
+        console.debug(`Response status for ${endpoint}:`, response.status);
+      }
 
       // If we get a 401 or 403, the profile might be invalid
       if (response.status === 401 || response.status === 403) {
@@ -187,7 +188,10 @@ class ApiClient {
         }
       }
 
-      console.log(`Making POST request to ${url}`, { headers, data });
+      // Only log in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.debug(`Making POST request to ${url}`);
+      }
 
       // Add a timeout to the fetch request
       const controller = new AbortController();
@@ -204,7 +208,10 @@ class ApiClient {
       // Clear the timeout
       clearTimeout(timeoutId);
 
-      console.log(`Response from ${endpoint}:`, { status: response.status, statusText: response.statusText });
+      // Log response status only in development or for non-200 responses
+      if (process.env.NODE_ENV === 'development' || response.status !== 200) {
+        console.debug(`Response from ${endpoint}:`, { status: response.status, statusText: response.statusText });
+      }
 
       // If we get a 401 or 403, the profile might be invalid
       if (response.status === 401 || response.status === 403) {
@@ -272,7 +279,10 @@ export class MyPtsApi extends ApiClient {
     try {
       // Get profile ID from parameter or localStorage
       const profileId = specificProfileId || (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null);
-      console.log("🚀 ~ MyPtsApi ~ refreshBalance ~ profileId:", profileId);
+      // Only log in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.debug("MyPtsApi ~ refreshBalance ~ profileId:", profileId);
+      }
 
       // Include profileId as a query parameter
       const response = await this.get<MyPtsBalance>(`/my-pts/refresh-balance?currency=${currency}${profileId ? `&profileId=${profileId}` : ''}`);
@@ -297,7 +307,10 @@ export class MyPtsApi extends ApiClient {
     try {
       // Get profile ID from parameter or localStorage
       const profileId = specificProfileId || (typeof window !== 'undefined' ? localStorage.getItem('selectedProfileId') : null);
-      console.log("🚀 ~ MyPtsApi ~ getBalance ~ profileId:", profileId)
+      // Only log in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.debug("MyPtsApi ~ getBalance ~ profileId:", profileId);
+      }
 
       // Include profileId as a query parameter
       const response = await this.get<MyPtsBalance>(`/my-pts/balance?currency=${currency}${profileId ? `&profileId=${profileId}` : ''}`);
@@ -324,8 +337,11 @@ export class MyPtsApi extends ApiClient {
                 // Calculate the value in the requested currency
                 const valuePerMyPt = baseValueInUsd * rate;
 
-                console.log(`[FRONTEND] Successfully got rate from ExchangeRate API: 1 USD = ${rate} ${currency}`);
-                console.log(`[FRONTEND] Calculated value: 1 MyPt = ${valuePerMyPt} ${currency} (based on 1 MyPt = ${baseValueInUsd} USD)`);
+                // Only log in development mode
+                if (process.env.NODE_ENV === 'development') {
+                  console.debug(`[FRONTEND] Successfully got rate from ExchangeRate API: 1 USD = ${rate} ${currency}`);
+                  console.debug(`[FRONTEND] Calculated value: 1 MyPt = ${valuePerMyPt} ${currency} (based on 1 MyPt = ${baseValueInUsd} USD)`);
+                }
 
                 // Update the response with the API value
                 response.data.value.valuePerMyPt = valuePerMyPt;

@@ -141,7 +141,10 @@ export const deleteNotification = async (notificationId: string) => {
  */
 export const getUnreadNotificationsCount = async () => {
   try {
-    console.log('Fetching unread notifications count');
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('Fetching unread notifications count');
+    }
 
     // Make the actual API call
     const response = await apiClient.get('/notifications/unread-count');

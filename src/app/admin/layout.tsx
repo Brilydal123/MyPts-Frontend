@@ -3,28 +3,24 @@
 import { ReactNode, useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useAuth } from "@/hooks/use-auth";
+import { useUser } from "@/contexts/UserContext";
 import { usePathname, useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AdminNotificationCenter } from "@/components/admin/admin-notification-center";
 import { GoogleAvatar } from "@/components/shared/google-avatar";
 // import { RouteChangeLoading } from "@/components/shared/route-change-loading";
 import Image from "next/image";
 import {
   DollarSign,
   BarChart3,
-  Users,
   Settings,
   History,
   AlertTriangle,
   ShieldAlert,
-  Lock,
   UserCircle,
   CreditCard,
   Globe,
   PieChart,
   LogOut,
-  Menu,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,29 +32,76 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const { isAdmin, isLoading, user, session, refreshUserData } = useAuth();
+  const { isAdmin, isLoading, user: authUser, session, refreshUserData } = useAuth();
+  const { user: contextUser, refetchUser } = useUser();
+
+  // Combine user data from both contexts, prioritizing UserContext
+  const user = contextUser || authUser;
+
+  // Helper function to safely get user display name
+  const getUserDisplayName = () => {
+    if (!user) return "User";
+
+    return (
+      (typeof user === 'object' && 'fullName' in user ? user.fullName as string : undefined) ||
+      (typeof user === 'object' && 'name' in user ? user.name as string : undefined) ||
+      (session?.user?.name as string) ||
+      (typeof user === 'object' && 'username' in user ? user.username as string : undefined) ||
+      (typeof user === 'object' && 'email' in user && user.email ? user.email.split('@')[0] : "User")
+    );
+  };
+
+  // Helper function to safely get user profile image
+  const getUserProfileImage = () => {
+    if (!user) return "";
+
+    return (
+      (typeof user === 'object' && 'profileImage' in user ? user.profileImage as string : undefined) ||
+      (typeof user === 'object' && 'image' in user ? user.image as string : undefined) ||
+      (session?.user?.image as string) ||
+      ""
+    );
+  };
 
   // Refresh user data when component mounts
   useEffect(() => {
-    // Force refresh user data from localStorage
+    // Force refresh user data from both contexts
     refreshUserData();
-  }, [refreshUserData]);
+    refetchUser();
+
+    // Set admin status in localStorage for consistency
+    if (isAdmin && typeof window !== 'undefined') {
+      localStorage.setItem('isAdmin', 'true');
+      localStorage.setItem('userRole', 'admin');
+
+      // Set cookies for admin status
+      document.cookie = 'X-User-Is-Admin=true; path=/';
+      document.cookie = 'X-User-Role=admin; path=/';
+    }
+  }, [refreshUserData, refetchUser, isAdmin]);
 
   // Log user data for debugging and ensure admin role is set
   useEffect(() => {
     if (user) {
-      console.log('Admin layout - User data:', {
-        fullName: user.fullName,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.isAdmin || isAdmin
-      });
+      // Safe access to user properties with type checking
+      const userData = {
+        fullName: typeof user === 'object' && 'fullName' in user ? (user.fullName as string) : undefined,
+        name: typeof user === 'object' && 'name' in user ? (user.name as string) : undefined,
+        username: typeof user === 'object' && 'username' in user ? (user.username as string) : undefined,
+        email: typeof user === 'object' && 'email' in user ? user.email : undefined,
+        countryOfResidence: typeof user === 'object' && 'countryOfResidence' in user ? (user.countryOfResidence as string) : undefined,
+        role: typeof user === 'object' && 'role' in user ? user.role : undefined,
+        isAdmin: (typeof user === 'object' && 'isAdmin' in user ? user.isAdmin : false) || isAdmin,
+        source: contextUser ? 'UserContext' : 'AuthContext'
+      };
+
+      console.log('Admin layout - User data from combined sources:', userData);
 
       // If we're in the admin area but user data doesn't have admin role,
       // we should update the user data in localStorage
-      if (isAdmin && (!user.isAdmin && user.role !== 'admin') && typeof window !== 'undefined') {
+      const userIsAdmin = typeof user === 'object' && 'isAdmin' in user ? user.isAdmin : false;
+      const userRole = typeof user === 'object' && 'role' in user ? user.role : undefined;
+      if (isAdmin && (!userIsAdmin && userRole !== 'admin') && typeof window !== 'undefined') {
         try {
           // Get current user data
           const userDataString = localStorage.getItem('user');
@@ -208,8 +251,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex items-center justify-center min-h-screen flex-col gap-4">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-muted-foreground">
-              Checking admin permissions...
+            <p className="text-muted-foreground" suppressHydrationWarning>
+              {typeof window === 'undefined' ? '' : 'Checking admin permissions...'}
             </p>
           </div>
         </div>
@@ -272,10 +315,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         await signOut({ redirect: false });
 
         // Redirect with cache-busting parameter
-        window.location.href = `/login?logout=true&t=${Date.now()}`;
+        const timestamp = Date.now();
+        window.location.href = `/login?logout=true&t=${timestamp}`;
       } catch (fallbackError) {
         console.error("Fallback logout error:", fallbackError);
-        window.location.href = `/login?logout=true&error=1&t=${Date.now()}`;
+        const errorTimestamp = Date.now();
+        window.location.href = `/login?logout=true&error=1&t=${errorTimestamp}`;
       }
     }
   };
@@ -288,8 +333,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="flex items-center justify-center min-h-screen flex-col gap-4">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">
-            Verifying your access...
+          <p className="text-muted-foreground" suppressHydrationWarning>
+            {typeof window === 'undefined' ? '' : 'Verifying your access...'}
           </p>
         </div>
       </div>
@@ -382,23 +427,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {isSidebarOpen ? (
                 <div className="flex items-center p-3 mt-2">
                   <GoogleAvatar
-                    profileImageUrl={user?.profileImage || user?.image || ""}
-                    fallbackText={user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                    profileImageUrl={getUserProfileImage()}
+                    fallbackText={getUserDisplayName()}
                     size={32}
                     className="mr-3"
                   />
                   <div className="text-sm">
                     <p className="font-medium text-white">
-                      {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                      {getUserDisplayName()}
                     </p>
-                    <p className="text-white text-xs truncate">{user?.email || ""}</p>
+                    <p className="text-white text-xs truncate">
+                      {user && typeof user === 'object' && 'email' in user ? user.email : session?.user?.email || ""}
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="flex justify-center p-2 mt-2">
                   <GoogleAvatar
-                    profileImageUrl={user?.profileImage || user?.image || ""}
-                    fallbackText={user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                    profileImageUrl={getUserProfileImage()}
+                    fallbackText={getUserDisplayName()}
                     size={32}
                   />
                 </div>
@@ -486,16 +533,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 {/* User profile section for mobile */}
                 <div className="flex items-center p-3 mb-2">
                   <GoogleAvatar
-                    profileImageUrl={user?.profileImage || user?.image || ""}
-                    fallbackText={user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                    profileImageUrl={getUserProfileImage()}
+                    fallbackText={getUserDisplayName()}
                     size={32}
                     className="mr-3"
                   />
                   <div className="text-sm">
                     <p className="font-medium text-white">
-                      {user?.fullName || user?.name || user?.username || user?.email?.split('@')[0] || "User"}
+                      {getUserDisplayName()}
                     </p>
-                    <p className="text-white text-xs truncate">{user?.email || ""}</p>
+                    <p className="text-white text-xs truncate">
+                      {user && typeof user === 'object' && 'email' in user ? user.email : session?.user?.email || ""}
+                    </p>
                   </div>
                 </div>
 

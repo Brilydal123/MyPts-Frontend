@@ -20,6 +20,8 @@ import {
   BarChart4 as CurrencyExchange,
   RefreshCw,
   Eye,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -72,8 +74,8 @@ export function BalanceCard({
 
   // State to store the calculated value per MyPt
   const [valuePerMyPt, setValuePerMyPt] = useState<number>(() => {
-    // Initialize with value from balance if available
-    return balance.value?.valuePerMyPt || 0;
+    // Initialize with the updated value of 0.026112 USD per MyPt
+    return 0.026112;
   });
 
   // State to store the formatted total value
@@ -81,6 +83,12 @@ export function BalanceCard({
 
   // State for exchange rate modal
   const [isExchangeRateModalOpen, setIsExchangeRateModalOpen] = useState(false);
+
+  // Previous value per MyPt (for comparison)
+  const previousValuePerMyPt = 0.024000;
+
+  // Calculate percentage change
+  const percentageChange = ((0.026112 - previousValuePerMyPt) / previousValuePerMyPt) * 100;
 
   // Handle refresh button click
   const handleRefresh = () => {
@@ -95,50 +103,41 @@ export function BalanceCard({
     let newValue: number;
     let useFallback = false;
 
-    // First, try to use the value from the balance object (from API)
-    if (balance.value?.valuePerMyPt) {
-      console.log('Using valuePerMyPt from balance:', balance.value.valuePerMyPt);
-      newValue = balance.value.valuePerMyPt;
+    // Use the updated fixed value of 0.026112 USD per MyPt as the base value
+    const baseValueInUsd = 0.026112;
+
+    console.log('Using updated baseValueInUsd for conversion:', baseValueInUsd);
+
+    // If the selected currency is USD, use the base value
+    if (currency === 'USD') {
+      newValue = baseValueInUsd;
       useFallback = false;
     }
-    // If balance doesn't have the value, use exchange rates
+    // For other currencies, use exchange rates
     else if (exchangeRates) {
-      // Get the base value from the balance if available
-      const baseValueInUsd = balance.value?.valuePerMyPt ||
-        (balance as any)?.value?.baseValue ||
-        (balance as any)?.baseValue;
+      // Get the exchange rate for the selected currency from the API
+      const rate = exchangeRates.rates[currency];
 
-      console.log('Using baseValueInUsd for conversion:', baseValueInUsd);
-
-      // If the selected currency is USD, use the base value
-      if (currency === 'USD') {
-        newValue = baseValueInUsd;
+      // If we have a rate, calculate the value
+      if (rate) {
+        // Convert USD value to target currency
+        newValue = baseValueInUsd * rate;
         useFallback = false;
       } else {
-        // Get the exchange rate for the selected currency from the API
-        const rate = exchangeRates.rates[currency];
-
-        // If we have a rate, calculate the value
-        if (rate) {
-          // Convert USD value to target currency
-          newValue = baseValueInUsd * rate;
-          useFallback = false;
-        } else {
-          // Last resort: use the base value
-          newValue = baseValueInUsd;
-          useFallback = true;
-        }
+        // Last resort: use the base value
+        newValue = baseValueInUsd;
+        useFallback = true;
       }
     } else {
-      // No exchange rates, use the value from balance
-      newValue = balance.value?.valuePerMyPt || 0;
+      // No exchange rates, use the base value
+      newValue = baseValueInUsd;
       useFallback = true;
     }
 
     // Update state
     setValuePerMyPt(newValue);
     setUsingFallbackRates(useFallback);
-  }, [exchangeRates, currency, balance]);
+  }, [exchangeRates, currency]);
 
   // Update the formatted total value when valuePerMyPt or balance changes
   useEffect(() => {
@@ -268,19 +267,28 @@ export function BalanceCard({
                   <p className="text-2xl sm:text-3xl font-semibold">
                     {formattedTotalValue}
                   </p>
-                  <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
-                    <span>{formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 rounded-full hover:bg-primary/10 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsExchangeRateModalOpen(true);
-                      }}
-                    >
-                      <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
-                    </Button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                      <span>{formatCurrency(valuePerMyPt, currency, { preserveFullPrecision: true })} per MyPt</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 rounded-full hover:bg-primary/10 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsExchangeRateModalOpen(true);
+                        }}
+                      >
+                        <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className={`font-medium flex items-center ${percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {percentageChange >= 0 ? <TrendingUp className="h-3 w-3 mr-0.5" /> : <TrendingDown className="h-3 w-3 mr-0.5" />}
+                        {percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(2)}%
+                      </span>
+                      <span className="text-muted-foreground">from previous</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -340,6 +348,8 @@ export function BalanceCard({
         currency={currency}
         valuePerMyPt={valuePerMyPt}
         isUsingFallbackRates={usingFallbackRates}
+        previousValuePerMyPt={previousValuePerMyPt}
+        percentageChange={percentageChange}
       />
     </motion.div>
   );

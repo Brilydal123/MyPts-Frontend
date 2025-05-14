@@ -136,11 +136,14 @@ export class ProfileApi {
         hasUserData: !!userDataString
       });
 
-      // If not authenticated via NextAuth or social auth, return error
-      if (!session?.user?.id && !isSocialAuthenticated) {
+      // Check for access token directly
+      const hasAccessToken = !!accessToken;
+
+      // If not authenticated via NextAuth, social auth, or direct access token, return error
+      if (!session?.user?.id && !isSocialAuthenticated && !hasAccessToken) {
         return {
           success: false,
-          message: 'No user found in session or social authentication'
+          message: 'No user found in session or authentication token'
         };
       }
 

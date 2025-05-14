@@ -1,12 +1,10 @@
 import { ReactQueryProvider } from "@/components/providers/query-provider";
-import { NextAuthProvider } from "@/components/providers/session-provider";
+import { NextAuthProvider } from "@/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { TokenRefreshProvider } from "@/components/providers/token-refresh-provider";
-import { TokenDebugProvider } from "@/components/providers/token-debug-provider";
-// import { LoadingProvider } from "@/contexts/loading-context";
-// import { ExchangeRateProvider } from "@/contexts/exchange-rate-context";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
 import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
+import { UserProvider } from "@/contexts/UserContext";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
@@ -35,12 +33,10 @@ export default function RootLayout({
         <NextAuthProvider>
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-              <TokenDebugProvider>
-                <TokenRefreshProvider>
+              <AuthProvider>
+                <UserProvider>
                   <ProfileProvider>
                     <NetworkStatusProvider>
-                      {/* <ExchangeRateProvider baseCurrency="USD"> */}
-                      {/* <LoadingProvider>/ */}
                       <div className="font-manrope">
                         {children}
                       </div>
@@ -54,12 +50,10 @@ export default function RootLayout({
                           },
                         }}
                       />
-                      {/* </LoadingProvider> */}
-                      {/* </ExchangeRateProvider> */}
                     </NetworkStatusProvider>
                   </ProfileProvider>
-                </TokenRefreshProvider>
-              </TokenDebugProvider>
+                </UserProvider>
+              </AuthProvider>
             </ThemeProvider>
           </ReactQueryProvider>
         </NextAuthProvider>

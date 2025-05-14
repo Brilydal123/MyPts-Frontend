@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import AUTH_CONFIG from '@/lib/auth/config';
 
 export async function GET() {
   console.log('Server-side logout API called');

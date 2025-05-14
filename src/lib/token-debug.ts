@@ -2,7 +2,7 @@
 
 /**
  * Token Debug Utility
- * 
+ *
  * This utility provides functions to diagnose token-related issues
  * in the browser. It can be used to check the state of tokens in
  * localStorage, cookies, and decode JWT tokens.
@@ -15,7 +15,7 @@
  */
 export function decodeJwt(token: string | null | undefined): any {
   if (!token) return null;
-  
+
   try {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -24,7 +24,7 @@ export function decodeJwt(token: string | null | undefined): any {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join('')
     );
-    
+
     return JSON.parse(jsonPayload);
   } catch (e) {
     console.error('Error decoding token:', e);
@@ -39,10 +39,10 @@ export function decodeJwt(token: string | null | undefined): any {
  */
 export function isTokenExpired(token: string | null | undefined): boolean | null {
   if (!token) return null;
-  
+
   const decoded = decodeJwt(token);
   if (!decoded || !decoded.exp) return null;
-  
+
   const now = Date.now() / 1000; // Current time in seconds
   return decoded.exp < now;
 }
@@ -54,10 +54,10 @@ export function isTokenExpired(token: string | null | undefined): boolean | null
  */
 export function getTokenExpiresIn(token: string | null | undefined): number | null {
   if (!token) return null;
-  
+
   const decoded = decodeJwt(token);
   if (!decoded || !decoded.exp) return null;
-  
+
   const now = Date.now() / 1000; // Current time in seconds
   return decoded.exp - now;
 }
@@ -70,21 +70,21 @@ export function getAllTokens(): Record<string, string | null> {
   if (typeof window === 'undefined') {
     return {};
   }
-  
+
   // Get tokens from localStorage
   const accessToken = localStorage.getItem('accessToken');
   const refreshToken = localStorage.getItem('refreshToken');
   const nextAuthToken = localStorage.getItem('next-auth.session-token');
   const secureNextAuthToken = localStorage.getItem('__Secure-next-auth.session-token');
   const selectedProfileToken = localStorage.getItem('selectedProfileToken');
-  
+
   // Get tokens from cookies
   const cookies = document.cookie.split(';').reduce((acc, cookie) => {
     const [key, value] = cookie.trim().split('=');
     if (key) acc[key] = value;
     return acc;
   }, {} as Record<string, string>);
-  
+
   return {
     // localStorage tokens
     accessTokenFromLocalStorage: accessToken,
@@ -92,7 +92,7 @@ export function getAllTokens(): Record<string, string | null> {
     nextAuthTokenFromLocalStorage: nextAuthToken,
     secureNextAuthTokenFromLocalStorage: secureNextAuthToken,
     selectedProfileTokenFromLocalStorage: selectedProfileToken,
-    
+
     // Cookie tokens
     accessTokenFromCookie: cookies.accessToken || cookies.accesstoken,
     refreshTokenFromCookie: cookies.refreshToken || cookies.refreshtoken,
@@ -109,10 +109,10 @@ export function runTokenDiagnostic(): Record<string, any> {
   if (typeof window === 'undefined') {
     return { error: 'Cannot run in server environment' };
   }
-  
+
   const tokens = getAllTokens();
   const now = Date.now() / 1000; // Current time in seconds
-  
+
   // Decode tokens
   const decodedTokens: Record<string, any> = {};
   Object.entries(tokens).forEach(([key, token]) => {
@@ -120,7 +120,7 @@ export function runTokenDiagnostic(): Record<string, any> {
       decodedTokens[key] = decodeJwt(token);
     }
   });
-  
+
   // Check token expiration
   const tokenStatus: Record<string, any> = {};
   Object.entries(tokens).forEach(([key, token]) => {
@@ -138,7 +138,7 @@ export function runTokenDiagnostic(): Record<string, any> {
       }
     }
   });
-  
+
   return {
     tokens,
     decodedTokens,
@@ -157,11 +157,11 @@ export function logTokenDiagnostic(): void {
     console.error('Cannot run token diagnostic in server environment');
     return;
   }
-  
+
   console.group('=== TOKEN DIAGNOSTIC ===');
-  
+
   const diagnostic = runTokenDiagnostic();
-  
+
   console.log('Tokens Available:', {
     hasAccessTokenInLocalStorage: !!diagnostic.tokens.accessTokenFromLocalStorage,
     hasRefreshTokenInLocalStorage: !!diagnostic.tokens.refreshTokenFromLocalStorage,
@@ -170,11 +170,11 @@ export function logTokenDiagnostic(): void {
     hasRefreshTokenInCookie: !!diagnostic.tokens.refreshTokenFromCookie,
     hasNextAuthTokenInCookie: !!diagnostic.tokens.nextAuthTokenFromCookie,
   });
-  
+
   console.log('Token Status:', diagnostic.tokenStatus);
   console.log('LocalStorage Keys:', diagnostic.localStorage);
   console.log('Cookies:', diagnostic.cookies);
-  
+
   console.groupEnd();
 }
 

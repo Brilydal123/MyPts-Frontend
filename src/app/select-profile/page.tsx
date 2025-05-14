@@ -12,8 +12,20 @@ export default function SelectProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check for social auth tokens in localStorage
+    // Helper function to get cookie value
+    const getCookieValue = (name: string) => {
+      if (typeof document === 'undefined') return null;
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? match[2] : null;
+    };
+
+    // Check for tokens in all possible locations
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const nextAuthToken = typeof window !== 'undefined' ? localStorage.getItem('next-auth.session-token') : null;
+    const accessTokenFromCookie = getCookieValue('accessToken') || getCookieValue('accesstoken');
+    const nextAuthSessionToken = getCookieValue('__Secure-next-auth.session-token') || getCookieValue('next-auth.session-token');
+
+    // Check for user data
     const userDataString = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
     let userData = null;
 
@@ -25,15 +37,23 @@ export default function SelectProfilePage() {
       console.error('Error parsing user data from localStorage:', e);
     }
 
-    console.log('Select profile page - social auth check:', {
+    // Check if we have any valid token
+    const hasAnyToken = !!accessToken || !!nextAuthToken || !!accessTokenFromCookie || !!nextAuthSessionToken;
+
+    console.log('Select profile page - auth check:', {
+      nextAuthStatus: status,
       hasAccessToken: !!accessToken,
+      hasNextAuthToken: !!nextAuthToken,
+      hasAccessTokenCookie: !!accessTokenFromCookie,
+      hasNextAuthSessionToken: !!nextAuthSessionToken,
+      hasAnyToken,
       hasUserData: !!userData,
       userData: userData ? { id: userData.id, email: userData.email } : null
     });
 
-    // If not authenticated via NextAuth and no social auth tokens, redirect to login
-    if (status === 'unauthenticated' && !accessToken) {
-      console.log('Not authenticated and no social auth tokens, redirecting to login');
+    // If not authenticated via NextAuth and no tokens anywhere, redirect to login
+    if (status === 'unauthenticated' && !hasAnyToken) {
+      console.log('Not authenticated and no tokens found, redirecting to login');
       router.push('/login');
       return;
     }
@@ -50,7 +70,9 @@ export default function SelectProfilePage() {
     let isAdminFromCookies = false;
     if (typeof document !== 'undefined') {
       isAdminFromCookies = document.cookie.includes('X-User-Role=admin') ||
-        document.cookie.includes('X-User-Is-Admin=true');
+        document.cookie.includes('X-User-Is-Admin=true') ||
+        document.cookie.includes('isAdmin=true') ||
+        document.cookie.includes('userRole=admin');
     }
 
     const isAdmin = isAdminFromSession || isAdminFromLocalStorage || isAdminFromUserData || isAdminFromCookies;
@@ -64,10 +86,20 @@ export default function SelectProfilePage() {
       userData: userData ? { id: userData.id, role: userData.role, isAdmin: userData.isAdmin } : null
     });
 
-    // If user is admin, redirect to admin dashboard
+    // If user is admin, redirect to admin dashboard IMMEDIATELY
     if (isAdmin) {
-      console.log('Admin user detected - redirecting to admin dashboard');
-      router.push('/admin');
+      console.log('Admin user detected - redirecting to admin dashboard IMMEDIATELY');
+      // Store admin status in localStorage for persistence
+      localStorage.setItem('isAdmin', 'true');
+      localStorage.setItem('userRole', 'admin');
+
+      // Set cookies for admin status (for middleware detection)
+      document.cookie = 'isAdmin=true; path=/; max-age=2592000; SameSite=Lax';
+      document.cookie = 'X-User-Role=admin; path=/; max-age=2592000; SameSite=Lax';
+      document.cookie = 'X-User-Is-Admin=true; path=/; max-age=2592000; SameSite=Lax';
+
+      // Use hard redirect instead of router.push for immediate effect
+      window.location.href = '/admin';
       return;
     }
 
@@ -117,8 +149,8 @@ export default function SelectProfilePage() {
     hasUserData: !!userDataString
   });
 
-  // If authenticated via NextAuth or social auth, show profile selector
-  if (status === 'authenticated' || isSocialAuthenticated) {
+  // If authenticated via NextAuth, social auth, or has access token in localStorage, show profile selector
+  if (status === 'authenticated' || isSocialAuthenticated || accessToken) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-xl">

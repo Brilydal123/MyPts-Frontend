@@ -7,27 +7,55 @@ import { useProfileInfo } from "@/hooks/use-mypts-data";
 import { countries } from "@/components/ui/country-selector-data";
 import { ProfileEditForm } from "./profile-edit-form";
 import { Pencil } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
 // Helper function to get country flag from country name or code
 const getCountryFlag = (countryNameOrCode: string | undefined): string => {
   if (!countryNameOrCode) return '';
 
+  // Normalize the input for comparison
+  const normalizedInput = countryNameOrCode.toLowerCase().trim();
+
+  // Special case for Cameroon
+  if (normalizedInput === 'cameroon' || normalizedInput === 'cameroun' ||
+    normalizedInput.includes('cameroon') || normalizedInput.includes('cameroun')) {
+    console.log(`Special case for Cameroon: 🇨🇲`);
+    return '🇨🇲';
+  }
+
   // Try to find the country by name first
   const countryByName = countries.find(
-    c => c.name.toLowerCase() === countryNameOrCode.toLowerCase()
+    c => c.name.toLowerCase() === normalizedInput
   );
 
-  if (countryByName) return countryByName.flag;
+  if (countryByName) {
+    console.log(`Found country by name: ${countryNameOrCode} -> ${countryByName.flag}`);
+    return countryByName.flag;
+  }
 
   // If not found by name, try by code (assuming countryNameOrCode might be a 2-letter code)
-  if (countryNameOrCode.length === 2) {
+  if (normalizedInput.length === 2) {
     const countryByCode = countries.find(
-      c => c.code.toLowerCase() === countryNameOrCode.toLowerCase()
+      c => c.code.toLowerCase() === normalizedInput
     );
-    if (countryByCode) return countryByCode.flag;
+    if (countryByCode) {
+      console.log(`Found country by code: ${countryNameOrCode} -> ${countryByCode.flag}`);
+      return countryByCode.flag;
+    }
+  }
+
+  // Try partial matching for country names
+  const partialMatch = countries.find(
+    c => c.name.toLowerCase().includes(normalizedInput) || normalizedInput.includes(c.name.toLowerCase())
+  );
+
+  if (partialMatch) {
+    console.log(`Found country by partial match: ${countryNameOrCode} -> ${partialMatch.flag}`);
+    return partialMatch.flag;
   }
 
   // If still not found, return a globe icon placeholder
+  console.log(`Country not found: ${countryNameOrCode}, using globe icon`);
   return '🌐';
 };
 
@@ -78,6 +106,9 @@ export function ProfileInfo({ profileId, compact = false, editable = false }: Pr
   // State for edit mode
   const [isEditing, setIsEditing] = useState(false);
 
+  // Get user data from UserContext
+  const { user: contextUser, isLoading: isUserLoading } = useUser();
+
   // Use React Query hook for profile data
   const {
     data: profile,
@@ -88,6 +119,17 @@ export function ProfileInfo({ profileId, compact = false, editable = false }: Pr
 
   // Convert query error to string for display
   const error = queryError ? (queryError as Error).message : null;
+
+  // Log user data from context for debugging
+  if (contextUser) {
+    console.log('ProfileInfo - User data from UserContext:', {
+      id: contextUser.id || contextUser._id,
+      fullName: contextUser.fullName,
+      email: contextUser.email,
+      countryOfResidence: contextUser.countryOfResidence,
+      country: contextUser.country
+    });
+  }
 
   // Handle edit button click
   const handleEditClick = () => {
@@ -270,14 +312,26 @@ export function ProfileInfo({ profileId, compact = false, editable = false }: Pr
                 // @ts-ignore - Handle potential missing properties
                 profile.country;
 
-              // If country is not found in profile, try to get it from localStorage
+              // If country is not found in profile, try to get it from UserContext
               let userCountry = '';
-              if (!country && typeof window !== 'undefined') {
+              if (!country && contextUser) {
+                // Get country from UserContext
+                userCountry = contextUser.countryOfResidence || contextUser.country || '';
+                console.log(`Found country in UserContext: ${userCountry}`);
+              }
+
+              // If still no country, try to get it from localStorage as fallback
+              if (!userCountry && typeof window !== 'undefined') {
                 try {
-                  const userDataStr = localStorage.getItem('user');
-                  if (userDataStr) {
-                    const userData = JSON.parse(userDataStr);
-                    userCountry = userData.countryOfResidence || '';
+                  // Try direct localStorage access first
+                  userCountry = localStorage.getItem('userCountry') || '';
+
+                  if (!userCountry) {
+                    const userDataStr = localStorage.getItem('user');
+                    if (userDataStr) {
+                      const userData = JSON.parse(userDataStr);
+                      userCountry = userData.countryOfResidence || userData.country || '';
+                    }
                   }
                 } catch (error) {
                   console.error('Error parsing user data from localStorage:', error);
@@ -420,14 +474,26 @@ export function ProfileInfo({ profileId, compact = false, editable = false }: Pr
                 // @ts-ignore - Handle potential missing properties
                 profile.country;
 
-              // If country is not found in profile, try to get it from localStorage
+              // If country is not found in profile, try to get it from UserContext
               let userCountry = '';
-              if (!country && typeof window !== 'undefined') {
+              if (!country && contextUser) {
+                // Get country from UserContext
+                userCountry = contextUser.countryOfResidence || contextUser.country || '';
+                console.log(`Found country in UserContext: ${userCountry}`);
+              }
+
+              // If still no country, try to get it from localStorage as fallback
+              if (!userCountry && typeof window !== 'undefined') {
                 try {
-                  const userDataStr = localStorage.getItem('user');
-                  if (userDataStr) {
-                    const userData = JSON.parse(userDataStr);
-                    userCountry = userData.countryOfResidence || '';
+                  // Try direct localStorage access first
+                  userCountry = localStorage.getItem('userCountry') || '';
+
+                  if (!userCountry) {
+                    const userDataStr = localStorage.getItem('user');
+                    if (userDataStr) {
+                      const userData = JSON.parse(userDataStr);
+                      userCountry = userData.countryOfResidence || userData.country || '';
+                    }
                   }
                 } catch (error) {
                   console.error('Error parsing user data from localStorage:', error);
