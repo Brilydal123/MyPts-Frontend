@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ export function MyPtsAnalyticsDashboard() {
 
     // Group transactions by type
     const typeMap = new Map<string, number>();
-    analytics.transactions.forEach(tx => {
+    analytics.transactions.forEach((tx: { type: any; amount: number; }) => {
       const type = tx.type;
       typeMap.set(type, (typeMap.get(type) || 0) + Math.abs(tx.amount));
     });
@@ -89,7 +89,7 @@ export function MyPtsAnalyticsDashboard() {
     }
 
     // Add transaction amounts to dates
-    analytics.transactions.forEach(tx => {
+    analytics.transactions.forEach((tx: { date: string; amount: number; }) => {
       const date = format(parseISO(tx.date), 'yyyy-MM-dd');
       if (dateMap.has(date)) {
         dateMap.set(date, (dateMap.get(date) || 0) + Math.abs(tx.amount));
@@ -106,7 +106,7 @@ export function MyPtsAnalyticsDashboard() {
     // Get recent activity (last 10 transactions)
     const recentActivity = analytics.transactions
       .slice(0, 10)
-      .map(tx => ({
+      .map((tx: { date: string; type: string; amount: number; }) => ({
         date: format(parseISO(tx.date), 'MMM dd, yyyy'),
         type: formatTransactionType(tx.type),
         amount: tx.amount,
@@ -295,7 +295,7 @@ export function MyPtsAnalyticsDashboard() {
                 ) : (
                   <div className="space-y-4">
                     {recentActivity.length > 0 ? (
-                      recentActivity.map((activity, i) => (
+                      recentActivity.map((activity: { isPositive: any; type: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; date: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; amount: number; }, i: Key | null | undefined) => (
                         <div key={i} className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className={`p-2 rounded-full ${activity.isPositive ? 'bg-emerald-100' : 'bg-rose-100'}`}>
