@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { socialAuthApi } from "@/lib/api/social-auth-api";
 import { toast } from "sonner";
 import axios from "axios";
+import { clearStorages, clearAuthCookies, clearAuthLocalStorage } from "@/lib/auth/logout-utils";
 
 export function GoogleAuthCallback() {
   const router = useRouter();
@@ -79,6 +80,13 @@ export function GoogleAuthCallback() {
         }
 
         console.log("GoogleAuthCallback: Fetching user data with token");
+
+        console.log("GoogleAuthCallback: Clearing existing session data before setting new tokens");
+
+        // Clear any existing session data to prevent conflicts
+        clearAuthLocalStorage();
+        clearAuthCookies();
+        clearStorages();
 
         console.log("GoogleAuthCallback: Setting tokens in storage and headers");
 
