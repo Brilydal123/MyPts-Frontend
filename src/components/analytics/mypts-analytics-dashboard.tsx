@@ -295,7 +295,7 @@ export function MyPtsAnalyticsDashboard() {
                 ) : (
                   <div className="space-y-4">
                     {recentActivity.length > 0 ? (
-                      recentActivity.map((activity: { isPositive: any; type: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; date: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; amount: number; }, i: Key | null | undefined) => (
+                      recentActivity.map((activity: { date: string; type: string; amount: number; isPositive: boolean; }, i: Key | null | undefined) => (
                         <div key={i} className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className={`p-2 rounded-full ${activity.isPositive ? 'bg-emerald-100' : 'bg-rose-100'}`}>
