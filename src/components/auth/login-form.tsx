@@ -2,7 +2,7 @@
 
 import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
-import { clearStorages } from "@/lib/auth/logout-utils";
+import { clearStorages, clearAuthCookies, clearAuthLocalStorage } from "@/lib/auth/logout-utils";
 import {
   Form,
   FormControl,
@@ -82,7 +82,17 @@ export function LoginForm() {
 
   useEffect(() => {
     // Clear any existing session data when the login form mounts
+    console.log('Login form mounted - clearing all session data');
+
+    // Use our enhanced logout utilities for thorough cleanup
+    clearAuthLocalStorage();
+    clearAuthCookies();
     clearStorages();
+
+    // Add a small delay to ensure all data is cleared before proceeding
+    setTimeout(() => {
+      console.log('Session data cleared');
+    }, 100);
 
     if (isLogout) {
       toast.success("Logged out successfully");
@@ -177,6 +187,9 @@ export function LoginForm() {
         console.log("Direct login successful:", directLoginData);
 
         // Clear any existing data before storing new session
+        console.log('Clearing all existing session data before storing new session');
+        clearAuthLocalStorage();
+        clearAuthCookies();
         clearStorages();
 
         // Store tokens in localStorage for client-side access
@@ -343,6 +356,9 @@ export function LoginForm() {
           }
 
           // Clear any existing data before storing new session
+          console.log('Clearing all existing session data before storing new session from NextAuth');
+          clearAuthLocalStorage();
+          clearAuthCookies();
           clearStorages();
 
           // Store tokens in localStorage for client-side access

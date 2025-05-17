@@ -1,12 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AuthContextType, AuthState, User } from '@/lib/auth/types';
 import AUTH_CONFIG from '@/lib/auth/config';
 import { deleteCookie } from '@/lib/auth/token-service';
+import { handleLogout as logoutUtil, clearStorages } from '@/lib/auth/logout-utils';
 
 // Create the auth context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,9 +120,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = async (): Promise<void> => {
     try {
+      console.log('Starting enhanced logout process...');
+
       // Call the backend logout endpoint to invalidate the refresh token
       if (state.isAuthenticated && session?.accessToken) {
         try {
+          console.log('Calling backend logout endpoint...');
           await fetch(`${AUTH_CONFIG.api.baseUrl}${AUTH_CONFIG.api.endpoints.logout}`, {
             method: 'POST',
             headers: {
@@ -130,56 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
             credentials: 'include',
           });
+          console.log('Backend logout successful');
         } catch (error) {
           console.error('Error calling backend logout:', error);
           // Continue with local logout even if backend logout fails
         }
       }
 
-      // Clear all cookies
-      const cookiesToClear = [
-        AUTH_CONFIG.tokens.accessToken.cookieName,
-        AUTH_CONFIG.tokens.refreshToken.cookieName,
-        AUTH_CONFIG.tokens.profileToken.cookieName,
-        'next-auth.callback-url',
-        'next-auth.csrf-token',
-        'selectedProfileId',
-        'profileId',
-        'accessToken',
-        'refreshToken',
-        'profileToken',
-        'isAdmin',
-        'userRole',
-      ];
-
-      cookiesToClear.forEach(cookieName => {
-        deleteCookie(cookieName);
-        deleteCookie(cookieName, { path: '/' });
-        deleteCookie(cookieName, { path: '/', domain: window.location.hostname });
-        deleteCookie(cookieName, {
-          path: '/',
-          domain: window.location.hostname,
-          secure: true,
-          sameSite: 'none'
-        });
-      });
-
-      // Clear localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('selectedProfileId');
-        localStorage.removeItem('user');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('profileToken');
-        localStorage.removeItem('tokenExpiry');
-        localStorage.removeItem('isAdmin');
-        localStorage.removeItem('userRole');
-      }
-
-      // Sign out from NextAuth
-      await signOut({ redirect: false });
-
-      // Reset state
+      // Reset state first to prevent any components from using stale data
       setState({
         isAuthenticated: false,
         isLoading: false,
@@ -188,15 +150,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: null,
       });
 
-      // Redirect to login page
-      router.push(`${AUTH_CONFIG.routes.login}?logout=true`);
+      // Use our enhanced logout utility
+      await logoutUtil();
 
+      // Show success message
       toast.success('Logged out successfully');
+
+      // No need to redirect here as the logout utility handles it
     } catch (error) {
       console.error('Logout error:', error);
+
+      // Even if there's an error, try to clear storage
+      clearStorages();
+
       toast.error('Logout failed', {
         description: 'An error occurred during logout. Please try again.',
       });
+
+      // Force redirect to login page with cache busting
+      window.location.href = `${AUTH_CONFIG.routes.login}?logout=true&nocache=${Date.now()}`;
     }
   };
 
