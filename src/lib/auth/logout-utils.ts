@@ -116,6 +116,10 @@ export const handleLogout = async () => {
     // Clear all stored data first
     clearStorages();
 
+    // Disable session polling by setting a flag in localStorage
+    localStorage.setItem('sessionPollingDisabled', 'true');
+    console.log('Session polling disabled');
+
     // Add a timestamp to prevent caching
     const nocache = Date.now();
 
@@ -127,6 +131,11 @@ export const handleLogout = async () => {
 
     console.log('NextAuth signOut completed');
 
+    // Broadcast a custom event to notify other components about the logout
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('userLoggedOut'));
+    }
+
     // Force a hard reload to clear any in-memory state
     window.location.href = `/login?nocache=${nocache}`;
 
@@ -135,6 +144,9 @@ export const handleLogout = async () => {
 
     // Even if signOut fails, clear storages again
     clearStorages();
+
+    // Disable session polling even in case of error
+    localStorage.setItem('sessionPollingDisabled', 'true');
 
     // Fallback: force reload to login page with cache-busting
     window.location.href = `/login?nocache=${Date.now()}`;

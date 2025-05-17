@@ -150,6 +150,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: null,
       });
 
+      // Disable session polling to prevent getSession events after logout
+      localStorage.setItem('sessionPollingDisabled', 'true');
+      console.log('Session polling disabled from AuthContext');
+
       // Use our enhanced logout utility
       await logoutUtil();
 
@@ -162,6 +166,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Even if there's an error, try to clear storage
       clearStorages();
+
+      // Disable session polling even in case of error
+      localStorage.setItem('sessionPollingDisabled', 'true');
 
       toast.error('Logout failed', {
         description: 'An error occurred during logout. Please try again.',

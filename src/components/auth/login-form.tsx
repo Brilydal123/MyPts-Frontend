@@ -89,6 +89,10 @@ export function LoginForm() {
     clearAuthCookies();
     clearStorages();
 
+    // Re-enable session polling when on the login page
+    localStorage.removeItem('sessionPollingDisabled');
+    console.log('Session polling re-enabled');
+
     // Add a small delay to ensure all data is cleared before proceeding
     setTimeout(() => {
       console.log('Session data cleared');
