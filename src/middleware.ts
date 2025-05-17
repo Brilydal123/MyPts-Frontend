@@ -1,212 +1,43 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
-import AUTH_CONFIG from "@/lib/auth/config";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Public routes that don't require authentication
-const publicRoutes = AUTH_CONFIG.publicRoutes;
+const PROTECTED_PATHS = [
+  '/dashboard',
+  '/admin',
+  '/settings',
+  '/profile',
+  '/select-profile',
+];
 
-// Routes that require authentication but shouldn't redirect to dashboard
-const authRequiredButPublicRoutes = AUTH_CONFIG.authRequiredButPublicRoutes;
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next();
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const url = new URL(request.url);
-
-  // Special handling for Google Auth Callback
-  if (pathname.startsWith("/auth/google/callback")) {
-    // For Google Auth Callback, we'll check for admin role in the URL parameters
-    const token = url.searchParams.get("token");
-
-    if (token) {
-      try {
-        // Try to decode the token to check for admin role
-        // This is a simple check and doesn't validate the signature
-        const tokenParts = token.split('.');
-        if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
-
-          // If the token contains userId, we can try to check for admin cookies
-          if (payload.userId) {
-            const cookieIsAdmin = request.cookies.get("isAdmin")?.value;
-            const cookieUserRole = request.cookies.get("X-User-Role")?.value;
-
-            if (cookieIsAdmin === 'true' || cookieUserRole === 'admin') {
-              console.log("Admin user detected in Google Auth Callback, redirecting to admin dashboard");
-              return NextResponse.redirect(new URL("/admin", request.url));
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error decoding token in middleware:", error);
-      }
-    }
-
-    // If not admin or error, continue with normal flow
-    return NextResponse.next();
+  // Add security headers to prevent caching of sensitive pages
+  if (PROTECTED_PATHS.some(path => request.nextUrl.pathname.startsWith(path))) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
   }
 
-  // Skip middleware for API routes
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.next();
-  }
+  // Add security headers for all routes
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  // Check for logout flag or cache-busting parameter in URL
-  const isLogoutRequest = url.searchParams.get("logout") === "true";
-  const hasCacheBuster = url.searchParams.has("t") || url.searchParams.has("nocache");
-
-  // If this is a logout request or has cache buster, don't check authentication
-  if ((isLogoutRequest || hasCacheBuster) && pathname === "/login") {
-    // Clear any cookies in the response
-    const response = NextResponse.next();
-
-    // Clear auth cookies in the response
-    const cookiesToClear = [
-      "accessToken", "accesstoken", "refreshToken", "refreshtoken",
-      "next-auth.session-token", "__Secure-next-auth.session-token",
-      "profileId", "profileToken", "selectedProfileId", "selectedProfileToken"
-    ];
-
-    cookiesToClear.forEach(name => {
-      response.cookies.set(name, "", {
-        expires: new Date(0),
-        path: "/"
-      });
-    });
-
-    return response;
-  }
-
-  // Get NextAuth token (this validates the token)
-  const token = await getToken({ req: request });
-
-  // For custom tokens, we need to check if they're still valid
-  // We'll use a header to indicate if the client has verified the token
-  const isVerifiedByClient = request.headers.get("x-token-verified") === "true";
-
-  // Check for cache busting parameters that indicate a fresh page load after logout
-  const hasLogoutIndicator = url.searchParams.has("logout") ||
-                            url.searchParams.has("t") ||
-                            url.searchParams.has("nocache");
-
-  // Get token from cookies
-  const cookieToken = request.cookies.get("accessToken")?.value ||
-                     request.cookies.get("accesstoken")?.value;
-
-  // Get token from headers (for API requests)
-  const headerToken = request.headers.get("Authorization")?.replace("Bearer ", "") ||
-                     request.headers.get("x-access-token");
-
-  // If we have logout indicators, don't consider tokens valid
-  const customToken = !hasLogoutIndicator ? (cookieToken || headerToken) : null;
-
-  // Special handling for Google auth callback and complete-profile
-  const isGoogleCallback = pathname.includes("/auth/google/callback");
-  const isCompleteProfile = pathname === "/complete-profile";
-
-  // Consider the user authenticated if:
-  // 1. They have a valid NextAuth token, OR
-  // 2. They have a custom token AND (it's been verified by the client OR it's a special path)
-  const isAuthenticated = !!token ||
-                         (!!customToken && (isVerifiedByClient || isGoogleCallback || isCompleteProfile));
-
-  // Log authentication status for debugging
-  console.log("Auth check (middleware):", {
-    path: pathname,
-    hasNextAuthToken: !!token,
-    hasCookieToken: !!cookieToken,
-    hasHeaderToken: !!headerToken,
-    hasCustomToken: !!customToken,
-    isVerifiedByClient,
-    isGoogleCallback,
-    isCompleteProfile,
-    hasLogoutIndicator,
-    isAuthenticated,
-    isLogoutRequest
-  });
-
-  // Special handling for complete-profile page
-  if (pathname === "/complete-profile") {
-    // Allow access to complete-profile if authenticated, otherwise redirect to login
-    if (!isAuthenticated && !isLogoutRequest && !hasLogoutIndicator) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // Check if user is admin - with detailed logging
-  const tokenRole = token?.role;
-  const tokenIsAdmin = token?.isAdmin;
-  const cookieIsAdmin = request.cookies.get("isAdmin")?.value;
-  const cookieUserRole = request.cookies.get("X-User-Role")?.value;
-  const cookieUserIsAdmin = request.cookies.get("X-User-Is-Admin")?.value;
-
-  const isAdmin = tokenRole === 'admin' ||
-                 tokenIsAdmin === true ||
-                 cookieIsAdmin === 'true' ||
-                 cookieUserRole === 'admin' ||
-                 cookieUserIsAdmin === 'true';
-
-  console.log("ADMIN ROLE DEBUG (middleware):", {
-    tokenRole,
-    tokenIsAdmin,
-    cookieIsAdmin,
-    cookieUserRole,
-    cookieUserIsAdmin,
-    isAdmin,
-    pathname,
-    token: token ? {
-      id: token.id,
-      role: token.role,
-      isAdmin: token.isAdmin,
-      profileId: token.profileId
-    } : null
-  });
-
-  // Special handling for admin users - bypass profile selection and go directly to admin dashboard
-  if (isAuthenticated && isAdmin) {
-    // If admin user is trying to access profile selection, login, or any non-admin page, redirect to admin dashboard
-    if (pathname === "/select-profile" || pathname === "/login" || pathname === "/" ||
-        pathname === "/dashboard" || pathname.startsWith("/profile")) {
-      console.log("Admin user detected in middleware, redirecting to admin dashboard");
-
-      // Create a response with the redirect
-      const response = NextResponse.redirect(new URL("/admin", request.url));
-
-      // Set admin cookies in the response to ensure they're available on the next request
-      response.cookies.set("isAdmin", "true", { path: "/", maxAge: 2592000 });
-      response.cookies.set("X-User-Role", "admin", { path: "/", maxAge: 2592000 });
-      response.cookies.set("X-User-Is-Admin", "true", { path: "/", maxAge: 2592000 });
-
-      return response;
-    }
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (isAuthenticated && publicRoutes.includes(pathname) && !isLogoutRequest && !hasLogoutIndicator) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Let the client handle other auth redirects
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
   matcher: [
-    "/",
-    "/dashboard/:path*",
-    "/buy/:path*",
-    "/sell/:path*",
-    "/donate/:path*",
-    "/transactions/:path*",
-    "/settings/:path*",
-    "/admin/:path*",
-    "/profile/:path*",
-    "/select-profile",
-    "/login",
-    "/register",
-    "/complete-profile",
-    "/auth/google/callback",
-    "/api/auth/update-profile",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
 };

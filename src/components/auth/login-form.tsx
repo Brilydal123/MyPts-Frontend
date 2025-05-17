@@ -2,6 +2,7 @@
 
 import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import { FloatingLabelInput } from "@/components/ui/floating-label-input";
+import { clearStorages } from "@/lib/auth/logout-utils";
 import {
   Form,
   FormControl,
@@ -80,6 +81,9 @@ export function LoginForm() {
   const isLogout = searchParams?.get("logout") === "true";
 
   useEffect(() => {
+    // Clear any existing session data when the login form mounts
+    clearStorages();
+
     if (isLogout) {
       toast.success("Logged out successfully");
     }
@@ -171,6 +175,9 @@ export function LoginForm() {
 
       if (directLoginResponse.ok && directLoginData.success) {
         console.log("Direct login successful:", directLoginData);
+
+        // Clear any existing data before storing new session
+        clearStorages();
 
         // Store tokens in localStorage for client-side access
         if (directLoginData.tokens?.accessToken) {
@@ -334,6 +341,9 @@ export function LoginForm() {
               console.error("Error fetching tokens from backend:", error);
             }
           }
+
+          // Clear any existing data before storing new session
+          clearStorages();
 
           // Store tokens in localStorage for client-side access
           if (session?.accessToken) {

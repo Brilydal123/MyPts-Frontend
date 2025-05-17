@@ -66,6 +66,11 @@ export function MainLayout({ children }: MainLayoutProps) {
       icon: Icons.transactions,
     },
     {
+      name: "Analytics",
+      href: "/dashboard/analytics",
+      icon: Icons.chart,
+    },
+    {
       name: "Referrals",
       href: "/dashboard/referrals",
       icon: Icons.refers,
@@ -382,7 +387,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Main Content with padding for sidebar */}
       <main
         className={`flex-1 ${sidebarOpen ? "lg:ml-64" : "lg:ml-20"
-          } transition-all duration-300 p-4 lg:p-6`}
+          } transition-all duration-300 p-4 lg:py-6 lg:pr-6 lg:pl-2`}
       >
         {children}
       </main>

@@ -8,15 +8,15 @@ export const REQUEST_TIMEOUT = 60000; // 10 seconds
 // Enable mock mode when server is not available
 export const ENABLE_MOCK_MODE = true; // Set to false in production
 // MyPts value constants
-export const DEFAULT_MYPTS_VALUE = 0.0251123654235; // Updated value per MyPt in USD
+export const DEFAULT_MYPTS_VALUE = 0.026112; // Updated value per MyPt in USD (3.98% increase from 0.024)
 
 // Currency conversion rates (direct conversions)
 export const DIRECT_CONVERSIONS: Record<string, { value: number, symbol: string }> = {
-  'XAF': { value: 13.61, symbol: 'FCFA' },  // 1 MyPt = 13.61 XAF
-  'EUR': { value: 0.0208, symbol: '€' },    // 1 MyPt = 0.0208 EUR
-  'GBP': { value: 0.0179, symbol: '£' },    // 1 MyPt = 0.0179 GBP
-  'NGN': { value: 38.26, symbol: '₦' },     // 1 MyPt = 38.26 NGN
-  'PKR': { value: 6.74, symbol: '₨' }       // 1 MyPt = 6.74 PKR
+  'XAF': { value: 14.4828, symbol: 'FCFA' },  // 1 MyPt = 14.4828 XAF
+  'EUR': { value: 0.0216, symbol: '€' },      // 1 MyPt = 0.0216 EUR
+  'GBP': { value: 0.0186, symbol: '£' },      // 1 MyPt = 0.0186 GBP
+  'NGN': { value: 39.78, symbol: '₦' },       // 1 MyPt = 39.78 NGN
+  'PKR': { value: 7.01, symbol: '₨' }         // 1 MyPt = 7.01 PKR
 };
 
 // Request timeout in milliseconds
